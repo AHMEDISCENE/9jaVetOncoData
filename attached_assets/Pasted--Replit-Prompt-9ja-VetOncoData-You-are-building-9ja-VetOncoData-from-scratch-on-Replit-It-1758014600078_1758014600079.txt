@@ -1,0 +1,360 @@
+# Replit Prompt — 9ja VetOncoData
+
+You are building **9ja VetOncoData** from scratch on Replit. It’s a production-ready, mobile-first, user-centred platform for **veterinary cancer data** in Nigeria. It must fix the past iteration’s pitfalls (broken auth, non-persisting data, limited tumour/location vocabularies, weak bulk import, thin analytics, and no feeds), and add robust features (Google sign-in, strong data model, advanced bulk upload, templated reports, offline-first PWA, and safer AI insights). Avoid “demo gloss”; prioritise reliability, clarity, and clinical usefulness.
+
+---
+
+## 1) Success Criteria (what “done” looks like)
+
+* **Accounts & Access**
+
+  * Email/password + **Google sign-in**; email verification; password reset; session persistence.
+  * **Invite-based clinic membership**; roles: **ADMIN, MANAGER, CLINICIAN, RESEARCHER**.
+  * Role-based access control so **no cross-clinic data leakage**; full audit trail on create/update/delete.
+
+* **Data Entry & Forms**
+
+  * Multi-step **New Case** wizard with autosave drafts and validation.
+  * **Species → breed** dependency with local breed lists; “Other (type to add)” for custom entries.
+  * **Tumour Types** and **Anatomical Sites** with type-ahead + **“Add custom”** (promotable to master lists).
+  * Attachments: images (histopath), PDFs (reports), and lab documents, linked to cases.
+
+* **Bulk Upload (must be excellent)**
+
+  * Upload **CSV/XLSX/JSON**; plus **ZIP (many CSVs)**; **PDF table extraction** and **OCR** for scanned lists.
+  * Mapping wizard with saved presets, field auto-match, validation preview, **transactional insert**, dedupe rules, and **error CSV** export.
+  * Supports **large files** (streaming where possible) and **multi-sheet Excel**.
+
+* **Storage, Query, and Display**
+
+  * Data **persists**; case list filters (species, breed, tumour, site, stage, outcome, clinic, state/LGA, dates).
+  * Grouping views (clinic, location, tumour type, breed, outcome); saved views, shareable deep links.
+  * Case page shows **timeline** (diagnosis → treatment → follow-ups), attachments, and quick actions.
+
+* **Analytics & Reports**
+
+  * Dashboard: incidence trends, top tumours, outcomes, cases by state; export charts + underlying CSV.
+  * **Reports module**: versioned templates, parameters (date/species/filters), watermark, clinic letterhead, **PDF/DOCX/CSV**; schedulable with email delivery; immutable outputs and checksums.
+
+* **Feeds & Calendar**
+
+  * Feed with admin-moderated posts (news, research, trends) and attachments.
+  * Calendar of scheduled follow-ups; email/in-app reminders.
+
+* **Offline & Performance**
+
+  * PWA: installable, **offline create/edit** with background sync; low-bandwidth mode.
+  * Snappy on budget Android devices; perceptible actions <1000 ms; list screens keyset-paginate.
+
+* **AI (optional, key-gated)**
+
+  * AI summaries strictly **post-query** (never free-text SQL); always show the data behind insights.
+  * Redact owner identifiers in AI output by default.
+
+---
+
+## 2) Architecture & Platform Guardrails
+
+* **Frontend:** Next.js App Router + TypeScript, React Hook Form + Zod, Tailwind, shadcn/ui.
+* **Backend/Data:** PostgreSQL with Prisma. Use UUIDs, ISO timestamps, **JSONB** for extensibility, and **materialized views** for analytics.
+* **Auth:** Auth.js (NextAuth) with Google + credentials; invitation-based clinic join; verified email.
+* **Files:** S3-compatible storage (e.g., Cloudflare R2/AWS S3). Small files may fall back to DB only if needed.
+* **Jobs:** pg-backed queue (e.g., **pg-boss**) for analytics refresh and scheduled report runs.
+* **Realtime (nice-to-have):** Postgres LISTEN/NOTIFY for toast refreshes.
+* **PWA:** Service worker + IndexedDB for offline queue and cache.
+* **Testing:** Unit + e2e on auth, imports, forms, and RLS-sensitive endpoints.
+* **Observability:** Console + simple error boundary surfaced to the user with actionable guidance.
+
+**Security defaults**
+
+* HTTPS only; store secrets in environment vars; rate-limit auth/import APIs; CSRF on mutations.
+* Data minimization; redact PII in exports and AI results; short-lived signed file URLs.
+* **Audit log**: who did what, when, and from where (IP/UA), for all data mutations and report runs.
+
+---
+
+## 3) Data Model (business-level, not code)
+
+Model the following core entities and their relationships. Use normalized tables for master vocabularies, and allow custom values to be captured then optionally **promoted** to the master lists by managers.
+
+* **Clinic**
+
+  * Name, state, city, optional LGA; createdAt.
+* **User**
+
+  * Email, name, image, role, clinicId; createdAt/updatedAt.
+* **Case**
+
+  * ClinicId, createdBy, species, breed, sex, age (years or y.m),
+    tumourTypeId or tumourTypeCustom, anatomicalSiteId or anatomicalSiteCustom, laterality, stage, diagnosisMethod, diagnosisDate,
+    treatmentPlan, treatmentStart, outcome, lastFollowUp, free-text notes, extra(JSONB), createdAt/updatedAt.
+  * Indices on clinicId + common filters (species, tumourTypeId, anatomicalSiteId, outcome, dates).
+* **TumourType** (master list)
+
+  * Name, optional species; unique per name+species.
+* **AnatomicalSite** (master list)
+
+  * Name, optional species; unique per name+species.
+* **Attachment**
+
+  * CaseId, kind (image/pdf/lab), URL, size, createdAt.
+* **ReportTemplate** (versioned)
+
+  * Name, description, definition(JSON for inputs/queries/layout/redaction), isSystem, version, createdBy, clinicId? (null = global).
+* **ReportInstance**
+
+  * TemplateId, clinicId, runBy, status, params(JSON), format, outputUrl, checksum, queryIds, createdAt/completedAt.
+* **ScheduledReport**
+
+  * TemplateId, clinicId, cron, recipients\[], format, filters(JSON), accessRoleMin, isActive, lastRunAt/nextRunAt.
+* **FeedPost**
+
+  * ClinicId? (null = public), authorId, title, body (markdown), tags\[], attachments\[], status (published/moderation).
+* **AuditLog**
+
+  * ActorId, clinicId, entityType, entityId, action, diff(JSON), ip, ua, at.
+
+**Nigeria context baked-in**
+
+* States + LGAs reference set for location filters.
+* Timezone: **Africa/Lagos** for display and Scheduling.
+* Date input: day-first in UI; store ISO.
+* Currency displays default to **NGN** where needed.
+
+---
+
+## 4) User-Centred UX (what to build, how it feels)
+
+* **First-run**
+
+  * Clear “Create Clinic” vs “Join via Invite” path.
+  * Email verification step with in-product guidance.
+  * Minimal profile: name, preferred language (EN default; structure for later Yoruba/Hausa).
+
+* **Navigation**
+
+  * Left rail or top tabs: **Dashboard, Cases, Analytics, Reports, Feeds, Calendar, Settings**.
+  * **Quick actions** on dashboard: “New Case”, “Import”, “Generate Report”.
+
+* **New Case Wizard**
+
+  * Steps: **Patient & Signalment → Tumour Details → Diagnostics → Treatment → Follow-up & Attachments → Review**.
+  * Validation at each step with in-line help; autosave drafts.
+  * **Type-ahead** for tumour/site; **Add custom** flow with single-click reuse in the same session.
+  * **Species→Breed** dependency with a curated list; “Other” opens free-text + rationale.
+
+* **Case List**
+
+  * Powerful filter/search; **saved views**; group-by pills (clinic, state, tumour, breed, outcome).
+  * Table rows open **drawer** with case summary, timeline, and attachments; “Open Full Case” shows all fields.
+
+* **Analytics**
+
+  * Cards: total cases, new this month, top tumour types, outcomes mix, cases by state.
+  * Charts: **cases by month**, **tumour by species/breed/site**, **outcomes by treatment**, **geo heatmap**.
+  * Always provide **Export** for chart and data (CSV).
+
+* **Reports**
+
+  * Templates presented as cards with description; “Run” opens parameter form (date range, species, clinic, groupings).
+  * Output as **PDF** with watermark and clinic letterhead; include footnotes with **query IDs** + **checksum**.
+  * “Schedule” opens cron builder; recipients; store history in ReportInstance.
+
+* **Feeds**
+
+  * Post composer with markdown, tags, attachments; admins can moderate and pin.
+  * Feed shows **new case highlights** card (counts, trending tumours) and research links.
+
+* **Calendar/Reminders**
+
+  * Create follow-ups from a case; default to clinician’s timezone; email/in-app reminders.
+
+* **Accessibility & Mobile**
+
+  * High contrast, large tap targets, clear statuses, keyboard-navigable; **works great on small Android phones**.
+  * Dark/light mode; low-bandwidth toggle suppresses heavy charts until requested.
+
+---
+
+## 5) Bulk Upload — deep requirements (make this bullet-proof)
+
+* **Accepted inputs**
+
+  * **CSV**, **XLSX** (multi-sheet), **JSON**, **ZIP** of many CSV/XLSX/JSON, **PDF** (tables) with OCR fallback for scans.
+
+* **Mapping wizard**
+
+  * Auto-detect headers; per-column mapping to Case fields; **type inference** (dates, enums).
+  * **Saved mapping presets** per clinic; apply in one click.
+  * Controlled vocab **cross-walk**: e.g., “MGT” → “Mammary gland tumour”; “LN” → “Lymph node”.
+
+* **Validation & preview**
+
+  * Row-level errors and warnings; paging; column heatmap for missingness.
+  * **Dedupe rules** (configurable): same clinic + patient + diagnosisDate + tumour ≈ duplicate (show merge/reject).
+  * **Conflict handling**: skip, upsert, or create new episode; clearly summarise choices.
+
+* **Execution**
+
+  * Transactional insert; **partial failure** yields error CSV with row numbers and reasons.
+  * Store original file, a job log, mapping used, and counts (inserted, updated, skipped).
+
+* **Scale & resilience**
+
+  * Stream large files; cut memory footprint; show progress; allow safe cancel/resume.
+  * Throttle to keep the app responsive during huge imports.
+
+* **Security & audit**
+
+  * Only **MANAGER+** can import; every run recorded in **AuditLog** with diff summary.
+
+---
+
+## 6) Data Quality & Governance
+
+* **Data dictionary**: human-readable labels, allowed values, examples.
+* **Field rules**: max lengths, required/optional by species, sensible ranges (e.g., age 0–30).
+* **Duplicate detection**: at create time and during imports.
+* **Owner/PII policy**: store only what’s necessary; redact on export, analytics, AI.
+* **Consent flags**: clinic affirms consent for research sharing (de-identified).
+* **Backups**: nightly DB + object storage; keep last 30 days; simple restore runbook.
+
+---
+
+## 7) Reports Module (explicit, since it’s new and critical)
+
+* **Templates**
+
+  * “Monthly Oncology Summary”, “Tumour Incidence by Species/Breed/Site”, “Outcomes by Treatment”, “Follow-up Compliance”, “Clinic vs National Benchmark”.
+  * Each template defines: inputs (date/species/filters), allowed query blocks (stable IDs), layout (KPIs → charts → tables → footnotes), **redaction rules**, watermark, and letterhead.
+
+* **Running & Scheduling**
+
+  * Run ad-hoc with parameters; produce **PDF/DOCX/CSV**.
+  * Schedule via cron (e.g., **1st of month 06:00 Africa/Lagos**); email recipients links to signed downloads; record history.
+
+* **Integrity & Access**
+
+  * Include **query IDs** + checksum in footers; RLS/role checks enforced on every query.
+  * Minimum role per template; immutable outputs.
+
+---
+
+## 8) AI Insights (safe & useful)
+
+* **Only if AI key is present**; toggle in Settings.
+* Provide **suggested prompts** tied to real metrics (“Show top tumour types in Q2”, “Compare outcomes for MGT vs lymphoma last year”).
+* Pipeline: parameters → **parameterized SQL** → visible data table/chart → short AI summary.
+* No PHI; automatic redaction; allow users to copy the data + narrative to clipboard.
+
+---
+
+## 9) Internationalisation & Localisation (foundation in place)
+
+* English now; prepare keys/strings for Yoruba/Hausa later.
+* Number/date formatting by locale; stick to ISO under the hood.
+
+---
+
+## 10) Notifications
+
+* Email for verification, password reset, follow-up reminders, and scheduled report deliveries.
+* Optional SMS later via a pluggable provider.
+* Respect per-user notification preferences.
+
+---
+
+## 11) Non-Functional Requirements
+
+* **Performance budgets**: initial interactive <3s on mid-range Android; charts render <1.5s for 5k rows (server-aggregated).
+* **Error UX**: clear error messages with next steps and a copyable error ID.
+* **Logging**: server errors include userId/clinicId context (no PHI).
+* **CI smoke checks**: sign-in, create case, import 100 rows, run one report.
+
+---
+
+## 12) Admin & Settings
+
+* **Clinic settings**: logo/letterhead, location defaults, import presets, report recipients, allowed custom vocab promotions.
+* **User settings**: profile, language, theme, notification toggles.
+* **System settings (ADMIN)**: manage global templates, master vocabularies, and feature flags (AI, PDF OCR, low-bandwidth mode).
+
+---
+
+## 13) Acceptance Tests (run these before calling it done)
+
+1. **Auth**
+
+   * New user signs up with email; receives verification; logs in; password reset works.
+   * Google sign-in succeeds; user invited to a clinic joins correctly.
+
+2. **RLS/RBAC**
+
+   * Two clinics: Clinic A cannot see Clinic B’s cases; researcher role sees only de-identified exports.
+
+3. **New Case**
+
+   * Species→breed dependency; custom tumour/site added and reused; draft autosave; attachments uploaded and linked.
+
+4. **Persistence**
+
+   * Refresh after creating/editing a case; data remains; AuditLog entry created.
+
+5. **Bulk Import**
+
+   * Upload multi-sheet XLSX; map fields; preview shows warnings; dedupe merges expected rows; errors exported; transaction behaves atomically.
+
+6. **Search & Grouping**
+
+   * Filter by state + tumour + date range; group by clinic; save view and open from a share link.
+
+7. **Analytics**
+
+   * Charts match filtered data; export CSV works; performance acceptable on 5k rows.
+
+8. **Reports**
+
+   * Run “Monthly Oncology Summary” for last month; download watermarked **PDF** with letterhead, query IDs, checksum.
+   * Schedule monthly at 06:00; recipients get email; instance recorded.
+
+9. **Feeds & Calendar**
+
+   * Post created, edited, moderated; follow-up added from a case; reminder email delivered.
+
+10. **PWA/Offline**
+
+    * Install on Android; create a case offline; it syncs on reconnect without duplicates.
+
+11. **AI (if enabled)**
+
+    * Prompt produces data table + concise summary; no PHI shown; copy-to-clipboard works.
+
+---
+
+## 14) Content & Defaults (seed at minimum)
+
+* **Tumour Types (examples)**: TVT, Lymphoma, Mammary gland tumour, Mast cell tumour, Lipoma, SCC, Osteosarcoma.
+* **Anatomical Sites (examples)**: Skin, Mammary gland, Oral cavity, Lymph node, Spleen, Liver, Bone, Reproductive tract.
+* **Nigeria States** list; demo clinic and manager user; 100–200 synthetic cases for charts; two system **ReportTemplates**.
+
+---
+
+## 15) Delivery Notes to the Agent
+
+* Prefer descriptive, user-facing copy and rigorously defined behaviours over long code dumps.
+* Keep config/code snippets **minimal and necessary** (env keys, folder names), then implement per above.
+* If any part is ambiguous, favour **clinical utility and data integrity** over visual flourish.
+* Always show the **data behind** AI or analytics narratives.
+* Every risky action (import, delete, schedule) must show a clear **preview/confirmation** with impact summary.
+
+---
+
+## 16) Environment Variables (names only; values set in Replit Secrets)
+
+* `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
+  `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
+  `EMAIL_FROM`, `EMAIL_SERVER`, `AI_OPENAI_API_KEY` (optional).
+
+---
+
+**Build 9ja VetOncoData to these specs. Prioritise correctness, persistence, bulk import robustness, and medical-grade UX.**
