@@ -32,7 +32,7 @@ export default function Header() {
           {location !== "/cases/new" && (
             <Button 
               asChild
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className="bg-primary text-primary-foreground hover:bg-primary hover:opacity-90"
               data-testid="button-new-case"
             >
               <a href="/cases/new">

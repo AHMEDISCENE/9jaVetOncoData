@@ -113,7 +113,7 @@
   }
   
   .nav-item.active {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply bg-primary text-primary-foreground hover:bg-primary hover:opacity-90;
   }
   
   .nav-item i {
