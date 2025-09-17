@@ -48,6 +48,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   password: text("password"), // nullable for OAuth users
+  googleId: text("google_id").unique(), // for Google OAuth
   image: text("image"),
   role: roleEnum("role").notNull().default("CLINICIAN"),
   clinicId: uuid("clinic_id").references(() => clinics.id),
@@ -64,6 +65,7 @@ export const users = pgTable("users", {
 }, (table) => ({
   emailIdx: index("users_email_idx").on(table.email),
   clinicIdx: index("users_clinic_idx").on(table.clinicId),
+  googleIdIdx: index("users_google_id_idx").on(table.googleId),
 }));
 
 export const invitations = pgTable("invitations", {

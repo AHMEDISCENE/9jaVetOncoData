@@ -135,6 +135,7 @@ export default function Login() {
                     variant="outline" 
                     className="w-full" 
                     disabled={isLoading}
+                    onClick={() => window.location.href = "/api/auth/google"}
                     data-testid="button-google-signin"
                   >
                     <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">

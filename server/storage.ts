@@ -48,6 +48,15 @@ export interface IStorage {
   // Authentication
   verifyUserEmail(id: string): Promise<void>;
   updateLastLogin(id: string): Promise<void>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
+  linkGoogleAccount(userId: string, googleId: string): Promise<void>;
+  createUserFromGoogle(googleUser: {
+    googleId: string;
+    email: string;
+    name: string;
+    photo?: string;
+  }): Promise<User>;
   
   // Clinics
   getClinic(id: string): Promise<Clinic | undefined>;
@@ -170,6 +179,39 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ lastLoginAt: new Date() })
       .where(eq(users.id, id));
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
+    return user || undefined;
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async linkGoogleAccount(userId: string, googleId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ googleId, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async createUserFromGoogle(googleUser: {
+    googleId: string;
+    email: string;
+    name: string;
+    photo?: string;
+  }): Promise<User> {
+    const [user] = await db.insert(users).values({
+      email: googleUser.email,
+      name: googleUser.name,
+      googleId: googleUser.googleId,
+      image: googleUser.photo,
+      emailVerified: new Date(), // Google accounts are pre-verified
+    }).returning();
+    return user;
   }
 
   async getClinic(id: string): Promise<Clinic | undefined> {

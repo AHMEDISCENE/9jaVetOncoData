@@ -17,9 +17,10 @@ import Calendar from "@/pages/calendar";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import { useAuth } from "@/hooks/use-auth";
+import SetupClinic from "@/pages/setup-clinic";
 
 function Router() {
-  const { user, isLoading } = useAuth();
+  const { user, clinic, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -39,6 +40,24 @@ function Router() {
       <Switch>
         <Route path="/login" component={Login} />
         <Route path="/*" component={Login} />
+      </Switch>
+    );
+  }
+
+  // Authenticated users: check if they need to complete clinic setup
+  const needsClinicSetup = user && !clinic;
+  
+  if (needsClinicSetup) {
+    return (
+      <Switch>
+        <Route path="/setup-clinic" component={SetupClinic} />
+        <Route path="/*">
+          {() => {
+            // Redirect to setup-clinic if user is authenticated but has no clinic
+            window.location.href = "/setup-clinic";
+            return null;
+          }}
+        </Route>
       </Switch>
     );
   }

@@ -41,9 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    if (data) {
-      setUser(data.user);
-      setClinic(data.clinic);
+    if (data && typeof data === 'object' && 'user' in data && 'clinic' in data) {
+      setUser((data as any).user);
+      setClinic((data as any).clinic);
     }
   }, [data]);
 

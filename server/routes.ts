@@ -8,6 +8,8 @@ import ConnectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import multer from "multer";
 import { z } from "zod";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -92,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       tableName: 'session',
       createTableIfMissing: true,
     }),
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -101,6 +103,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     },
   }));
+
+  // Passport configuration
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // Passport serialization
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
+
+  passport.deserializeUser(async (id: string, done) => {
+    try {
+      const user = await storage.getUserById(id);
+      done(null, user);
+    } catch (error) {
+      done(error, null);
+    }
+  });
+
+  // Google OAuth Strategy
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    callbackURL: "/api/auth/google/callback",
+    state: true // Enable CSRF protection
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      // Check if user already exists with this Google ID
+      const existingUser = await storage.getUserByGoogleId(profile.id);
+      
+      if (existingUser) {
+        // User exists, log them in
+        return done(null, existingUser);
+      }
+
+      // Check if user exists with same email
+      const emailUser = await storage.getUserByEmail(profile.emails?.[0]?.value || "");
+      
+      if (emailUser) {
+        // Link Google account to existing user
+        await storage.linkGoogleAccount(emailUser.id, profile.id);
+        return done(null, emailUser);
+      }
+
+      // Create new user (they'll need to complete clinic setup)
+      const newUser = await storage.createUserFromGoogle({
+        googleId: profile.id,
+        email: profile.emails?.[0]?.value || "",
+        name: profile.displayName,
+        photo: profile.photos?.[0]?.value || "",
+      });
+
+      return done(null, newUser);
+    } catch (error) {
+      return done(error, undefined);
+    }
+  }));
+
+  // Google OAuth routes
+  app.get("/api/auth/google", 
+    passport.authenticate("google", { scope: ["profile", "email"] })
+  );
+
+  app.get("/api/auth/google/callback",
+    passport.authenticate("google", { failureRedirect: "/login" }),
+    async (req, res) => {
+      const user = req.user as any;
+      
+      // Set session
+      (req.session as any).userId = user.id;
+      (req.session as any).userRole = user.role;
+      (req.session as any).clinicId = user.clinicId;
+
+      // If user doesn't have a clinic, redirect to clinic setup
+      if (!user.clinicId) {
+        res.redirect("/setup-clinic");
+      } else {
+        res.redirect("/dashboard");
+      }
+    }
+  );
+
+  // Clinic setup route for Google OAuth users
+  app.post("/api/auth/setup-clinic", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const { clinicName, clinicState, clinicCity, role } = req.body;
+
+      // Create clinic
+      const clinic = await storage.createClinic({
+        name: clinicName,
+        state: clinicState as any,
+        city: clinicCity,
+      });
+
+      // Update user with clinic and role
+      const updatedUser = await storage.updateUser(userId, {
+        clinicId: clinic.id,
+        role: role || "CLINICIAN",
+      });
+
+      // Update session
+      (req.session as any).clinicId = clinic.id;
+      (req.session as any).userRole = updatedUser.role;
+
+      // Create audit log
+      await storage.createAuditLog({
+        actorId: userId,
+        clinicId: clinic.id,
+        entityType: 'CLINIC',
+        entityId: clinic.id,
+        action: 'CREATE',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.json({ 
+        user: { 
+          id: updatedUser.id, 
+          email: updatedUser.email, 
+          name: updatedUser.name, 
+          role: updatedUser.role 
+        }, 
+        clinic 
+      });
+    } catch (error) {
+      console.error("[ERROR] Setup clinic failed:", error);
+      res.status(400).json({ message: error instanceof Error ? error.message : "Setup failed" });
+    }
+  });
 
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {
