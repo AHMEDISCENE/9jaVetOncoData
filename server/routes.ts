@@ -794,62 +794,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User profile routes
-  app.patch("/api/users/profile", requireAuth, async (req, res) => {
-    try {
-      const userId = (req.session as any).userId;
-      const { name, email } = req.body;
-      
-      const updatedUser = await storage.updateUser(userId, { name, email });
-      
-      res.json({ 
-        user: { 
-          id: updatedUser.id, 
-          email: updatedUser.email, 
-          name: updatedUser.name, 
-          role: updatedUser.role 
-        } 
-      });
-    } catch (error) {
-      console.error("[ERROR] Update profile failed:", error);
-      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update profile" });
-    }
-  });
-
-  // User preferences route
-  app.patch("/api/users/preferences", requireAuth, async (req, res) => {
-    try {
-      const userId = (req.session as any).userId;
-      const preferences = req.body;
-      
-      const updatedUser = await storage.updateUser(userId, { preferences });
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("[ERROR] Update preferences failed:", error);
-      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update preferences" });
-    }
-  });
-
-  // Clinic update route
-  app.patch("/api/clinics/update", requireAuth, async (req, res) => {
-    try {
-      const clinicId = (req.session as any).clinicId;
-      const { name, city } = req.body;
-      
-      if (!clinicId) {
-        return res.status(400).json({ message: "No clinic associated with user" });
-      }
-      
-      const updatedClinic = await storage.updateClinic(clinicId, { name, city });
-      
-      res.json({ clinic: updatedClinic });
-    } catch (error) {
-      console.error("[ERROR] Update clinic failed:", error);
-      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update clinic" });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }

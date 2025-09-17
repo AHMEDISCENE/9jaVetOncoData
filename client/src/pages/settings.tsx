@@ -1,7 +1,5 @@
 import { useState } from "react";
-import React from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useTheme } from "@/contexts/theme-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -35,14 +33,19 @@ export default function Settings() {
   const { user, clinic } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { theme, setTheme } = useTheme();
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return document.documentElement.classList.contains("dark");
+    }
+    return false;
+  });
 
   // Profile form
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: "",
-      email: "",
+      name: user?.name || "",
+      email: user?.email || "",
     },
   });
 
@@ -50,36 +53,14 @@ export default function Settings() {
   const clinicForm = useForm<ClinicFormData>({
     resolver: zodResolver(clinicSchema),
     defaultValues: {
-      name: "",
-      city: "",
+      name: clinic?.name || "",
+      city: clinic?.city || "",
     },
   });
 
-  // Update form values when user/clinic data loads
-  React.useEffect(() => {
-    if (user) {
-      profileForm.reset({
-        name: user.name || "",
-        email: user.email || "",
-      });
-    }
-  }, [user, profileForm]);
-
-  React.useEffect(() => {
-    if (clinic) {
-      clinicForm.reset({
-        name: clinic.name || "",
-        city: clinic.city || "",
-      });
-    }
-  }, [clinic, clinicForm]);
-
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: ProfileFormData) => {
-      const response = await apiRequest("PATCH", "/api/users/profile", data);
-      return response.json();
-    },
+    mutationFn: (data: ProfileFormData) => apiRequest("/api/users/profile", "PATCH", data),
     onSuccess: () => {
       toast({ description: "Profile updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -94,10 +75,7 @@ export default function Settings() {
 
   // Update clinic mutation
   const updateClinicMutation = useMutation({
-    mutationFn: async (data: ClinicFormData) => {
-      const response = await apiRequest("PATCH", "/api/clinics/update", data);
-      return response.json();
-    },
+    mutationFn: (data: ClinicFormData) => apiRequest("/api/clinics/update", "PATCH", data),
     onSuccess: () => {
       toast({ description: "Clinic information updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -112,10 +90,7 @@ export default function Settings() {
 
   // Theme preference mutation
   const updateThemeMutation = useMutation({
-    mutationFn: async (theme: string) => {
-      const response = await apiRequest("PATCH", "/api/users/preferences", { theme });
-      return response.json();
-    },
+    mutationFn: (theme: string) => apiRequest("/api/users/preferences", "PATCH", { theme }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },
@@ -129,10 +104,30 @@ export default function Settings() {
     updateClinicMutation.mutate(data);
   };
 
-  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
-    setTheme(newTheme);
+  const handleThemeChange = (theme: "light" | "dark" | "system") => {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+      setIsDarkMode(true);
+    } else if (theme === "light") {
+      document.documentElement.classList.remove("dark");
+      setIsDarkMode(false);
+    } else {
+      // System theme
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (systemTheme) {
+        document.documentElement.classList.add("dark");
+        setIsDarkMode(true);
+      } else {
+        document.documentElement.classList.remove("dark");
+        setIsDarkMode(false);
+      }
+    }
+    
+    // Save to local storage
+    localStorage.setItem("theme", theme);
+    
     // Update server preferences
-    updateThemeMutation.mutate(newTheme);
+    updateThemeMutation.mutate(theme);
   };
 
   return (
@@ -252,7 +247,7 @@ export default function Settings() {
                   <h4 className="text-sm font-medium mb-4">Theme</h4>
                   <div className="grid grid-cols-3 gap-4">
                     <Button
-                      variant={theme === "light" ? "default" : "outline"}
+                      variant={!isDarkMode ? "default" : "outline"}
                       className="h-20 flex flex-col items-center justify-center gap-2"
                       onClick={() => handleThemeChange("light")}
                       data-testid="button-theme-light"
@@ -261,7 +256,7 @@ export default function Settings() {
                       Light
                     </Button>
                     <Button
-                      variant={theme === "dark" ? "default" : "outline"}
+                      variant={isDarkMode ? "default" : "outline"}
                       className="h-20 flex flex-col items-center justify-center gap-2"
                       onClick={() => handleThemeChange("dark")}
                       data-testid="button-theme-dark"
@@ -270,7 +265,7 @@ export default function Settings() {
                       Dark
                     </Button>
                     <Button
-                      variant={theme === "system" ? "default" : "outline"}
+                      variant="outline"
                       className="h-20 flex flex-col items-center justify-center gap-2"
                       onClick={() => handleThemeChange("system")}
                       data-testid="button-theme-system"
