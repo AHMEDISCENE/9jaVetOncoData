@@ -162,10 +162,8 @@ export default function Cases() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Species</SelectItem>
-                  <SelectItem value="Canine">Canine</SelectItem>
-                  <SelectItem value="Feline">Feline</SelectItem>
-                  <SelectItem value="Avian">Avian</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="Dog">Dog</SelectItem>
+                  <SelectItem value="Cat">Cat</SelectItem>
                 </SelectContent>
               </Select>
             </div>

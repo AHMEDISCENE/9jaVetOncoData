@@ -213,17 +213,26 @@ export default function BulkUploadWizard() {
   };
 
   const handleMappingChange = (csvColumn: string, caseField: string) => {
-    setUploadState(prev => ({
-      ...prev,
-      mapping: {
-        ...prev.mapping,
-        [csvColumn]: caseField
+    setUploadState(prev => {
+      const newMapping = { ...prev.mapping };
+      
+      if (caseField === "") {
+        // Remove the mapping when "Don't map" is selected
+        delete newMapping[csvColumn];
+      } else {
+        newMapping[csvColumn] = caseField;
       }
-    }));
+      
+      return {
+        ...prev,
+        mapping: newMapping
+      };
+    });
   };
 
   const handleImport = () => {
-    if (Object.keys(uploadState.mapping).length === 0) {
+    const activeMappings = Object.values(uploadState.mapping).filter(Boolean);
+    if (activeMappings.length === 0) {
       toast({
         title: "No mapping defined",
         description: "Please map at least one column before importing.",
