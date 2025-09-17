@@ -459,6 +459,13 @@ export type CaseWithDetails = Case & {
   followUps: FollowUp[];
 };
 
+// Session table for express-session
+export const session = pgTable("session", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+});
+
 // Dashboard stats type
 export type DashboardStats = {
   totalCases: number;

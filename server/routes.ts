@@ -37,8 +37,8 @@ const filterSchema = z.object({
   outcome: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  limit: z.number().optional(),
-  offset: z.number().optional(),
+  limit: z.coerce.number().optional(),
+  offset: z.coerce.number().optional(),
 });
 
 // File upload configuration
@@ -307,7 +307,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cases", requireAuth, async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
+      console.log("[DEBUG] GET /api/cases - clinicId:", clinicId);
+      console.log("[DEBUG] GET /api/cases - req.query:", req.query);
+      
       const filters = filterSchema.parse(req.query);
+      console.log("[DEBUG] GET /api/cases - parsed filters:", filters);
       
       const cases = await storage.getCases(clinicId, {
         ...filters,
@@ -315,8 +319,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: filters.endDate ? new Date(filters.endDate) : undefined,
       });
       
+      console.log("[DEBUG] GET /api/cases - cases count:", cases.length);
       res.json(cases);
     } catch (error) {
+      console.error("[ERROR] GET /api/cases failed:", error);
       res.status(500).json({ message: "Failed to get cases" });
     }
   });

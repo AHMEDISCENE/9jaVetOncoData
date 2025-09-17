@@ -74,15 +74,15 @@ export default function Sidebar() {
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-2">
             {navigation.map((item) => (
-              <Link key={item.name} href={item.href}>
-                <a 
-                  className={`nav-item ${isActive(item.href) ? "active" : ""}`}
-                  data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
-                  onClick={() => setIsMobileOpen(false)}
-                >
-                  <i className={item.icon}></i>
-                  {item.name}
-                </a>
+              <Link 
+                key={item.name} 
+                href={item.href}
+                className={`nav-item ${isActive(item.href) ? "active" : ""}`}
+                data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
+                onClick={() => setIsMobileOpen(false)}
+              >
+                <i className={item.icon}></i>
+                {item.name}
               </Link>
             ))}
           </nav>
