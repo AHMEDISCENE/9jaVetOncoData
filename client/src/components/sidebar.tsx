@@ -16,6 +16,7 @@ export default function Sidebar() {
     { name: "Bulk Upload", href: "/bulk-upload", icon: "fas fa-upload" },
     { name: "Feeds", href: "/feeds", icon: "fas fa-rss" },
     { name: "Calendar", href: "/calendar", icon: "fas fa-calendar" },
+    { name: "Settings", href: "/settings", icon: "fas fa-cog" },
   ];
 
   const isActive = (href: string) => {

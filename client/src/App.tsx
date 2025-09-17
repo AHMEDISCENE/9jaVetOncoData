@@ -18,6 +18,7 @@ import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import { useAuth } from "@/hooks/use-auth";
 import SetupClinic from "@/pages/setup-clinic";
+import Settings from "@/pages/settings";
 
 function Router() {
   const { user, clinic, isLoading } = useAuth();
@@ -78,6 +79,7 @@ function Router() {
             <Route path="/reports" component={Reports} />
             <Route path="/feeds" component={Feeds} />
             <Route path="/calendar" component={Calendar} />
+            <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
           </Switch>
         </main>
