@@ -33,7 +33,7 @@ import {
   importJobs
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull } from "drizzle-orm";
+import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { randomBytes } from "crypto";
 
@@ -313,12 +313,12 @@ export class DatabaseStorage implements IStorage {
     const attachmentsData = caseIds.length > 0 ? await db
       .select()
       .from(attachments)
-      .where(sql`${attachments.caseId} = ANY(${caseIds})`) : [];
+      .where(inArray(attachments.caseId, caseIds)) : [];
     
     const followUpsData = caseIds.length > 0 ? await db
       .select()
       .from(followUps)
-      .where(sql`${followUps.caseId} = ANY(${caseIds})`) : [];
+      .where(inArray(followUps.caseId, caseIds)) : [];
 
     return results.map(result => ({
       ...result.cases,

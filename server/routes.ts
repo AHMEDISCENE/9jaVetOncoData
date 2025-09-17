@@ -492,14 +492,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cases routes
-  app.get("/api/cases", requireAuth, async (req, res) => {
+  app.get("/api/cases", async (req, res) => {
     try {
-      const clinicId = (req.session as any).clinicId;
-      console.log("[DEBUG] GET /api/cases - clinicId:", clinicId);
-      console.log("[DEBUG] GET /api/cases - req.query:", req.query);
+      // Guard the session
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const userId = req.session.userId;
+      let clinicId = req.session.clinicId;
+
+      // Always have a clinicId - auto-create if missing
+      if (!clinicId) {
+        const user = await storage.getUser(userId);
+        if (!user) {
+          return res.status(401).json({ message: "User not found" });
+        }
+
+        // Create a default clinic
+        const defaultClinic = await storage.createClinic({
+          name: `${user.name}'s Clinic`,
+          state: 'LAGOS' as any, // default state
+          city: '',
+        });
+
+        // Update the user to that clinic
+        await storage.updateUser(userId, { clinicId: defaultClinic.id });
+        
+        // Update session
+        req.session.clinicId = defaultClinic.id;
+        clinicId = defaultClinic.id;
+      }
       
       const filters = filterSchema.parse(req.query);
-      console.log("[DEBUG] GET /api/cases - parsed filters:", filters);
       
       const cases = await storage.getCases(clinicId, {
         ...filters,
@@ -507,10 +532,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: filters.endDate ? new Date(filters.endDate) : undefined,
       });
       
-      console.log("[DEBUG] GET /api/cases - cases count:", cases.length);
       res.json(cases);
     } catch (error) {
-      console.error("[ERROR] GET /api/cases failed:", error);
+      console.error("[cases.list]", error);
       res.status(500).json({ message: "Failed to get cases" });
     }
   });

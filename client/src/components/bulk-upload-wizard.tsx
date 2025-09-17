@@ -216,7 +216,7 @@ export default function BulkUploadWizard() {
     setUploadState(prev => {
       const newMapping = { ...prev.mapping };
       
-      if (caseField === "") {
+      if (caseField === "__skip") {
         // Remove the mapping when "Don't map" is selected
         delete newMapping[csvColumn];
       } else {
@@ -351,14 +351,14 @@ export default function BulkUploadWizard() {
                   </div>
                   <div>
                     <Select
-                      value={uploadState.mapping[column] || ""}
+                      value={uploadState.mapping[column] || undefined}
                       onValueChange={(value) => handleMappingChange(column, value)}
                     >
                       <SelectTrigger data-testid={`mapping-select-${column}`}>
                         <SelectValue placeholder="Select field to map to" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Don't map</SelectItem>
+                        <SelectItem value="__skip">Don't map</SelectItem>
                         {caseFields.map((field) => (
                           <SelectItem key={field.value} value={field.value}>
                             {field.label}

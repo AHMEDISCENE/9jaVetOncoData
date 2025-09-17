@@ -90,7 +90,12 @@ export default function Settings() {
 
   // Theme preference mutation
   const updateThemeMutation = useMutation({
-    mutationFn: (theme: string) => apiRequest("/api/users/preferences", "PATCH", { theme }),
+    mutationFn: (theme: string) => fetch("/api/users/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ theme }),
+    }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },

@@ -1,0 +1,134 @@
+Task 1 — Fix “Unable to load cases” (500) on Cases page
+
+Problem pattern: the GET handler for the cases list throws due to one or more of:
+
+Using an undefined/empty clinicId from the session (user not attached to a clinic).
+
+Selecting fields/relations that don’t exist in the Prisma schema (e.g., state if not yet added).
+
+Query uses raw SQL against the table named "Case" (reserved word) instead of Prisma.
+
+Sort/filter expecting non-null dates.
+
+Required behavior (implement exactly):
+
+Guard the session
+
+If no session → return 401 JSON { message: "Not authenticated" } (client should redirect to sign in).
+
+Extract userId and clinicId from the session safely.
+
+Always have a clinicId
+
+If clinicId is null/undefined:
+
+Create a default clinic named "<User’s Clinic>" (city/state can be blank).
+
+Update the user to that clinic.
+
+Use this clinicId for the query.
+
+Query via Prisma only (no raw SQL)
+
+Fetch cases scoped to clinicId.
+
+Default sort: createdAt DESC. Accept optional sort query (createdAt_desc|createdAt_asc|patient_asc|diagnosisDate_desc) and map safely.
+
+Include these relations only if they exist in schema: tumourType, anatomicalSite.
+
+Project to a safe DTO:
+
+id, species, breed, outcome, diagnosisDate, createdAt
+
+tumour = COALESCE(tumourType.name, tumourTypeCustom)
+
+site = COALESCE(anatomicalSite.name, anatomicalSiteCustom)
+
+state only if the column exists; otherwise omit.
+
+Do not reference any field that isn’t defined in prisma/schema.prisma.
+
+Null-safe sorting/filters
+
+When sorting by diagnosisDate, handle null by ordering nulls last.
+
+Error logging
+
+On catch, console.error("[cases.list]", err) then return { status: 500, body: { message: "Failed to get cases" } }.
+
+Do not send stack traces to the client.
+
+Acceptance:
+
+Visiting /cases returns a non-empty list (or a clean empty state) with no 500.
+
+Creating a new case makes it appear at the top (Newest first).
+
+Changing sort to “Oldest first” / “Patient A–Z” updates the list.
+
+Refresh keeps the sort (via query string).
+
+Task 2 — Fix Bulk Upload Select runtime error
+
+Error shown:
+[plugin:runtime-error-plugin] A <Select.Item /> must have a value prop that is not an empty string…
+
+Root cause: At least one Select component (file type, sheet picker, delimiter, or field mapping) renders items with value="" or undefined, or the controlled Select is initialised with value="".
+
+Required fix (apply to ALL Selects in the bulk import flow):
+
+No empty values
+
+Every <SelectItem> must have a non-empty value ("csv" | "xlsx" | "json" | "zip" | "auto" | "<header-name>" | "<column-key>", etc.).
+
+If options are generated from headers and any header is missing/blank, filter it out or give it a safe token like "__unnamed_header_1" (but don’t display that label—show a user-friendly label).
+
+Placeholder, not empty string
+
+Use <SelectValue placeholder="Choose…"/>.
+
+The controlled prop should be value={undefined} (or uncontrolled) until the user picks; never value="".
+
+Initial state & validation
+
+Initialise Select state to undefined.
+
+Before continuing to the next step, validate that required Selects have a value; show a small inline message (“Choose a file type” / “Pick a sheet” / “Map this column”).
+
+Mapping Select (column → field)
+
+The target fields list must use the canonical column keys (e.g., patient_name, species, breed, …) as values.
+
+If a column is “Skip”, its value should be "__skip" (not empty string).
+
+Acceptance:
+
+Opening Bulk Upload page no longer throws an overlay error.
+
+You can choose file type, sheet, and map columns without any Select error.
+
+If you try to proceed without choosing, you get a friendly inline validation—not a runtime crash.
+
+Small polish (while you’re in there)
+
+Cases nav icon: add a stethoscope/case icon identical in size/weight to other sidebar icons.
+
+Error toast style: on the Cases page and New Case form, show one short message; hide raw JSON; add a tiny “Details” expander for debugging.
+
+Post-patch Quick Test (do these immediately)
+
+Cases page loads with no 500.
+
+Create case (pick any seeded tumour/site) → save → appears at top of /cases.
+
+Sort to “Oldest first” → order changes and the URL query shows ?sort=createdAt_asc.
+
+Bulk Upload page opens; no Select error; placeholder shows until you choose.
+
+If an error still appears
+
+Open the Replit Shell and run pnpm build.
+
+Copy the first error line only (the real blocker) and fix that specific file.
+
+On 500s, check the server log message [cases.list] to see the exact cause (missing field vs session/clinic issue).
