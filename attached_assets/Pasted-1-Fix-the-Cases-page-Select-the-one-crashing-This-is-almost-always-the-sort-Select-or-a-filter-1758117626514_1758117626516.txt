@@ -1,0 +1,130 @@
+1) Fix the Cases page Select (the one crashing)
+
+This is almost always the sort Select or a filter Select. Your stacktrace points into src/components/ui/select.tsx only because that file re-exports the Radix parts—the real bug is in the page using it (likely src/pages/cases.tsx or a CasesToolbar component).
+
+What to change (patterns)
+
+Search the repo for these patterns and replace them as shown:
+
+value="" → never. Use a real token or undefined.
+
+Replace with: value="__all" (if it means “All”) or remove the value until chosen.
+
+<Select defaultValue=""> → remove the empty default or set a real default (e.g., defaultValue="createdAt_desc").
+
+const [value, setValue] = useState<string>("")
+→ const [value, setValue] = useState<string | undefined>(undefined)
+
+<Select value={state || ""} …>
+→ <Select value={state ?? undefined} …>
+
+<SelectItem value="">All</SelectItem>
+→ <SelectItem value="__all">All</SelectItem>
+
+If it’s the sort control, set a safe default
+
+Use concrete tokens (no blanks):
+
+createdAt_desc (Newest first)
+
+createdAt_asc (Oldest first)
+
+patient_asc (Patient A–Z)
+
+diagnosisDate_desc (Latest diagnosis)
+
+Example (minimal shape you’re aiming for—not a full refactor):
+
+<Select value={sort ?? "createdAt_desc"} onValueChange={setSort}>
+  <SelectTrigger className="w-[220px]">
+    <SelectValue placeholder="Sort by" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="createdAt_desc">Newest first</SelectItem>
+    <SelectItem value="createdAt_asc">Oldest first</SelectItem>
+    <SelectItem value="patient_asc">Patient A–Z</SelectItem>
+    <SelectItem value="diagnosisDate_desc">Diagnosis date (newest)</SelectItem>
+  </SelectContent>
+</Select>
+
+
+Key points:
+
+Every <SelectItem> has a non-empty value.
+
+The Select’s value is never ""; use a real token or undefined.
+
+Keep <SelectValue placeholder="Sort by" /> for the hint.
+
+2) Fix Bulk Upload selects (same rule)
+
+You showed this earlier in the importer. Apply the same changes to every Select in the import flow (file type, sheet picker, delimiter, and mapping selects):
+
+For file type: values like "csv", "xlsx", "json", "zip", "auto". No blanks.
+
+For mapping (column → field):
+
+Canonical field values should be your keys (e.g., patient_name, species, breed, …).
+
+Use "__skip" for “Skip this column” (not empty string).
+
+For header-derived items (dynamic):
+
+Filter out blank header names: .filter(h => h && h.trim() !== "")
+
+If you must keep an unnamed header, generate a token value like "__unnamed_header_1" but display a friendly label “(Unnamed column 1)”.
+
+Common offenders to search and fix globally:
+
+<SelectItem value="">
+
+value={""}
+
+defaultValue=""
+
+3) Prevent future regressions (tiny guard)
+
+If you have a small wrapper around shadcn’s Select, add a one-line dev warning so an empty value can’t slip in again:
+
+// before rendering <SelectItem ...>
+if (process.env.NODE_ENV !== "production" && (value as any) === "") {
+  console.warn("<SelectItem> received empty string value; use a real token or undefined.");
+}
+
+
+This won’t “fix” at runtime (Radix still throws) but it points you at the culprit during development.
+
+4) Re-run a quick check
+
+Save the changes.
+
+Stop/Run the repl.
+
+Open the app in the external tab.
+
+Go to Cases → the overlay should be gone and the page should render.
+
+Go to Bulk Upload → no overlay; selects show placeholders until you pick.
+
+If you still see the red overlay, run a global search for the string:
+
+SelectItem value=""
+
+value={""}
+…and fix any remaining matches.
+
+5) If “Unable to load cases (500)” still appears
+
+That is a separate server-side issue (query or missing clinicId). Quick triage:
+
+Create one new case successfully first (with Species, Breed, Tumour/Site, etc.).
+
+If the Cases list still 500s, the API likely references a field that doesn’t exist (e.g., state if you haven’t added it), or clinicId is null.
+
+Fast fix: in the list API, only select fields that exist in your Prisma schema, and ensure you’re filtering by a non-null clinicId (attach user to a default clinic if needed).
+
+6) Minimal “tell Replit AI” message (paste this one-liner)
+
+If you want the agent to do it for you, paste:
+
+Search the repo for all Radix/shadcn Select misuses and fix: no <SelectItem value="">, no controlled value="", and no defaultValue="". Use real tokens like "createdAt_desc", "__all", "__skip", or undefined with a placeholder. Apply this to the Cases page (sort/filter) and Bulk Upload selects. Then restart and confirm both pages render without the red overlay.

@@ -37,7 +37,7 @@ export default function Cases() {
   const handleFilterChange = (key: keyof CaseFilters, value: string) => {
     setFilters(prev => ({
       ...prev,
-      [key]: value || undefined
+      [key]: (value === "__all" || !value) ? undefined : value
     }));
     setCurrentPage(1);
   };
@@ -156,12 +156,12 @@ export default function Cases() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label className="text-sm font-medium text-foreground mb-1">Species</Label>
-              <Select value={filters.species || ""} onValueChange={(value) => handleFilterChange("species", value)}>
+              <Select value={filters.species || undefined} onValueChange={(value) => handleFilterChange("species", value)}>
                 <SelectTrigger data-testid="filter-species">
                   <SelectValue placeholder="All Species" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Species</SelectItem>
+                  <SelectItem value="__all">All Species</SelectItem>
                   <SelectItem value="Dog">Dog</SelectItem>
                   <SelectItem value="Cat">Cat</SelectItem>
                 </SelectContent>
@@ -170,12 +170,12 @@ export default function Cases() {
 
             <div>
               <Label className="text-sm font-medium text-foreground mb-1">Outcome</Label>
-              <Select value={filters.outcome || ""} onValueChange={(value) => handleFilterChange("outcome", value)}>
+              <Select value={filters.outcome || undefined} onValueChange={(value) => handleFilterChange("outcome", value)}>
                 <SelectTrigger data-testid="filter-outcome">
                   <SelectValue placeholder="All Outcomes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Outcomes</SelectItem>
+                  <SelectItem value="__all">All Outcomes</SelectItem>
                   <SelectItem value="REMISSION">Remission</SelectItem>
                   <SelectItem value="TREATMENT_ONGOING">Treatment Ongoing</SelectItem>
                   <SelectItem value="DECEASED">Deceased</SelectItem>
