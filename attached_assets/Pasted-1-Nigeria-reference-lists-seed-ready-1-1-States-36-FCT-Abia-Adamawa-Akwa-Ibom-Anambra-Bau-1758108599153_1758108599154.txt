@@ -1,0 +1,244 @@
+1) Nigeria reference lists (seed-ready)
+1.1 States (36 + FCT)
+Abia, Adamawa, Akwa Ibom, Anambra, Bauchi, Bayelsa, Benue, Borno, Cross River,
+Delta, Ebonyi, Edo, Ekiti, Enugu, Gombe, Imo, Jigawa, Kaduna, Kano, Katsina,
+Kebbi, Kogi, Kwara, Lagos, Nasarawa, Niger, Ogun, Ondo, Osun, Oyo, Plateau,
+Rivers, Sokoto, Taraba, Yobe, Zamfara, FCT (Abuja)
+
+1.2 Starter clinics/hospitals (initial seed)
+
+Use these to prefill the Clinic table (you can add more later). Cities are indicative.
+
+University of Ilorin Veterinary Teaching Hospital (VTH) — Ilorin, Kwara
+
+University of Ibadan VTH — Ibadan, Oyo
+
+Ahmadu Bello University VTH — Zaria, Kaduna
+
+University of Nigeria VTH — Nsukka, Enugu
+
+University of Maiduguri VTH — Maiduguri, Borno
+
+University of Jos VTH — Jos, Plateau
+
+Michael Okpara Univ. of Agriculture VTH — Umudike, Abia
+
+FUNAAB (Abeokuta) Vet Clinic — Abeokuta, Ogun
+
+Usmanu Danfodiyo Univ. Vet Clinic — Sokoto, Sokoto
+
+Abuja Municipal Vet Clinic — Abuja, FCT (Abuja)
+
+VetZone Animal Hospital — Lagos, Lagos
+
+Premium PetCare Clinic — Port Harcourt, Rivers
+
+Seed shape suggestion (no code needed here): { name, state, city }.
+
+1.3 Species (restricted)
+
+Dog (Canine)
+
+Cat (Feline)
+
+1.4 Dog breeds (curated for Nigeria; include “Other (type)” in UI)
+
+Mongrel (Mixed), Boerboel, Rottweiler, German Shepherd, Lhasa Apso, Caucasian Shepherd, Pit Bull Terrier, Labrador Retriever, Golden Retriever, Poodle, Chihuahua, Dobermann, English Bulldog, Cane Corso, American Eskimo, Great Dane, Maltese, Shih Tzu.
+
+1.5 Cat breeds (curated)
+
+Domestic Shorthair, Domestic Longhair, Persian, Siamese, British Shorthair, American Shorthair, Maine Coon, Bengal, Sphynx, Russian Blue.
+
+1.6 Tumour types (defaults)
+
+Transmissible Venereal Tumour (TVT), Lymphoma, Mammary Gland Tumour, Mast Cell Tumour, Lipoma, Squamous Cell Carcinoma, Osteosarcoma, Fibrosarcoma, Hemangiosarcoma, Melanoma, Soft Tissue Sarcoma, Adenocarcinoma, Papilloma.
+
+Keep species optional; allow cross-species where relevant. Always allow “Add custom” which writes to tumourTypeCustom (not the ID).
+
+1.7 Anatomical sites (defaults)
+
+Skin/Cutaneous, Subcutaneous tissue, Mammary gland, Oral cavity, Nasal cavity, Lymph node, Bone, Eye/Orbit, Ear, Liver, Spleen, Gastrointestinal tract, Urogenital tract, Reproductive tract, Thoracic cavity, Abdominal cavity.
+
+2) Bulk upload — column dictionary & synonyms (so mapping “just works”)
+
+Use this to power the auto-mapping step and the “synonyms” tooltip. Keep keys lowercase.
+
+Canonical columns
+patient_name, species, breed, sex, age_years, state, clinic_name,
+diagnosis_date, tumour_type, anatomical_site, laterality, stage,
+diagnosis_method, treatment_plan, treatment_start, outcome, last_follow_up, notes
+
+Common synonyms
+
+patient_name: name, animal, pet_name
+
+species: sp, animal_type (allowed: dog/canine/cat/feline)
+
+breed: brd, type, mix
+
+sex: gender, m/f, male/female
+
+age_years: age, age(yrs), age_in_years, age_y, age_year
+
+state: location_state, state_of_case
+
+clinic_name: hospital, facility, referring_clinic
+
+diagnosis_date: dx_date, date_of_diagnosis
+
+tumour_type: tumor, tumour, cancer_type, mgt, tvt, scc, lymphoma
+
+anatomical_site: site, body_site, location
+
+laterality: side, left_right
+
+stage: staging, tnm_stage
+
+diagnosis_method: method, dx_method, histology, cytology, imaging, clinical
+
+treatment_plan: treatment, protocol, plan
+
+treatment_start: tx_start, treatment_date
+
+outcome: status, result
+
+last_follow_up: follow_up, followup_date
+
+notes: comments, remarks
+
+Value normalisation examples
+
+Species: canine→Dog, feline→Cat.
+
+Tumour abbreviations: MGT→Mammary Gland Tumour; TVT→Transmissible Venereal Tumour; SCC→Squamous Cell Carcinoma; STS→Soft Tissue Sarcoma.
+
+Sex: m→M, f→F, other→Unknown.
+
+Dates: accept YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY.
+
+Dedupe rule (default)
+If (clinic_name or clinicId) + patient_name + diagnosis_date + tumour_type match an existing case → treat as duplicate (show merge/skip choice).
+
+3) Form microcopy (labels, helper text, placeholders, short errors)
+Step 1 — Patient & Signalment
+
+Patient Name
+Helper: “Use a name or unique ID.”
+Placeholder: “e.g., Bingo”
+Error: “Enter the patient name.”
+
+Species
+Options: Dog, Cat (only).
+Error: “Select species.”
+
+Breed
+Helper: “Pick from list or choose Other to type your own.”
+Placeholder: “Start typing…”
+Error: “Enter breed.”
+
+Sex
+Options: M, F, Unknown.
+
+Age (years)
+Helper: “Decimals allowed (e.g., 5.5).”
+Placeholder: “e.g., 3.0”
+Error: “Enter a valid age between 0 and 30.”
+
+State
+Helper: “Select the Nigerian state where the case is managed.”
+Error: “Select state.”
+
+Hospital/Clinic
+Helper: “Defaults to your clinic. Change for referrals.”
+Placeholder: “Search clinic…”
+Error: “Choose a clinic or enter a name.”
+
+Step 2 — Tumour Details
+
+Tumour Type
+Helper: “Choose from list or Add custom.”
+Placeholder: “Search tumour type…”
+Error: “Select a type or add a custom name.”
+Behavior rule: If you type a value, save it to tumourTypeCustom and do not send tumourTypeId.
+
+Anatomical Site
+Helper: “Choose from list or Add custom.”
+Placeholder: “Search site…”
+Error: “Select a site or add a custom name.”
+Behavior rule: If you type a value, save it to anatomicalSiteCustom and do not send anatomicalSiteId.
+
+Laterality (optional)
+Options: Left, Right, Bilateral, Midline/NA.
+
+Stage (optional)
+Helper: “If known; free text accepted.”
+
+Step 3 — Diagnosis & Treatment
+
+Diagnosis Method
+Options: Histopathology, Cytology/FNA, Imaging, Clinical.
+
+Diagnosis Date
+Error: “Enter a valid date.”
+
+Treatment Plan (optional)
+Options: Surgery, Chemotherapy, Radiation, Palliative, Observation, Other.
+
+Treatment Start (optional)
+
+Outcome (optional)
+Options: Recovered/Remission, Ongoing, Deceased, Lost to Follow-up.
+
+Last Follow-Up (optional)
+
+Notes (optional)
+Helper: “Concise clinical summary (avoid owner identifiers).”
+
+Step 4 — Attachments & Review
+
+Attachments
+Helper: “Upload images (JPG/PNG) or reports (PDF).”
+Error (size): “File too large. Please upload files under 10 MB.”
+
+Review
+Helper: “Confirm details before submit. You can edit later.”
+
+Global error style
+
+Show simple, human text: “Can’t save case — Tumour Type is required or custom value missing.”
+
+Hide raw JSON. Provide a “Copy technical details” link only in advanced view.
+
+4) Notifications copy (seed and use going forward)
+
+Case created: “New case {patient_name} saved in {clinic}.”
+
+Import completed: “Bulk import finished — {inserted} added, {skipped} skipped, {errors} errors.”
+
+Report ready: “Report {template} for {period} is ready to download.”
+
+Follow-up due: “Follow-up due for {patient_name} on {date}.”
+
+Unread counter shows the number of new events since the bell was last opened.
+
+5) How to use this pack (no heavy code)
+
+Create one file (e.g., /lib/constants.ts or /data/reference.json) containing the lists above in whatever structure your app prefers.
+
+Seed script reads States and Clinics and inserts them if missing.
+
+Form components read:
+
+Species (Dog/Cat only)
+
+Breeds filtered by species + always show Other (type)
+
+Tumour & Site lists + “Add custom” path (write to …Custom fields)
+
+States + Clinics picker
+
+Bulk upload uses the column dictionary + synonyms to auto-map headers and normalise values.
+
+Analytics adds filters for State and Clinic using these references.
+
+If you want, I can turn this into two tiny files you can paste directly (a .ts constants file and a lean seed.ts snippet that only inserts what’s missing).

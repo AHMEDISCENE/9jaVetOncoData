@@ -23,15 +23,15 @@ const caseSchema = z.object({
   ageYears: z.number().min(0).max(30).optional(),
   ageMonths: z.number().min(0).max(11).optional(),
   diagnosisDate: z.string().min(1, "Diagnosis date is required"),
-  tumourTypeId: z.string().transform(val => val === "" ? undefined : val).optional(),
+  tumourTypeId: z.string().transform(val => val === "" || val === undefined ? undefined : val).optional(),
   tumourTypeCustom: z.string().optional(),
-  anatomicalSiteId: z.string().transform(val => val === "" ? undefined : val).optional(),
+  anatomicalSiteId: z.string().transform(val => val === "" || val === undefined ? undefined : val).optional(),
   anatomicalSiteCustom: z.string().optional(),
   laterality: z.string().optional(),
   stage: z.string().optional(),
   diagnosisMethod: z.string().optional(),
   treatmentPlan: z.string().optional(),
-  treatmentStart: z.string().transform(val => val === "" ? undefined : val).optional(),
+  treatmentStart: z.string().transform(val => val === "" || val === undefined ? undefined : val).optional(),
   notes: z.string().optional(),
 });
 
@@ -45,10 +45,17 @@ const steps = [
 ];
 
 const speciesBreeds: Record<string, string[]> = {
-  Canine: ["Golden Retriever", "German Shepherd", "Labrador", "Rottweiler", "Local Mixed Breed"],
-  Feline: ["Persian", "Siamese", "Local Shorthair", "Maine Coon", "British Shorthair"],
-  Avian: ["Chicken", "Duck", "Turkey", "Pigeon", "Goose"],
-  Other: ["Mixed", "Unknown"],
+  "Dog": [
+    "Mongrel (Mixed)", "Boerboel", "Rottweiler", "German Shepherd", "Lhasa Apso", 
+    "Caucasian Shepherd", "Pit Bull Terrier", "Labrador Retriever", "Golden Retriever", 
+    "Poodle", "Chihuahua", "Dobermann", "English Bulldog", "Cane Corso", 
+    "American Eskimo", "Great Dane", "Maltese", "Shih Tzu", "Other (specify)"
+  ],
+  "Cat": [
+    "Domestic Shorthair", "Domestic Longhair", "Persian", "Siamese", 
+    "British Shorthair", "American Shorthair", "Maine Coon", "Bengal", 
+    "Sphynx", "Russian Blue", "Other (specify)"
+  ],
 };
 
 export default function CaseWizard() {
@@ -64,12 +71,15 @@ export default function CaseWizard() {
       species: "",
       breed: "",
       diagnosisDate: new Date().toISOString().split('T')[0],
+      tumourTypeId: undefined,
       tumourTypeCustom: "",
+      anatomicalSiteId: undefined, 
       anatomicalSiteCustom: "",
       laterality: "",
       stage: "",
       diagnosisMethod: "",
       treatmentPlan: "",
+      treatmentStart: undefined,
       notes: "",
     },
   });
@@ -114,7 +124,18 @@ export default function CaseWizard() {
 
   const createCaseMutation = useMutation({
     mutationFn: async (data: CaseFormData) => {
-      const response = await apiRequest("POST", "/api/cases", data);
+      // Transform data to properly handle custom vs selected values
+      const transformedData = {
+        ...data,
+        // If tumourTypeId is "custom", clear it and use tumourTypeCustom instead
+        tumourTypeId: data.tumourTypeId === "custom" ? undefined : data.tumourTypeId,
+        tumourTypeCustom: data.tumourTypeId === "custom" ? data.tumourTypeCustom : undefined,
+        // If anatomicalSiteId is "custom", clear it and use anatomicalSiteCustom instead  
+        anatomicalSiteId: data.anatomicalSiteId === "custom" ? undefined : data.anatomicalSiteId,
+        anatomicalSiteCustom: data.anatomicalSiteId === "custom" ? data.anatomicalSiteCustom : undefined,
+      };
+
+      const response = await apiRequest("POST", "/api/cases", transformedData);
       return response.json();
     },
     onSuccess: () => {
@@ -284,7 +305,6 @@ export default function CaseWizard() {
                                   {breed}
                                 </SelectItem>
                               ))}
-                              <SelectItem value="other">Other (specify)</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />

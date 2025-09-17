@@ -353,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clinicId,
         createdBy: userId,
         diagnosisDate: new Date(req.body.diagnosisDate),
-        treatmentStart: req.body.treatmentStart ? new Date(req.body.treatmentStart) : undefined,
+        treatmentStart: req.body.treatmentStart ? new Date(req.body.treatmentStart) : null,
         tumourTypeId: req.body.tumourTypeId || null,
         anatomicalSiteId: req.body.anatomicalSiteId || null,
       };

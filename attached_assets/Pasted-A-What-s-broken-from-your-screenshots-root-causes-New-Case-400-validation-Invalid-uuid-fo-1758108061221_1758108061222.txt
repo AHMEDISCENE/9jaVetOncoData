@@ -1,0 +1,222 @@
+A. What’s broken (from your screenshots) — root causes
+
+New Case → 400 validation (“Invalid uuid” for tumourTypeId / anatomicalSiteId)
+
+The form is sending a number/label (e.g., 22) or an empty string instead of a UUID.
+
+When the user types a custom tumour/site, the API still sends the …Id field, not the …Custom field.
+
+Bulk Upload overlay error: “<Select.Item /> must have a value prop that is not an empty string”
+
+The Select items for file type/mapping are missing value, or the Select is controlled with value="".
+
+The placeholder must come from placeholder/defaultValue, not from value="".
+
+Google sign-in not working
+
+Usually a callback URL mismatch or missing NEXTAUTH_URL/NEXTAUTH_SECRET.
+
+Replit preview domain changed; Google console not updated.
+
+No App Settings, no dark mode, no account settings
+
+There’s no /settings route or profile menu; theme is hard-coded.
+
+Species shows “Avian”, wrong breeds, poor vocab lists; no state/hospital
+
+Seed data and form options don’t match Nigeria scope and your spec (Feline/Canine only; add States + Hospitals).
+
+Analytics: no geography/hospital cuts; UI feels weak
+
+Backend queries and materialized views ignore state/clinic; charts not parameterised by location.
+
+Notifications icon dormant
+
+No notifications center; bell is UI only; no events are written (e.g., imports finished, follow-ups due).
+
+B. One-Paste Patch Prompt (give this to Replit)
+
+Replit, update the existing project. Do not rewrite from scratch. Keep current stack (Next.js, Prisma, Postgres, NextAuth, Tailwind, shadcn). Apply the changes below. Use minimal code edits that satisfy the behavior. Keep naming consistent with our current files.
+
+1) Fix “New Case” create contract
+
+Form behavior: When user selects from the dropdown:
+
+Send tumourTypeId only if the option came from the master list (UUID).
+
+If user types a new value, clear tumourTypeId and send tumourTypeCustom with the string.
+
+Do the same for anatomicalSiteId vs anatomicalSiteCustom.
+
+Validation: On the API route, accept either an …Id or a …Custom, never both. Return a helpful error if both/none.
+
+UI guards: Dropdowns must hold a UUID string for known items; custom text box holds the free string. Never pass numbers or empty strings as IDs.
+
+2) Fix Bulk Upload Select error
+
+In the Import / Mapping components, ensure every <SelectItem> has a non-empty value (e.g., csv, xlsx, json, auto), and the Select’s value is either a valid item or undefined when empty.
+
+Use a placeholder prop to show “Choose…”. Do not set value="".
+
+3) Merge “Bulk Upload” into “New Case”
+
+On /cases/new, add tabs: Single Case | Bulk Upload.
+
+The Bulk tab reuses the existing importer UI. Preserve the separate sidebar item (“Bulk Upload”) but redirect it to /cases/new?tab=bulk.
+
+4) Lock Species to Canine/Feline (for now)
+
+Replace species options with Dog and Cat only.
+
+Breed dropdowns must filter by species, include curated lists, and always include “Other (type)” that opens a free-text field.
+
+When “Other” is used, save to breed as typed text; no ID needed.
+
+5) Add Nigeria States + Hospital/Clinic fields
+
+In the Case form: add State (required, from list of 36 states + FCT) and Hospital/Clinic (defaults to the user’s clinic; allow override for referrals).
+
+Store: case.state (string) and case.clinicId already exists; add optional referringClinicName (string) for outside cases.
+
+Add seed data for state list and at least one demo hospital (already present as the user’s clinic).
+
+6) Add App Settings + Account Settings + Dark Mode
+
+New route: /settings with tabs:
+
+Account: name, avatar, language, password reset link, Google link/unlink.
+
+Appearance: dark/light/system; persist to user profile or local storage; add quick theme toggle in the left nav footer.
+
+Clinic: logo/letterhead upload, default state, import presets, default report recipients (Manager+).
+
+Integrations: fields for AI_OPENAI_API_KEY, S3 config visibility (names only), test buttons.
+
+Navigation: add a gear “Settings” item and a user avatar menu (top/right) that also links to Account.
+
+7) Google Sign-In — make it work reliably
+
+Confirm the following secrets exist (names only): NEXTAUTH_URL, NEXTAUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET.
+
+Set NEXTAUTH_URL to the current public URL (copy from Replit “Open in new tab”).
+
+In Google Cloud console, set Authorized redirect URI to:
+<NEXTAUTH_URL>/api/auth/callback/google
+
+Test: sign out → sign in with Google → ensure user joins the current clinic via invite or is created as MANAGER for the first clinic.
+
+8) Improve Analytics with Location & Hospital cuts
+
+Extend analytics queries to support filters and grouping by:
+
+State, Clinic, Species, Tumour Type, Date range.
+
+Add cards:
+
+Cases by State (top 10 bar).
+
+Cases by Clinic (bar).
+
+Cases over time (monthly line), filtered by species/state/clinic.
+
+All charts have Export (CSV) for their underlying aggregated data.
+
+9) Notifications — make the bell useful
+
+Add a simple Notifications Center:
+
+Events: “Case created”, “Import completed (X inserted, Y errors)”, “Report generated”, “Follow-up due soon”.
+
+Store events per user or per clinic; show unread count on the bell; dropdown listing recent 10; page for all.
+
+Mark as read when opened. Seed with 1–2 fake events so the bell isn’t dormant.
+
+10) Cases list polish
+
+Add sort (newest, oldest, patient name A→Z), quick filters (Dog, Cat, this month).
+
+Each row shows a small icon for species; add an icon for the Cases tab in the sidebar.
+
+Error toasts should auto-dismiss and show the first helpful line (not a raw JSON blob).
+
+11) Reports module quality-of-life
+
+Ensure system templates exist: Monthly Oncology Summary, Outcomes by Treatment.
+
+Run flow: parameters → generate → immutable PDF/DOCX/CSV → checksum + query IDs in footer.
+
+Scheduling: allow setting “1st of month 06:00 (Africa/Lagos)”; send email with link to the result.
+
+12) AI Insights (optional)
+
+Only show the AI card if AI_OPENAI_API_KEY is set in Settings.
+
+Pattern: pick a saved query (e.g., “Top tumours last quarter”), render the table/chart first, then show a one-paragraph summary.
+
+Redact owner info automatically.
+
+13) Accessibility & Mobile friendliness
+
+High contrast, larger tap targets, keyboard nav.
+
+PWA icons/name, install prompt; offline page for recent cases; queue unsynced new cases.
+
+C. Seed & options (minimal but helpful)
+
+Ensure Tumour Types and Anatomical Sites have 8–12 sensible defaults each (Dog/Cat), but always allow “Other (type)” with free text.
+
+Load Nigeria States list once; store as a constant for the form and as a reference table for analytics.
+
+D. What not to do
+
+Don’t re-introduce species other than Dog/Cat.
+
+Don’t send empty strings as IDs.
+
+Don’t show raw error JSON to the user.
+
+Don’t gate core features behind AI – it’s optional.
+
+E. Quick Tests (run these after the patch)
+
+Auth/Google
+
+Sign out → Sign in with Google → lands on Dashboard; user exists in DB; can access Cases.
+
+New Case
+
+Species Dog → choose known tumour & site from dropdown → Save works.
+
+Species Cat → type a custom tumour and site → Save works (custom fields stored; no UUID error).
+
+Bulk Upload
+
+Open New Case → Bulk Upload tab → choose CSV → mapping Select has visible values → import 20 rows → success toast → bell shows one “Import completed” notification → CSV download for errors (if any).
+
+Settings
+
+Toggle Dark mode → persists after refresh.
+
+Update Account name → persists.
+
+Clinic → upload logo/letterhead → visible on next generated report.
+
+Analytics
+
+Filter to Lagos State → charts update; export CSV works.
+
+Reports
+
+Run Monthly Oncology Summary for last month → get PDF with watermark + checksum; instance appears in history.
+
+Notifications
+
+Open bell → unread count clears to 0 → list shows recent events.
+
+F. Low-credit tips
+
+Make these edits in one session; avoid asking the AI to rewrite files wholesale.
+
+When updating Google settings or env vars, refresh the preview URL and update NEXTAUTH_URL accordingly.
+
+Re-use existing components; avoid adding new libraries unless necessary.
