@@ -23,15 +23,15 @@ const caseSchema = z.object({
   ageYears: z.number().min(0).max(30).optional(),
   ageMonths: z.number().min(0).max(11).optional(),
   diagnosisDate: z.string().min(1, "Diagnosis date is required"),
-  tumourTypeId: z.string().optional(),
+  tumourTypeId: z.string().transform(val => val === "" ? undefined : val).optional(),
   tumourTypeCustom: z.string().optional(),
-  anatomicalSiteId: z.string().optional(),
+  anatomicalSiteId: z.string().transform(val => val === "" ? undefined : val).optional(),
   anatomicalSiteCustom: z.string().optional(),
   laterality: z.string().optional(),
   stage: z.string().optional(),
   diagnosisMethod: z.string().optional(),
   treatmentPlan: z.string().optional(),
-  treatmentStart: z.string().optional(),
+  treatmentStart: z.string().transform(val => val === "" ? undefined : val).optional(),
   notes: z.string().optional(),
 });
 
