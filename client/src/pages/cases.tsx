@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import type { CaseWithDetails } from "@shared/schema";
 import type { CaseFilters } from "@/lib/types";
 
@@ -30,41 +29,16 @@ export default function Cases() {
   const [filters, setFilters] = useState<CaseFilters>({});
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
-  const filterLabels: Record<string, string> = {
-    species: "Species",
-    tumourType: "Tumour Type",
-    outcome: "Outcome",
-    startDate: "Start Date",
-    endDate: "End Date",
-  };
 
   const { data: cases, isLoading, error } = useQuery<CaseWithDetails[]>({
     queryKey: ["/api/cases", filters, { limit: pageSize, offset: (currentPage - 1) * pageSize }],
   });
 
   const handleFilterChange = (key: keyof CaseFilters, value: string) => {
-    setFilters(prev => {
-      const next = { ...prev };
-      if (value === "__all" || !value) {
-        delete next[key];
-      } else {
-        next[key] = value as any;
-      }
-      return next;
-    });
-    setCurrentPage(1);
-  };
-
-  const toggleMyClinicOnly = (checked: boolean) => {
-    setFilters(prev => {
-      const next = { ...prev };
-      if (checked) {
-        next.myClinicOnly = true;
-      } else {
-        delete next.myClinicOnly;
-      }
-      return next;
-    });
+    setFilters(prev => ({
+      ...prev,
+      [key]: (value === "__all" || !value) ? undefined : value
+    }));
     setCurrentPage(1);
   };
 
@@ -232,45 +206,25 @@ export default function Cases() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2 items-center">
-            {Object.entries(filters)
-              .filter(([key, value]) => {
-                if (key === "myClinicOnly") {
-                  return Boolean(value);
-                }
-                return value !== undefined && value !== "";
-              })
-              .map(([key, value]) => (
+            {Object.entries(filters).map(([key, value]) => 
+              value && (
                 <Badge key={key} variant="secondary" className="flex items-center gap-1">
-                  {key === "myClinicOnly" ? "My clinic only" : `${filterLabels[key] ?? key}: ${value}`}
+                  {key}: {value}
                   <button
-                    onClick={() =>
-                      key === "myClinicOnly"
-                        ? toggleMyClinicOnly(false)
-                        : handleFilterChange(key as keyof CaseFilters, "")
-                    }
+                    onClick={() => handleFilterChange(key as keyof CaseFilters, "")}
                     className="ml-1 hover:text-destructive"
                     data-testid={`remove-filter-${key}`}
                   >
                     <i className="fas fa-times"></i>
                   </button>
                 </Badge>
-              ))}
+              )
+            )}
             {Object.keys(filters).length > 0 && (
               <Button variant="ghost" size="sm" onClick={resetFilters} data-testid="button-clear-filters">
                 Clear All
               </Button>
             )}
-          </div>
-
-          <div className="flex items-center gap-2 mt-4">
-            <Switch
-              id="filter-my-clinic"
-              checked={Boolean(filters.myClinicOnly)}
-              onCheckedChange={toggleMyClinicOnly}
-            />
-            <Label htmlFor="filter-my-clinic" className="text-sm font-medium text-foreground">
-              My clinic only
-            </Label>
           </div>
         </CardContent>
       </Card>

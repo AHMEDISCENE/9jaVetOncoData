@@ -41,8 +41,6 @@ const filterSchema = z.object({
   endDate: z.string().optional(),
   limit: z.coerce.number().optional(),
   offset: z.coerce.number().optional(),
-  myClinicOnly: z.coerce.boolean().optional(),
-  clinicId: z.string().uuid().optional(),
 });
 
 // File upload configuration
@@ -527,18 +525,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const filters = filterSchema.parse(req.query);
-
-      const cases = await storage.getCases({
-        species: filters.species,
-        tumourType: filters.tumourType,
-        outcome: filters.outcome,
+      
+      const cases = await storage.getCases(clinicId, {
+        ...filters,
         startDate: filters.startDate ? new Date(filters.startDate) : undefined,
         endDate: filters.endDate ? new Date(filters.endDate) : undefined,
-        clinicId: filters.myClinicOnly ? clinicId : filters.clinicId,
-        limit: filters.limit,
-        offset: filters.offset,
       });
-
+      
       res.json(cases);
     } catch (error) {
       console.error("[cases.list]", error);
@@ -548,9 +541,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/cases/:id", requireAuth, async (req, res) => {
     try {
-      const userId = (req.session as any).userId;
-      const userRole = (req.session as any).userRole;
-      const caseData = await storage.getCase(req.params.id, { userId, userRole });
+      const clinicId = (req.session as any).clinicId;
+      const caseData = await storage.getCase(req.params.id, clinicId);
       
       if (!caseData) {
         return res.status(404).json({ message: "Case not found" });
@@ -566,7 +558,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
-      const userRole = (req.session as any).userRole;
       
       // Transform data before validation
       const transformedData = {
@@ -603,8 +594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
-      const userRole = (req.session as any).userRole;
-
+      
       // Transform data before validation for updates
       const transformedUpdates = {
         ...req.body,
@@ -616,11 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updates = insertCaseSchema.partial().parse(transformedUpdates);
       
-      const updatedCase = await storage.updateCase(req.params.id, updates, {
-        userId,
-        userRole,
-        clinicId,
-      });
+      const updatedCase = await storage.updateCase(req.params.id, updates, clinicId);
       
       await storage.createAuditLog({
         actorId: userId,
@@ -635,9 +621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updatedCase);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to update case";
-      const status = message.includes("Not allowed") ? 403 : 400;
-      res.status(status).json({ message });
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update case" });
     }
   });
 
@@ -645,9 +629,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
-      const userRole = (req.session as any).userRole;
-
-      await storage.deleteCase(req.params.id, { userId, userRole, clinicId });
+      
+      await storage.deleteCase(req.params.id, clinicId);
       
       await storage.createAuditLog({
         actorId: userId,
@@ -661,9 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ message: "Case deleted successfully" });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to delete case";
-      const status = message.includes("Not allowed") ? 403 : 500;
-      res.status(status).json({ message });
+      res.status(500).json({ message: "Failed to delete case" });
     }
   });
 

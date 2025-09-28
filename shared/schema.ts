@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, uuid, timestamp, integer, jsonb, pgEnum, boolean, index, pgView } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, uuid, timestamp, integer, jsonb, pgEnum, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -155,39 +155,6 @@ export const cases = pgTable("cases", {
   outcomeIdx: index("cases_outcome_idx").on(table.outcome),
   diagnosisDateIdx: index("cases_diagnosis_date_idx").on(table.diagnosisDate),
 }));
-
-export const sharedCasesView = pgView("shared_cases_view", {
-  id: uuid("id"),
-  caseNumber: text("case_number"),
-  clinicId: uuid("clinic_id"),
-  createdBy: uuid("created_by"),
-  patientAlias: text("patient_alias"),
-  species: text("species"),
-  breed: text("breed"),
-  sex: sexEnum("sex"),
-  ageYears: integer("age_years"),
-  ageMonths: integer("age_months"),
-  tumourTypeId: uuid("tumour_type_id"),
-  tumourTypeCustom: text("tumour_type_custom"),
-  anatomicalSiteId: uuid("anatomical_site_id"),
-  anatomicalSiteCustom: text("anatomical_site_custom"),
-  laterality: text("laterality"),
-  stage: text("stage"),
-  diagnosisMethod: text("diagnosis_method"),
-  diagnosisDate: timestamp("diagnosis_date"),
-  treatmentPlan: text("treatment_plan"),
-  treatmentStart: timestamp("treatment_start"),
-  outcome: outcomeEnum("outcome"),
-  lastFollowUp: timestamp("last_follow_up"),
-  notes: text("notes"),
-  status: statusEnum("status"),
-  extra: jsonb("extra"),
-  createdAt: timestamp("created_at"),
-  updatedAt: timestamp("updated_at"),
-  clinicName: text("clinic_name"),
-  clinicState: stateEnum("clinic_state"),
-  clinicCity: text("clinic_city"),
-});
 
 export const attachments = pgTable("attachments", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
