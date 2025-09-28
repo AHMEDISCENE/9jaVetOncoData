@@ -603,7 +603,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
-      
+      const userRole = (req.session as any).userRole;
+
       // Transform data before validation for updates
       const transformedUpdates = {
         ...req.body,
