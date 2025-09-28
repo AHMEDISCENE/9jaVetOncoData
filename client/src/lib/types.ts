@@ -22,6 +22,7 @@ export interface CaseFilters {
   outcome?: string;
   startDate?: string;
   endDate?: string;
+  myClinicOnly?: boolean;
 }
 
 export interface PaginationParams {
