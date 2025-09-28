@@ -30,7 +30,8 @@ import {
   followUps,
   auditLogs,
   invitations,
-  importJobs
+  importJobs,
+  sharedCasesView
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull, inArray } from "drizzle-orm";
@@ -69,19 +70,20 @@ export interface IStorage {
   acceptInvitation(token: string, userId: string): Promise<void>;
   
   // Cases
-  getCases(clinicId: string, filters?: {
+  getCases(filters?: {
     species?: string;
     tumourType?: string;
     outcome?: string;
     startDate?: Date;
     endDate?: Date;
+    clinicId?: string;
     limit?: number;
     offset?: number;
   }): Promise<CaseWithDetails[]>;
-  getCase(id: string, clinicId: string): Promise<CaseWithDetails | undefined>;
+  getCase(id: string, context?: { userId?: string; userRole?: string }): Promise<CaseWithDetails | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
-  updateCase(id: string, updates: Partial<InsertCase>, clinicId: string): Promise<Case>;
-  deleteCase(id: string, clinicId: string): Promise<void>;
+  updateCase(id: string, updates: Partial<InsertCase>, context: { userId: string; userRole: string; clinicId?: string }): Promise<Case>;
+  deleteCase(id: string, context: { userId: string; userRole: string; clinicId?: string }): Promise<void>;
   generateCaseNumber(clinicId: string): Promise<string>;
   
   // Vocabulary
@@ -268,85 +270,142 @@ export class DatabaseStorage implements IStorage {
       .where(eq(invitations.token, token));
   }
 
-  async getCases(clinicId: string, filters: {
+  async getCases(filters: {
     species?: string;
     tumourType?: string;
     outcome?: string;
     startDate?: Date;
     endDate?: Date;
+    clinicId?: string;
     limit?: number;
     offset?: number;
   } = {}): Promise<CaseWithDetails[]> {
-    const creator = alias(users, 'creator');
-    
-    let query = db
-      .select()
-      .from(cases)
-      .leftJoin(clinics, eq(cases.clinicId, clinics.id))
-      .leftJoin(creator, eq(cases.createdBy, creator.id))
-      .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
-      .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
-      .where(eq(cases.clinicId, clinicId));
+    const creator = alias(users, "creator");
 
+    let query = db
+      .select({
+        sharedCase: sharedCasesView,
+        clinics,
+        creator,
+        tumour_types: tumourTypes,
+        anatomical_sites: anatomicalSites,
+      })
+      .from(sharedCasesView)
+      .leftJoin(clinics, eq(sharedCasesView.clinicId, clinics.id))
+      .leftJoin(creator, eq(sharedCasesView.createdBy, creator.id))
+      .leftJoin(tumourTypes, eq(sharedCasesView.tumourTypeId, tumourTypes.id))
+      .leftJoin(anatomicalSites, eq(sharedCasesView.anatomicalSiteId, anatomicalSites.id));
+
+    const conditions = [] as any[];
+    if (filters.clinicId) {
+      conditions.push(eq(sharedCasesView.clinicId, filters.clinicId));
+    }
     if (filters.species) {
-      query = query.where(eq(cases.species, filters.species));
+      conditions.push(eq(sharedCasesView.species, filters.species));
+    }
+    if (filters.tumourType) {
+      conditions.push(or(
+        eq(sharedCasesView.tumourTypeId, filters.tumourType),
+        ilike(sharedCasesView.tumourTypeCustom, `%${filters.tumourType}%`)
+      ));
     }
     if (filters.outcome) {
-      query = query.where(eq(cases.outcome, filters.outcome as any));
+      conditions.push(eq(sharedCasesView.outcome, filters.outcome as any));
     }
     if (filters.startDate) {
-      query = query.where(gte(cases.diagnosisDate, filters.startDate));
+      conditions.push(gte(sharedCasesView.diagnosisDate, filters.startDate));
     }
     if (filters.endDate) {
-      query = query.where(lte(cases.diagnosisDate, filters.endDate));
+      conditions.push(lte(sharedCasesView.diagnosisDate, filters.endDate));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
 
     query = query
-      .orderBy(desc(cases.createdAt))
-      .limit(filters.limit || 50)
-      .offset(filters.offset || 0);
+      .orderBy(desc(sharedCasesView.diagnosisDate))
+      .limit(filters.limit ?? 50)
+      .offset(filters.offset ?? 0);
 
     const results = await query;
 
-    // Get attachments and follow-ups for each case
-    const caseIds = results.map(r => r.cases.id);
+    const caseIds = results
+      .map(result => result.sharedCase.id)
+      .filter((id): id is string => Boolean(id));
+
     const attachmentsData = caseIds.length > 0 ? await db
       .select()
       .from(attachments)
       .where(inArray(attachments.caseId, caseIds)) : [];
-    
+
     const followUpsData = caseIds.length > 0 ? await db
       .select()
       .from(followUps)
       .where(inArray(followUps.caseId, caseIds)) : [];
 
-    return results.map(result => ({
-      ...result.cases,
-      clinic: result.clinics!,
-      createdBy: result.creator!,
-      tumourType: result.tumour_types,
-      anatomicalSite: result.anatomical_sites,
-      attachments: attachmentsData.filter(a => a.caseId === result.cases.id),
-      followUps: followUpsData.filter(f => f.caseId === result.cases.id),
-    }));
+    return results.map(result => {
+      const shared = result.sharedCase;
+      if (!shared.id) {
+        throw new Error("Shared case row missing id");
+      }
+
+      return {
+        id: shared.id,
+        caseNumber: shared.caseNumber!,
+        clinicId: shared.clinicId!,
+        createdBy: result.creator!,
+        patientName: shared.patientAlias ?? null,
+        species: shared.species!,
+        breed: shared.breed!,
+        sex: shared.sex,
+        ageYears: shared.ageYears,
+        ageMonths: shared.ageMonths,
+        tumourTypeId: shared.tumourTypeId,
+        tumourTypeCustom: shared.tumourTypeCustom,
+        anatomicalSiteId: shared.anatomicalSiteId,
+        anatomicalSiteCustom: shared.anatomicalSiteCustom,
+        laterality: shared.laterality,
+        stage: shared.stage,
+        diagnosisMethod: shared.diagnosisMethod,
+        diagnosisDate: shared.diagnosisDate!,
+        treatmentPlan: shared.treatmentPlan,
+        treatmentStart: shared.treatmentStart,
+        outcome: shared.outcome,
+        lastFollowUp: shared.lastFollowUp,
+        notes: shared.notes,
+        status: shared.status!,
+        extra: shared.extra ?? {},
+        createdAt: shared.createdAt!,
+        updatedAt: shared.updatedAt!,
+        clinic: result.clinics!,
+        tumourType: result.tumour_types,
+        anatomicalSite: result.anatomical_sites,
+        attachments: attachmentsData.filter(a => a.caseId === shared.id),
+        followUps: followUpsData.filter(f => f.caseId === shared.id),
+      };
+    });
   }
 
-  async getCase(id: string, clinicId: string): Promise<CaseWithDetails | undefined> {
-    const creator = alias(users, 'creator');
-    
-    const [result] = await db
-      .select()
-      .from(cases)
-      .leftJoin(clinics, eq(cases.clinicId, clinics.id))
-      .leftJoin(creator, eq(cases.createdBy, creator.id))
-      .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
-      .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
-      .where(and(
-        eq(cases.id, id),
-        eq(cases.clinicId, clinicId)
-      ));
+  async getCase(id: string, context?: { userId?: string; userRole?: string }): Promise<CaseWithDetails | undefined> {
+    const creator = alias(users, "creator");
 
-    if (!result) return undefined;
+    const [result] = await db
+      .select({
+        sharedCase: sharedCasesView,
+        clinics,
+        creator,
+        tumour_types: tumourTypes,
+        anatomical_sites: anatomicalSites,
+      })
+      .from(sharedCasesView)
+      .leftJoin(clinics, eq(sharedCasesView.clinicId, clinics.id))
+      .leftJoin(creator, eq(sharedCasesView.createdBy, creator.id))
+      .leftJoin(tumourTypes, eq(sharedCasesView.tumourTypeId, tumourTypes.id))
+      .leftJoin(anatomicalSites, eq(sharedCasesView.anatomicalSiteId, anatomicalSites.id))
+      .where(eq(sharedCasesView.id, id));
+
+    if (!result || !result.sharedCase.id) return undefined;
 
     const attachmentsData = await db
       .select()
@@ -359,15 +418,59 @@ export class DatabaseStorage implements IStorage {
       .where(eq(followUps.caseId, id))
       .orderBy(desc(followUps.scheduledFor));
 
-    return {
-      ...result.cases,
-      clinic: result.clinics!,
+    const shared = result.sharedCase;
+
+    const caseDetails: CaseWithDetails = {
+      id: shared.id,
+      caseNumber: shared.caseNumber!,
+      clinicId: shared.clinicId!,
       createdBy: result.creator!,
+      patientName: shared.patientAlias ?? null,
+      species: shared.species!,
+      breed: shared.breed!,
+      sex: shared.sex,
+      ageYears: shared.ageYears,
+      ageMonths: shared.ageMonths,
+      tumourTypeId: shared.tumourTypeId,
+      tumourTypeCustom: shared.tumourTypeCustom,
+      anatomicalSiteId: shared.anatomicalSiteId,
+      anatomicalSiteCustom: shared.anatomicalSiteCustom,
+      laterality: shared.laterality,
+      stage: shared.stage,
+      diagnosisMethod: shared.diagnosisMethod,
+      diagnosisDate: shared.diagnosisDate!,
+      treatmentPlan: shared.treatmentPlan,
+      treatmentStart: shared.treatmentStart,
+      outcome: shared.outcome,
+      lastFollowUp: shared.lastFollowUp,
+      notes: shared.notes,
+      status: shared.status!,
+      extra: shared.extra ?? {},
+      createdAt: shared.createdAt!,
+      updatedAt: shared.updatedAt!,
+      clinic: result.clinics!,
       tumourType: result.tumour_types,
       anatomicalSite: result.anatomical_sites,
       attachments: attachmentsData,
       followUps: followUpsData,
     };
+
+    const isAdmin = context?.userRole === "ADMIN";
+    const isManager = context?.userRole === "MANAGER";
+    const isOwner = context?.userId && result.creator?.id === context.userId;
+
+    if (isAdmin || isManager || isOwner) {
+      const [fullCase] = await db
+        .select({ patientName: cases.patientName })
+        .from(cases)
+        .where(eq(cases.id, id));
+
+      if (fullCase?.patientName) {
+        caseDetails.patientName = fullCase.patientName;
+      }
+    }
+
+    return caseDetails;
   }
 
   async createCase(caseData: InsertCase): Promise<Case> {
@@ -379,25 +482,62 @@ export class DatabaseStorage implements IStorage {
     return newCase;
   }
 
-  async updateCase(id: string, updates: Partial<InsertCase>, clinicId: string): Promise<Case> {
+  async updateCase(
+    id: string,
+    updates: Partial<InsertCase>,
+    context: { userId: string; userRole: string; clinicId?: string }
+  ): Promise<Case> {
+    const isAdmin = context.userRole === "ADMIN";
+    const isManager = context.userRole === "MANAGER";
+
+    let whereClause: any = eq(cases.id, id);
+
+    if (isAdmin) {
+      // No additional restrictions
+    } else if (isManager && context.clinicId) {
+      whereClause = and(whereClause, eq(cases.clinicId, context.clinicId));
+    } else {
+      whereClause = and(whereClause, eq(cases.createdBy, context.userId));
+    }
+
     const [updatedCase] = await db
       .update(cases)
       .set({ ...updates, updatedAt: new Date() })
-      .where(and(
-        eq(cases.id, id),
-        eq(cases.clinicId, clinicId)
-      ))
+      .where(whereClause)
       .returning();
+
+    if (!updatedCase) {
+      throw new Error("Not allowed to update this case");
+    }
+
     return updatedCase;
   }
 
-  async deleteCase(id: string, clinicId: string): Promise<void> {
-    await db
+  async deleteCase(
+    id: string,
+    context: { userId: string; userRole: string; clinicId?: string }
+  ): Promise<void> {
+    const isAdmin = context.userRole === "ADMIN";
+    const isManager = context.userRole === "MANAGER";
+
+    let whereClause: any = eq(cases.id, id);
+
+    if (isAdmin) {
+      // No additional restrictions
+    } else if (isManager && context.clinicId) {
+      whereClause = and(whereClause, eq(cases.clinicId, context.clinicId));
+    } else {
+      whereClause = and(whereClause, eq(cases.createdBy, context.userId));
+    }
+
+    const deleted = await db
       .delete(cases)
-      .where(and(
-        eq(cases.id, id),
-        eq(cases.clinicId, clinicId)
-      ));
+      .where(whereClause)
+      .returning({ id: cases.id });
+
+    if (deleted.length === 0) {
+      throw new Error("Not allowed to delete this case");
+    }
   }
 
   async generateCaseNumber(clinicId: string): Promise<string> {
