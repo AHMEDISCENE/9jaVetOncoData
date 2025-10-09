@@ -225,10 +225,20 @@ export default function Cases() {
     queryKey: ["/api/cases", filters, { limit: pageSize, offset: (currentPage - 1) * pageSize }],
   });
 
-  // Extract unique zones
+  // Extract unique zones with proper formatting
   const zones = useMemo(() => {
+    const formatZoneName = (zone: string) => {
+      return zone
+        .split('_')
+        .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+        .join(' ');
+    };
+    
     const uniqueZones = Array.from(new Set(ngStates.map(s => s.zone))).sort();
-    return uniqueZones.map(zone => ({ value: zone, label: zone }));
+    return uniqueZones.map(zone => ({ 
+      value: zone, 
+      label: formatZoneName(zone) 
+    }));
   }, [ngStates]);
 
   // Filter states based on selected zones (cascading)

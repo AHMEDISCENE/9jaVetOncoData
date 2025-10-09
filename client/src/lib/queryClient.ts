@@ -39,7 +39,12 @@ export const getQueryFn: <T>(options: {
       if (param && typeof param === 'object') {
         Object.entries(param).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {
-            queryParams.append(key, String(value));
+            // Handle arrays properly - add each value separately
+            if (Array.isArray(value)) {
+              value.forEach(v => queryParams.append(key, String(v)));
+            } else {
+              queryParams.append(key, String(value));
+            }
           }
         });
       }
