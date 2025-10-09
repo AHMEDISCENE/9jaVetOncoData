@@ -44,6 +44,21 @@ const filterSchema = z.object({
   limit: z.coerce.number().optional(),
   offset: z.coerce.number().optional(),
   clinicId: z.string().optional(), // For optional clinic filtering in shared reads
+  // New zone/state/clinic/tumour filters (multi-select support)
+  zone: z.union([z.string(), z.array(z.string())]).optional().transform(val => 
+    val ? (Array.isArray(val) ? val : [val]) : undefined
+  ),
+  state: z.union([z.string(), z.array(z.string())]).optional().transform(val => 
+    val ? (Array.isArray(val) ? val : [val]) : undefined
+  ),
+  clinicIds: z.union([z.string(), z.array(z.string())]).optional().transform(val => 
+    val ? (Array.isArray(val) ? val : [val]) : undefined
+  ),
+  tumourTypeIds: z.union([z.string(), z.array(z.string())]).optional().transform(val => 
+    val ? (Array.isArray(val) ? val : [val]) : undefined
+  ),
+  sort: z.enum(['date_desc', 'date_asc', 'clinic', 'tumour', 'state']).optional().default('date_desc'),
+  groupBy: z.enum(['zone', 'state', 'clinic', 'none']).optional().default('none'),
 });
 
 // File upload configuration for bulk import
