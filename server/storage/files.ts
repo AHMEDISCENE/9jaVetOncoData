@@ -123,11 +123,11 @@ export async function putObject({ key, buffer, contentType }: PutObjectParams): 
     },
   });
 
-  // Generate public URL using Google Cloud Storage's signed URL (max 7 days)
+  // Generate public URL using Google Cloud Storage's signed URL
   const [publicUrl] = await file.getSignedUrl({
     version: 'v4',
     action: 'read',
-    expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days (max allowed)
+    expires: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year
   });
 
   return { publicUrl };

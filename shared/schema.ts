@@ -22,15 +22,6 @@ export const stateEnum = pgEnum("state", [
   "RIVERS", "SOKOTO", "TARABA", "YOBE", "ZAMFARA"
 ]);
 
-// Nigerian States → Geopolitical Zones mapping
-export const ngStates = pgTable("ng_states", {
-  name: text("name").primaryKey(), // LAGOS, KANO, etc.
-  zone: text("zone").notNull(), // NORTH_CENTRAL, SOUTH_WEST, etc.
-  displayName: text("display_name").notNull(), // Lagos, Kano, etc.
-}, (table) => ({
-  zoneIdx: index("ng_states_zone_idx").on(table.zone),
-}));
-
 // Core Tables
 export const clinics = pgTable("clinics", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
