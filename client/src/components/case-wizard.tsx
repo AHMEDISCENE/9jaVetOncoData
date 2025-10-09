@@ -134,12 +134,12 @@ export default function CaseWizard() {
       // Transform data to properly handle custom vs selected values
       const transformedData = {
         ...data,
-        // If tumourTypeId is "custom", clear it and use tumourTypeCustom instead
-        tumourTypeId: data.tumourTypeId === "custom" ? undefined : data.tumourTypeId,
-        tumourTypeCustom: data.tumourTypeId === "custom" ? data.tumourTypeCustom : undefined,
-        // If anatomicalSiteId is "custom", clear it and use anatomicalSiteCustom instead  
-        anatomicalSiteId: data.anatomicalSiteId === "custom" ? undefined : data.anatomicalSiteId,
-        anatomicalSiteCustom: data.anatomicalSiteId === "custom" ? data.anatomicalSiteCustom : undefined,
+        // If tumourTypeId is "OTHER", clear it and use tumourTypeCustom instead
+        tumourTypeId: data.tumourTypeId === "OTHER" ? undefined : data.tumourTypeId,
+        tumourTypeCustom: data.tumourTypeId === "OTHER" ? data.tumourTypeCustom : undefined,
+        // If anatomicalSiteId is "OTHER", clear it and use anatomicalSiteCustom instead  
+        anatomicalSiteId: data.anatomicalSiteId === "OTHER" ? undefined : data.anatomicalSiteId,
+        anatomicalSiteCustom: data.anatomicalSiteId === "OTHER" ? data.anatomicalSiteCustom : undefined,
       };
 
       const response = await apiRequest("POST", "/api/cases", transformedData);
@@ -488,14 +488,14 @@ export default function CaseWizard() {
                           <Select 
                             onValueChange={(value) => {
                               if (value === "OTHER") {
-                                field.onChange("");
+                                field.onChange("OTHER");
                                 form.setValue("tumourTypeCustom", "");
                               } else {
                                 field.onChange(value);
                                 form.setValue("tumourTypeCustom", "");
                               }
                             }} 
-                            value={field.value || (form.watch("tumourTypeCustom") ? "OTHER" : "")}
+                            value={field.value || ""}
                           >
                             <FormControl>
                               <SelectTrigger data-testid="select-tumour-type">
@@ -516,7 +516,7 @@ export default function CaseWizard() {
                       )}
                     />
 
-                    {!form.watch("tumourTypeId") && form.watch("tumourTypeCustom") !== "" && (
+                    {form.watch("tumourTypeId") === "OTHER" && (
                       <FormField
                         control={form.control}
                         name="tumourTypeCustom"
@@ -541,14 +541,14 @@ export default function CaseWizard() {
                           <Select 
                             onValueChange={(value) => {
                               if (value === "OTHER") {
-                                field.onChange("");
+                                field.onChange("OTHER");
                                 form.setValue("anatomicalSiteCustom", "");
                               } else {
                                 field.onChange(value);
                                 form.setValue("anatomicalSiteCustom", "");
                               }
                             }} 
-                            value={field.value || (form.watch("anatomicalSiteCustom") ? "OTHER" : "")}
+                            value={field.value || ""}
                           >
                             <FormControl>
                               <SelectTrigger data-testid="select-anatomical-site">
@@ -569,7 +569,7 @@ export default function CaseWizard() {
                       )}
                     />
 
-                    {!form.watch("anatomicalSiteId") && form.watch("anatomicalSiteCustom") !== "" && (
+                    {form.watch("anatomicalSiteId") === "OTHER" && (
                       <FormField
                         control={form.control}
                         name="anatomicalSiteCustom"
