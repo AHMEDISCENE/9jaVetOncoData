@@ -563,6 +563,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
       
+      // Apply mutual exclusivity rules for tumour type and anatomical site
+      let tumourTypeId = req.body.tumourTypeId || null;
+      let tumourTypeCustom = req.body.tumourTypeCustom || null;
+      let anatomicalSiteId = req.body.anatomicalSiteId || null;
+      let anatomicalSiteCustom = req.body.anatomicalSiteCustom || null;
+      
+      // If id is provided, clear custom (id takes precedence)
+      if (tumourTypeId) {
+        tumourTypeCustom = null;
+      }
+      if (anatomicalSiteId) {
+        anatomicalSiteCustom = null;
+      }
+      
       // Transform data before validation
       const transformedData = {
         ...req.body,
@@ -570,8 +584,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: userId,
         diagnosisDate: new Date(req.body.diagnosisDate),
         treatmentStart: req.body.treatmentStart ? new Date(req.body.treatmentStart) : null,
-        tumourTypeId: req.body.tumourTypeId || null,
-        anatomicalSiteId: req.body.anatomicalSiteId || null,
+        tumourTypeId,
+        tumourTypeCustom,
+        anatomicalSiteId,
+        anatomicalSiteCustom,
       };
       
       const caseData = insertCaseSchema.parse(transformedData);
@@ -599,13 +615,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
       
+      // Apply mutual exclusivity rules for tumour type and anatomical site
+      let tumourTypeId = req.body.tumourTypeId || null;
+      let tumourTypeCustom = req.body.tumourTypeCustom || null;
+      let anatomicalSiteId = req.body.anatomicalSiteId || null;
+      let anatomicalSiteCustom = req.body.anatomicalSiteCustom || null;
+      
+      // If id is provided, clear custom (id takes precedence)
+      if (tumourTypeId) {
+        tumourTypeCustom = null;
+      }
+      if (anatomicalSiteId) {
+        anatomicalSiteCustom = null;
+      }
+      
       // Transform data before validation for updates
       const transformedUpdates = {
         ...req.body,
         diagnosisDate: req.body.diagnosisDate ? new Date(req.body.diagnosisDate) : undefined,
         treatmentStart: req.body.treatmentStart ? new Date(req.body.treatmentStart) : undefined,
-        tumourTypeId: req.body.tumourTypeId || null,
-        anatomicalSiteId: req.body.anatomicalSiteId || null,
+        tumourTypeId,
+        tumourTypeCustom,
+        anatomicalSiteId,
+        anatomicalSiteCustom,
       };
       
       const updates = insertCaseSchema.partial().parse(transformedUpdates);

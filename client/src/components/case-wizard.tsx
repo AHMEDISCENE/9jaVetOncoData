@@ -485,10 +485,21 @@ export default function CaseWizard() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Tumour Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select 
+                            onValueChange={(value) => {
+                              if (value === "OTHER") {
+                                field.onChange(undefined);
+                                form.setValue("tumourTypeCustom", "");
+                              } else {
+                                field.onChange(value);
+                                form.setValue("tumourTypeCustom", undefined);
+                              }
+                            }} 
+                            value={field.value || (form.watch("tumourTypeCustom") !== undefined ? "OTHER" : "")}
+                          >
                             <FormControl>
                               <SelectTrigger data-testid="select-tumour-type">
-                                <SelectValue placeholder="Select or add custom" />
+                                <SelectValue placeholder="Select tumour type" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -497,7 +508,7 @@ export default function CaseWizard() {
                                   {type.name}
                                 </SelectItem>
                               ))}
-                              <SelectItem value="custom">Add custom type</SelectItem>
+                              <SelectItem value="OTHER">Other (specify)</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -505,13 +516,13 @@ export default function CaseWizard() {
                       )}
                     />
 
-                    {form.watch("tumourTypeId") === "custom" && (
+                    {form.watch("tumourTypeCustom") !== undefined && (
                       <FormField
                         control={form.control}
                         name="tumourTypeCustom"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Custom Tumour Type</FormLabel>
+                            <FormLabel>Other (specify)</FormLabel>
                             <FormControl>
                               <Input placeholder="Enter custom tumour type" data-testid="input-custom-tumour" {...field} />
                             </FormControl>
@@ -527,10 +538,21 @@ export default function CaseWizard() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Anatomical Site</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select 
+                            onValueChange={(value) => {
+                              if (value === "OTHER") {
+                                field.onChange(undefined);
+                                form.setValue("anatomicalSiteCustom", "");
+                              } else {
+                                field.onChange(value);
+                                form.setValue("anatomicalSiteCustom", undefined);
+                              }
+                            }} 
+                            value={field.value || (form.watch("anatomicalSiteCustom") !== undefined ? "OTHER" : "")}
+                          >
                             <FormControl>
                               <SelectTrigger data-testid="select-anatomical-site">
-                                <SelectValue placeholder="Select or add custom" />
+                                <SelectValue placeholder="Select anatomical site" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -539,7 +561,7 @@ export default function CaseWizard() {
                                   {site.name}
                                 </SelectItem>
                               ))}
-                              <SelectItem value="custom">Add custom site</SelectItem>
+                              <SelectItem value="OTHER">Other (specify)</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -547,13 +569,13 @@ export default function CaseWizard() {
                       )}
                     />
 
-                    {form.watch("anatomicalSiteId") === "custom" && (
+                    {form.watch("anatomicalSiteCustom") !== undefined && (
                       <FormField
                         control={form.control}
                         name="anatomicalSiteCustom"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Custom Anatomical Site</FormLabel>
+                            <FormLabel>Other (specify)</FormLabel>
                             <FormControl>
                               <Input placeholder="Enter custom anatomical site" data-testid="input-custom-site" {...field} />
                             </FormControl>
