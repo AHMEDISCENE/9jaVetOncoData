@@ -28,15 +28,15 @@ const caseSchema = z.object({
   ageYears: z.number().min(0).max(30).optional(),
   ageMonths: z.number().min(0).max(11).optional(),
   diagnosisDate: z.string().min(1, "Diagnosis date is required"),
-  tumourTypeId: z.string().transform(val => val === "" || val === undefined ? undefined : val).optional(),
-  tumourTypeCustom: z.string().optional(),
-  anatomicalSiteId: z.string().transform(val => val === "" || val === undefined ? undefined : val).optional(),
-  anatomicalSiteCustom: z.string().optional(),
+  tumourTypeId: z.string().transform(val => val === "" ? undefined : val).optional(),
+  tumourTypeCustom: z.string().transform(val => val === "" ? undefined : val).optional(),
+  anatomicalSiteId: z.string().transform(val => val === "" ? undefined : val).optional(),
+  anatomicalSiteCustom: z.string().transform(val => val === "" ? undefined : val).optional(),
   laterality: z.string().optional(),
   stage: z.string().optional(),
   diagnosisMethod: z.string().optional(),
   treatmentPlan: z.string().optional(),
-  treatmentStart: z.string().transform(val => val === "" || val === undefined ? undefined : val).optional(),
+  treatmentStart: z.string().transform(val => val === "" ? undefined : val).optional(),
   notes: z.string().optional(),
 });
 
@@ -65,15 +65,15 @@ export default function CaseWizard() {
       species: "",
       breed: "",
       diagnosisDate: new Date().toISOString().split('T')[0],
-      tumourTypeId: undefined,
+      tumourTypeId: "",
       tumourTypeCustom: "",
-      anatomicalSiteId: undefined, 
+      anatomicalSiteId: "", 
       anatomicalSiteCustom: "",
       laterality: "",
       stage: "",
       diagnosisMethod: "",
       treatmentPlan: "",
-      treatmentStart: undefined,
+      treatmentStart: "",
       notes: "",
     },
   });
@@ -488,14 +488,14 @@ export default function CaseWizard() {
                           <Select 
                             onValueChange={(value) => {
                               if (value === "OTHER") {
-                                field.onChange(undefined);
+                                field.onChange("");
                                 form.setValue("tumourTypeCustom", "");
                               } else {
                                 field.onChange(value);
-                                form.setValue("tumourTypeCustom", undefined);
+                                form.setValue("tumourTypeCustom", "");
                               }
                             }} 
-                            value={field.value || (form.watch("tumourTypeCustom") !== undefined ? "OTHER" : "")}
+                            value={field.value || (form.watch("tumourTypeCustom") ? "OTHER" : "")}
                           >
                             <FormControl>
                               <SelectTrigger data-testid="select-tumour-type">
@@ -516,7 +516,7 @@ export default function CaseWizard() {
                       )}
                     />
 
-                    {form.watch("tumourTypeCustom") !== undefined && (
+                    {!form.watch("tumourTypeId") && form.watch("tumourTypeCustom") !== "" && (
                       <FormField
                         control={form.control}
                         name="tumourTypeCustom"
@@ -541,14 +541,14 @@ export default function CaseWizard() {
                           <Select 
                             onValueChange={(value) => {
                               if (value === "OTHER") {
-                                field.onChange(undefined);
+                                field.onChange("");
                                 form.setValue("anatomicalSiteCustom", "");
                               } else {
                                 field.onChange(value);
-                                form.setValue("anatomicalSiteCustom", undefined);
+                                form.setValue("anatomicalSiteCustom", "");
                               }
                             }} 
-                            value={field.value || (form.watch("anatomicalSiteCustom") !== undefined ? "OTHER" : "")}
+                            value={field.value || (form.watch("anatomicalSiteCustom") ? "OTHER" : "")}
                           >
                             <FormControl>
                               <SelectTrigger data-testid="select-anatomical-site">
@@ -569,7 +569,7 @@ export default function CaseWizard() {
                       )}
                     />
 
-                    {form.watch("anatomicalSiteCustom") !== undefined && (
+                    {!form.watch("anatomicalSiteId") && form.watch("anatomicalSiteCustom") !== "" && (
                       <FormField
                         control={form.control}
                         name="anatomicalSiteCustom"
