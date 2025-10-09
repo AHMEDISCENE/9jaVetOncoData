@@ -9,13 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
+import { Combobox } from "@/components/ui/combobox";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
-import type { TumourType, AnatomicalSite } from "@shared/schema";
+import type { TumourType, AnatomicalSite, Clinic } from "@shared/schema";
+import { NIGERIA_STATES, getZoneForState, formatStateName, formatZoneName, SPECIES_BREEDS } from "@/lib/constants";
 
 const caseSchema = z.object({
+  state: z.string().min(1, "State is required"),
+  clinicId: z.string().min(1, "Clinic is required"),
   patientName: z.string().optional(),
   species: z.string().min(1, "Species is required"),
   breed: z.string().min(1, "Breed is required"),
@@ -44,29 +49,18 @@ const steps = [
   { id: 4, title: "Review", description: "Review and submit" },
 ];
 
-const speciesBreeds: Record<string, string[]> = {
-  "Dog": [
-    "Mongrel (Mixed)", "Boerboel", "Rottweiler", "German Shepherd", "Lhasa Apso", 
-    "Caucasian Shepherd", "Pit Bull Terrier", "Labrador Retriever", "Golden Retriever", 
-    "Poodle", "Chihuahua", "Dobermann", "English Bulldog", "Cane Corso", 
-    "American Eskimo", "Great Dane", "Maltese", "Shih Tzu", "Other (specify)"
-  ],
-  "Cat": [
-    "Domestic Shorthair", "Domestic Longhair", "Persian", "Siamese", 
-    "British Shorthair", "American Shorthair", "Maine Coon", "Bengal", 
-    "Sphynx", "Russian Blue", "Other (specify)"
-  ],
-};
-
 export default function CaseWizard() {
   const [currentStep, setCurrentStep] = useState(1);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { clinic: userClinic } = useAuth();
 
   const form = useForm<CaseFormData>({
     resolver: zodResolver(caseSchema),
     defaultValues: {
+      state: "",
+      clinicId: userClinic?.id || "",
       patientName: "",
       species: "",
       breed: "",
@@ -85,6 +79,8 @@ export default function CaseWizard() {
   });
 
   const watchedSpecies = form.watch("species");
+  const watchedState = form.watch("state");
+  const geoZone = watchedState ? getZoneForState(watchedState) : null;
 
   // Auto-save draft
   useEffect(() => {
@@ -112,6 +108,10 @@ export default function CaseWizard() {
     form.setValue("breed", "");
   }, [watchedSpecies, form]);
 
+  const { data: clinics } = useQuery<Clinic[]>({
+    queryKey: ["/api/clinics"],
+  });
+
   const { data: tumourTypes } = useQuery<TumourType[]>({
     queryKey: ["/api/vocabulary/tumour-types", { species: watchedSpecies }],
     enabled: !!watchedSpecies,
@@ -121,6 +121,13 @@ export default function CaseWizard() {
     queryKey: ["/api/vocabulary/anatomical-sites", { species: watchedSpecies }],
     enabled: !!watchedSpecies,
   });
+
+  // Prefill clinic when user clinic is available
+  useEffect(() => {
+    if (userClinic?.id && !form.getValues("clinicId")) {
+      form.setValue("clinicId", userClinic.id);
+    }
+  }, [userClinic, form]);
 
   const createCaseMutation = useMutation({
     mutationFn: async (data: CaseFormData) => {
@@ -172,7 +179,7 @@ export default function CaseWizard() {
   const getFieldsForStep = (step: number): (keyof CaseFormData)[] => {
     switch (step) {
       case 1:
-        return ["species", "breed", "diagnosisDate"];
+        return ["state", "clinicId", "species", "breed", "diagnosisDate"];
       case 2:
         return [];
       case 3:
@@ -240,6 +247,72 @@ export default function CaseWizard() {
               {/* Step 1: Patient & Signalment */}
               {currentStep === 1 && (
                 <div className="space-y-6">
+                  {/* State, Zone, and Clinic */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State *</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-state">
+                                <SelectValue placeholder="Select State" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {NIGERIA_STATES.map((state) => (
+                                <SelectItem key={state} value={state}>
+                                  {formatStateName(state)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div>
+                      <div className="text-sm font-medium text-foreground mb-2">Geo-political Zone</div>
+                      <Input 
+                        value={geoZone ? formatZoneName(geoZone) : ""} 
+                        disabled 
+                        className="bg-muted" 
+                        placeholder="Auto-filled from state"
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="clinicId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Clinic *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-clinic">
+                                <SelectValue placeholder="Select Clinic" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {clinics?.map((clinic) => (
+                                <SelectItem key={clinic.id} value={clinic.id}>
+                                  {clinic.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-xs">
+                            Prefilled from your profile, can be changed
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -275,7 +348,7 @@ export default function CaseWizard() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {Object.keys(speciesBreeds).map((species) => (
+                              {Object.keys(SPECIES_BREEDS).map((species) => (
                                 <SelectItem key={species} value={species}>
                                   {species}
                                 </SelectItem>
@@ -293,20 +366,21 @@ export default function CaseWizard() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Breed *</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!watchedSpecies}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-breed">
-                                <SelectValue placeholder={watchedSpecies ? "Select Breed" : "Select species first"} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {watchedSpecies && speciesBreeds[watchedSpecies]?.map((breed) => (
-                                <SelectItem key={breed} value={breed}>
-                                  {breed}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <Combobox
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              options={watchedSpecies ? (SPECIES_BREEDS[watchedSpecies] || []) : []}
+                              placeholder={watchedSpecies ? "Select or type breed" : "Select species first"}
+                              searchPlaceholder="Search breeds..."
+                              emptyText="No breed found. Type to add custom."
+                              disabled={!watchedSpecies}
+                              testId="select-breed"
+                            />
+                          </FormControl>
+                          <FormDescription className="text-xs">
+                            Select from list or type a custom breed
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
