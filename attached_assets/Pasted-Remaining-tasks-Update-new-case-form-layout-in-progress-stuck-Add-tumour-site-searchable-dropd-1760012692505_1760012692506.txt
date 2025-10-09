@@ -1,0 +1,122 @@
+Remaining tasks
+
+Update new case form layout (in progress / stuck)
+
+Add tumour/site searchable dropdowns
+
+Add file handling in diagnosis step (images + docs)
+
+Add treatment section to diagnosis
+
+Update case filters with new options (Geo-zone, State, Clinic, Tumour)
+
+Group cases by location, sticky headers (Zone sections)
+
+Update bulk upload validation (State/Clinic required, mapping)
+
+1) Prompt — Update new case form layout
+
+Commit directly to main. If blocked, open a PR with auto-merge. After finishing, make a small commit.
+
+Update the New Case form:
+
+Add State (required; 36 + FCT) and read-only Geo-zone auto-filled from State.
+
+Pre-fill Clinic from session but keep it editable (typeahead/create).
+
+Convert Breed to a combobox: pick from list or type a custom value (species Dog/Cat only).
+
+Validate: State + Clinic required; Breed allows custom.
+Do not change shared reads, write rules, or server-owned case_number.
+Commit message: feat(form): state→zone, clinic prefill (editable), combobox breed
+
+Acceptance checks: State required; Geo-zone appears; Clinic pre-filled but editable; custom breed saves/reloads.
+
+2) Prompt — Add tumour/site searchable dropdowns
+
+Commit directly to main…
+
+Seed lookup tables for Tumour Types (≥20 common canine/feline) and Anatomical Sites.
+
+In the form, use searchable dropdowns with an “Other (specify)” option that reveals a custom text box.
+
+Persist selected ids and any custom text.
+
+Do not touch case_number or auth rules.
+Commit message: feat(form): tumour/site searchable with other-specify
+
+Acceptance checks: Lists show seeded items; “Other (specify)” appears and persists; reload shows the choice.
+
+3) Prompt — Add file handling in diagnosis step
+
+Commit directly to main…
+
+Add Attachments UI in Diagnosis & Treatment: upload images + files (pdf/docx/csv).
+
+Storage: Replit App Storage; create table case_files: id, case_id, kind(image|file), storage_key, public_url, original_name, mime_type, size, uploaded_by, created_at.
+
+Limits: max 10 files/case, max 10–20 MB each; show previews (images) and a list for files; allow remove before save.
+
+Surface attachments on Case Detail with download/view links.
+Keep shared reads/write rules and atomic numbering.
+Commit message: feat(files): diagnosis attachments with app storage
+
+Acceptance checks: Upload image + PDF, see preview/list, saved URLs load on Case Detail.
+
+4) Prompt — Add treatment section to diagnosis
+
+Commit directly to main…
+
+In Diagnosis & Treatment, add Treatment Protocol fields:
+intent (Curative/Palliative/Adjuvant/Neoadjuvant/Other), protocol_name, regimen, notes, start_date, end_date.
+
+Persist on cases (single protocol v1) or new treatment_protocols if already scaffolded.
+
+Show on Case Detail.
+Don’t change numbering/auth.
+Commit message: feat(treatment): protocol fields in diagnosis & treatment
+
+Acceptance checks: Enter protocol → save → reload shows the data.
+
+5) Prompt — Update case filters with new options
+
+Commit directly to main…
+
+Add filters to Cases/Analytics/Reports: Geo-zone, State, Clinic, Tumour type.
+
+Zone → narrows State options; keep existing Species/Date filters.
+
+Ensure server queries accept these filters over the shared dataset; keep “My clinic only” as an optional toggle.
+Commit message: feat(filters): zone/state/clinic/tumour filters over shared dataset
+
+Acceptance checks: Filtering works; “My clinic only” narrows; analytics respect filters.
+
+6) Prompt — Group cases by location with sticky headers
+
+Commit directly to main…
+
+Add “Group by” control: Zone / State / Clinic / None on the Cases list.
+
+Default to Zone; render sticky group headers so sections are clearly labeled.
+
+Columns should include Zone, State, Clinic.
+Commit message: feat(cases): group by zone/state/clinic with sticky headers
+
+Acceptance checks: Table visibly sections by Zone; headers stick; toggling groups works.
+
+7) Prompt — Update bulk upload validation
+
+Commit directly to main…
+
+Required columns in CSV/XLSX: Clinic, State, core case fields.
+
+Normalize State against the official list; reject unknowns with row-level errors in the preview.
+
+Map Clinic by name; if not found and user has permission, allow create; else map to Unassigned with warning.
+
+Ignore client case_number; server assigns atomically.
+
+If Tumour Type/Site present, map to lookup id; otherwise store as custom text.
+Commit message: feat(bulk): strict state/clinic checks + tumour/site mapping; server numbering
+
+Acceptance checks: Bad State/Clinic shows clear preview errors; valid file imports; assigned case_numbers unique.

@@ -13,16 +13,20 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { TumourType, AnatomicalSite } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import type { TumourType, AnatomicalSite, NgState } from "@shared/schema";
 
 const caseSchema = z.object({
   patientName: z.string().optional(),
   species: z.string().min(1, "Species is required"),
   breed: z.string().min(1, "Breed is required"),
+  customBreed: z.string().optional(),
   sex: z.enum(["MALE_NEUTERED", "MALE_INTACT", "FEMALE_SPAYED", "FEMALE_INTACT"]).optional(),
   ageYears: z.number().min(0).max(30).optional(),
   ageMonths: z.number().min(0).max(11).optional(),
   diagnosisDate: z.string().min(1, "Diagnosis date is required"),
+  state: z.string().min(1, "State is required"),
+  clinicId: z.string().min(1, "Clinic is required"),
   tumourTypeId: z.string().transform(val => val === "" || val === undefined ? undefined : val).optional(),
   tumourTypeCustom: z.string().optional(),
   anatomicalSiteId: z.string().transform(val => val === "" || val === undefined ? undefined : val).optional(),
@@ -63,6 +67,7 @@ export default function CaseWizard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const form = useForm<CaseFormData>({
     resolver: zodResolver(caseSchema),
@@ -70,7 +75,10 @@ export default function CaseWizard() {
       patientName: "",
       species: "",
       breed: "",
+      customBreed: "",
       diagnosisDate: new Date().toISOString().split('T')[0],
+      state: "",
+      clinicId: user?.clinicId || "",
       tumourTypeId: undefined,
       tumourTypeCustom: "",
       anatomicalSiteId: undefined, 
@@ -85,6 +93,24 @@ export default function CaseWizard() {
   });
 
   const watchedSpecies = form.watch("species");
+  const watchedState = form.watch("state");
+  const watchedBreed = form.watch("breed");
+
+  // Pre-fill clinic from user session
+  useEffect(() => {
+    if (user?.clinicId && !form.getValues("clinicId")) {
+      form.setValue("clinicId", user.clinicId);
+    }
+  }, [user, form]);
+
+  // Fetch Nigerian states
+  const { data: ngStates } = useQuery<NgState[]>({
+    queryKey: ["/api/ng-states"],
+  });
+
+  // Get geo-zone from selected state
+  const selectedState = ngStates?.find(s => s.code === watchedState);
+  const geoZone = selectedState?.zone;
 
   // Auto-save draft
   useEffect(() => {
@@ -172,7 +198,7 @@ export default function CaseWizard() {
   const getFieldsForStep = (step: number): (keyof CaseFormData)[] => {
     switch (step) {
       case 1:
-        return ["species", "breed", "diagnosisDate"];
+        return ["species", "breed", "diagnosisDate", "state", "clinicId"];
       case 2:
         return [];
       case 3:
@@ -183,7 +209,13 @@ export default function CaseWizard() {
   };
 
   const onSubmit = (data: CaseFormData) => {
-    createCaseMutation.mutate(data);
+    // Handle custom breed - if "Other (specify)" is selected, use customBreed
+    const finalBreed = data.breed === "Other (specify)" ? data.customBreed : data.breed;
+    
+    createCaseMutation.mutate({
+      ...data,
+      breed: finalBreed || data.breed,
+    });
   };
 
   const clearDraft = () => {
