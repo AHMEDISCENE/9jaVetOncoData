@@ -33,7 +33,8 @@ import {
   followUps,
   auditLogs,
   invitations,
-  importJobs
+  importJobs,
+  ngStates
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull, inArray } from "drizzle-orm";
@@ -72,7 +73,7 @@ export interface IStorage {
   acceptInvitation(token: string, userId: string): Promise<void>;
   
   // Cases
-  getCases(clinicId: string, filters?: {
+  getCases(clinicId: string | undefined, filters?: {
     species?: string;
     tumourType?: string;
     outcome?: string;
@@ -80,6 +81,12 @@ export interface IStorage {
     endDate?: Date;
     limit?: number;
     offset?: number;
+    clinicIds?: string[];
+    zones?: string[];
+    states?: string[];
+    tumourTypeIds?: string[];
+    sort?: string;
+    order?: string;
   }): Promise<CaseWithDetails[]>;
   getCase(id: string, clinicId: string): Promise<CaseWithDetails | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
@@ -92,6 +99,11 @@ export interface IStorage {
   createTumourType(tumourType: InsertTumourType): Promise<TumourType>;
   getAnatomicalSites(clinicId?: string, species?: string): Promise<AnatomicalSite[]>;
   createAnatomicalSite(site: InsertAnatomicalSite): Promise<AnatomicalSite>;
+  
+  // Lookups for filters
+  getNigerianStates(): Promise<Array<{ code: string; name: string; zone: string }>>;
+  getClinicsList(): Promise<Array<{ id: string; name: string }>>;
+  getTumourTypesList(): Promise<Array<{ id: string; name: string }>>;
   
   // Attachments
   createAttachment(attachment: InsertAttachment): Promise<Attachment>;
@@ -285,7 +297,12 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     limit?: number;
     offset?: number;
-    clinicFilter?: string;
+    clinicIds?: string[];
+    zones?: string[];
+    states?: string[];
+    tumourTypeIds?: string[];
+    sort?: string;
+    order?: string;
   } = {}): Promise<CaseWithDetails[]> {
     const creator = alias(users, 'creator');
     
@@ -298,9 +315,9 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
       .$dynamic();
 
-    // Shared reads - only filter by clinic if explicitly requested
-    if (filters.clinicFilter) {
-      query = query.where(eq(cases.clinicId, filters.clinicFilter));
+    // Shared reads - filter by clinic(s) if explicitly requested
+    if (filters.clinicIds && filters.clinicIds.length > 0) {
+      query = query.where(inArray(cases.clinicId, filters.clinicIds));
     } else {
       // Default to showing all cases (shared reads)
       query = query.where(sql`1=1`);
@@ -318,9 +335,33 @@ export class DatabaseStorage implements IStorage {
     if (filters.endDate) {
       query = query.where(lte(cases.diagnosisDate, filters.endDate));
     }
+    if (filters.zones && filters.zones.length > 0) {
+      query = query.where(inArray(cases.geoZone, filters.zones as any));
+    }
+    if (filters.states && filters.states.length > 0) {
+      query = query.where(inArray(cases.state, filters.states as any));
+    }
+    if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+      query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+    }
+
+    // Sorting
+    const sortField = filters.sort || 'date';
+    const sortOrder = filters.order || 'desc';
+    
+    if (sortField === 'clinic') {
+      query = query.orderBy(sortOrder === 'asc' ? asc(clinics.name) : desc(clinics.name));
+    } else if (sortField === 'zone') {
+      query = query.orderBy(sortOrder === 'asc' ? asc(cases.geoZone) : desc(cases.geoZone));
+    } else if (sortField === 'state') {
+      query = query.orderBy(sortOrder === 'asc' ? asc(cases.state) : desc(cases.state));
+    } else if (sortField === 'case_number') {
+      query = query.orderBy(sortOrder === 'asc' ? asc(cases.caseNumber) : desc(cases.caseNumber));
+    } else {
+      query = query.orderBy(sortOrder === 'asc' ? asc(cases.diagnosisDate) : desc(cases.diagnosisDate));
+    }
 
     query = query
-      .orderBy(desc(cases.createdAt))
       .limit(filters.limit || 50)
       .offset(filters.offset || 0);
 
@@ -476,6 +517,30 @@ export class DatabaseStorage implements IStorage {
   async createAnatomicalSite(site: InsertAnatomicalSite): Promise<AnatomicalSite> {
     const [newSite] = await db.insert(anatomicalSites).values(site).returning();
     return newSite;
+  }
+
+  async getNigerianStates(): Promise<Array<{ code: string; name: string; zone: string }>> {
+    return await db.select({
+      code: ngStates.code,
+      name: ngStates.name,
+      zone: ngStates.zone,
+    }).from(ngStates).orderBy(asc(ngStates.name));
+  }
+
+  async getClinicsList(): Promise<Array<{ id: string; name: string }>> {
+    return await db.select({
+      id: clinics.id,
+      name: clinics.name,
+    }).from(clinics).orderBy(asc(clinics.name));
+  }
+
+  async getTumourTypesList(): Promise<Array<{ id: string; name: string }>> {
+    return await db.select({
+      id: tumourTypes.id,
+      name: tumourTypes.name,
+    }).from(tumourTypes)
+      .where(eq(tumourTypes.isSystem, true))
+      .orderBy(asc(tumourTypes.name));
   }
 
   async createAttachment(attachment: InsertAttachment): Promise<Attachment> {

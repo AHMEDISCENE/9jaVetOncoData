@@ -43,7 +43,12 @@ const filterSchema = z.object({
   endDate: z.string().optional(),
   limit: z.coerce.number().optional(),
   offset: z.coerce.number().optional(),
-  clinicId: z.string().optional(), // For optional clinic filtering in shared reads
+  clinicId: z.union([z.string(), z.array(z.string())]).optional(), // Multi-select clinic filtering
+  zone: z.union([z.string(), z.array(z.string())]).optional(),
+  state: z.union([z.string(), z.array(z.string())]).optional(),
+  tumourTypeId: z.union([z.string(), z.array(z.string())]).optional(),
+  sort: z.enum(['clinic', 'zone', 'state', 'date', 'case_number']).optional(),
+  order: z.enum(['asc', 'desc']).optional(),
 });
 
 // File upload configuration for bulk import
@@ -537,13 +542,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const filters = filterSchema.parse(req.query);
       
+      // Normalize zone/state/tumourTypeId/clinicId to arrays for filtering
+      const normalizeToArray = (val: string | string[] | undefined) => {
+        if (!val) return undefined;
+        return Array.isArray(val) ? val : [val];
+      };
+      
       // Shared reads - all authenticated users see all cases
       const cases = await storage.getCases(undefined, {
         ...filters,
         startDate: filters.startDate ? new Date(filters.startDate) : undefined,
         endDate: filters.endDate ? new Date(filters.endDate) : undefined,
-        // Optional clinic filter from query params
-        clinicFilter: filters.clinicId,
+        // Multi-clinic filter support
+        clinicIds: normalizeToArray(filters.clinicId),
+        zones: normalizeToArray(filters.zone),
+        states: normalizeToArray(filters.state),
+        tumourTypeIds: normalizeToArray(filters.tumourTypeId),
+        sort: filters.sort || 'date',
+        order: filters.order || 'desc',
       });
       
       res.json(cases);
@@ -903,6 +919,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(newSite);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create anatomical site" });
+    }
+  });
+
+  // Lookup endpoints for filters
+  app.get("/api/lookups/ng-states", requireAuth, async (req, res) => {
+    try {
+      const states = await storage.getNigerianStates();
+      res.json(states);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get states" });
+    }
+  });
+
+  app.get("/api/lookups/clinics", requireAuth, async (req, res) => {
+    try {
+      const clinics = await storage.getClinicsList();
+      res.json(clinics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get clinics" });
+    }
+  });
+
+  app.get("/api/lookups/tumour-types", requireAuth, async (req, res) => {
+    try {
+      const tumourTypes = await storage.getTumourTypesList();
+      res.json(tumourTypes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get tumour types" });
     }
   });
 

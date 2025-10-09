@@ -1,0 +1,129 @@
+Task — Cases page filters & grouping
+
+(Keep shared reads, safe writes, server-owned atomic case_number, and all prior work unchanged.)
+
+Goal
+
+On the Cases page, add these filters and grouping:
+
+Geo-political Zone → State (cascading)
+
+Clinic (filter + sort by clinic)
+
+Tumour Type
+
+Show the table grouped by Zone with visible Zone headers (sticky), and allow toggling grouping.
+
+Only this task; do not modify unrelated pages or flows.
+
+A) Data/Lookups (idempotent; only create if missing)
+
+Ensure lookup table ng_states(code text, name text, zone text) exists and is seeded with Nigeria’s mapping:
+
+North Central: Benue, Kogi, Kwara, Nasarawa, Niger, Plateau, FCT
+
+North East: Adamawa, Bauchi, Borno, Gombe, Taraba, Yobe
+
+North West: Jigawa, Kaduna, Kano, Katsina, Kebbi, Sokoto, Zamfara
+
+South East: Abia, Anambra, Ebonyi, Enugu, Imo
+
+South South: Akwa Ibom, Bayelsa, Cross River, Delta, Edo, Rivers
+
+South West: Ekiti, Lagos, Ogun, Ondo, Osun, Oyo
+
+Confirm cases.state and cases.geo_zone exist; if not, add them (nullable in this task).
+
+Indexes (create only if missing): cases(geo_zone), cases(state), cases(clinic_id), cases(tumour_type_id).
+
+Do not change existing NOT NULL or write rules here; this task is just the filters & UI.
+
+B) API — Extend list endpoint to accept new filters
+
+Update the Cases list server route (e.g., GET /api/cases) to accept these optional query params:
+
+zone (one or many), state (one or many), clinicId (one or many), tumourTypeId (one or many),
+
+keep existing species, outcome, startDate, endDate.
+
+Apply filters over the shared dataset (no owner/clinic scoping by default).
+
+Sorting: accept sort=clinic|zone|state|date|case_number and order=asc|desc; default remains date desc.
+
+Always return for each row: geo_zone, state, clinic_name, tumour_type_label (resolved from lookup/custom), plus existing fields.
+
+Optional lightweight lookups (if not already present):
+
+GET /api/lookups/ng-states → list of { name, zone }
+
+GET /api/lookups/clinics → list of { id, name }
+
+GET /api/lookups/tumour-types → list of { id, name }
+
+Keep write guards, auth, and server numbering untouched.
+
+C) Client — Filters UI (top of Cases page)
+
+Files likely: client/src/pages/cases.tsx (or components/cases/*).
+
+Add a Filters row alongside existing Species/Outcome/Date filters:
+
+Geo-zone (multi-select): 6 zones.
+
+When user picks a zone, State options narrow to states within those zones.
+
+State (multi-select): 36 states + FCT.
+
+When a state is picked, ensure its zone is implied in the API query (but do not auto-change the zone UI).
+
+Clinic (multi-select/typeahead): fetch clinics list; allow picking one or more.
+
+Tumour Type (multi-select/typeahead): fetch tumour types lookup.
+
+Add “Clear All” that resets only the new filters (zone/state/clinic/tumour) without touching Species/Date/Outcome. Persist selections in the URL querystring so the page is shareable.
+
+D) Client — Grouping & headers
+
+Add a “Group by” control near the filters: Zone / State / Clinic / None.
+
+Default to Zone.
+
+When grouped:
+
+Render sticky group headers (e.g., “South West”, “North Central”).
+
+Inside each group, keep current columns: Case ID | Patient | Tumour Type | Diagnosis Date | Status | Actions (plus show Clinic and State columns so grouping context is clear).
+
+When Sort = clinic, sort by clinic_name within groups; when Sort = zone/state, sort by those keys and suppress redundant headers.
+
+E) Wiring & UX polish
+
+Debounce filter changes (200–300ms) and refetch.
+
+Keep pagination working with filters applied.
+
+Loading skeletons for the table when filters change.
+
+Empty state message should reflect active filters (e.g., “No cases in South West · Lagos · Mast Cell Tumour”).
+
+“My clinic only” toggle (if present) should still work and combine with these filters.
+
+F) Acceptance checks (manual)
+
+Zone→State cascade: Choosing South West narrows State to its 6 members; clearing Zone shows all states.
+
+State-only selection: Picking Lagos filters cases; Zone filter remains optional.
+
+Clinic filter: Selecting a clinic narrows results correctly; Sort by Clinic orders alphabetically.
+
+Tumour Type filter: Selecting “Mast Cell Tumour” narrows cases accordingly.
+
+Grouping: With Group by Zone, the table shows sticky headers per zone; switching to None flattens the list.
+
+Shareable URL: Refresh preserves active filters; copying the URL reproduces the same view.
+
+No regressions: Species/Outcome/Date still work; shared reads persist; write rules unchanged.
+
+Commit message
+
+feat(cases): add zone→state, clinic, tumour filters + group by zone with sticky headers

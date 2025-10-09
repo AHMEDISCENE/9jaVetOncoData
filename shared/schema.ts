@@ -12,6 +12,10 @@ export const outcomeEnum = pgEnum("outcome", ["REMISSION", "TREATMENT_ONGOING", 
 export const attachmentKindEnum = pgEnum("attachment_kind", ["IMAGE", "PDF", "LAB"]);
 export const reportStatusEnum = pgEnum("report_status", ["PENDING", "RUNNING", "COMPLETED", "FAILED"]);
 export const feedStatusEnum = pgEnum("feed_status", ["DRAFT", "PUBLISHED", "MODERATION"]);
+export const geoPoliticalZoneEnum = pgEnum("geo_political_zone", [
+  "NORTH_CENTRAL", "NORTH_EAST", "NORTH_WEST", 
+  "SOUTH_EAST", "SOUTH_SOUTH", "SOUTH_WEST"
+]);
 
 // Nigerian States for location context
 export const stateEnum = pgEnum("state", [
@@ -21,6 +25,15 @@ export const stateEnum = pgEnum("state", [
   "LAGOS", "NASARAWA", "NIGER", "OGUN", "ONDO", "OSUN", "OYO", "PLATEAU", 
   "RIVERS", "SOKOTO", "TARABA", "YOBE", "ZAMFARA"
 ]);
+
+// Lookup Tables
+export const ngStates = pgTable("ng_states", {
+  code: text("code").primaryKey(), // ABIA, LAGOS, etc.
+  name: text("name").notNull(), // Abia, Lagos, etc.
+  zone: geoPoliticalZoneEnum("zone").notNull(),
+}, (table) => ({
+  zoneIdx: index("ng_states_zone_idx").on(table.zone),
+}));
 
 // Core Tables
 export const clinics = pgTable("clinics", {
@@ -112,6 +125,10 @@ export const cases = pgTable("cases", {
   clinicId: uuid("clinic_id").references(() => clinics.id).notNull(),
   createdBy: uuid("created_by").references(() => users.id).notNull(),
   
+  // Location context
+  geoZone: geoPoliticalZoneEnum("geo_zone"),
+  state: stateEnum("state"),
+  
   // Patient information
   patientName: text("patient_name"),
   species: text("species").notNull(),
@@ -154,6 +171,8 @@ export const cases = pgTable("cases", {
   anatomicalSiteIdx: index("cases_anatomical_site_idx").on(table.anatomicalSiteId),
   outcomeIdx: index("cases_outcome_idx").on(table.outcome),
   diagnosisDateIdx: index("cases_diagnosis_date_idx").on(table.diagnosisDate),
+  geoZoneIdx: index("cases_geo_zone_idx").on(table.geoZone),
+  stateIdx: index("cases_state_idx").on(table.state),
 }));
 
 export const attachments = pgTable("attachments", {
