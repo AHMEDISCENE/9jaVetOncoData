@@ -209,15 +209,15 @@ export default function Cases() {
 
   // Fetch lookup data
   const { data: ngStates = [] } = useQuery<NgState[]>({
-    queryKey: ['/api/ng-states'],
+    queryKey: ['/api/lookups/ng-states'],
   });
 
   const { data: clinics = [] } = useQuery<Clinic[]>({
-    queryKey: ['/api/clinics'],
+    queryKey: ['/api/lookups/clinics'],
   });
 
   const { data: tumourTypes = [] } = useQuery<TumourType[]>({
-    queryKey: ['/api/tumour-types'],
+    queryKey: ['/api/lookups/tumour-types'],
   });
 
   // Fetch cases with filters
@@ -310,7 +310,7 @@ export default function Cases() {
           break;
         case 'state':
           groupKey = caseItem.state || 'Unspecified';
-          groupLabel = ngStates.find(s => s.code === groupKey)?.name || groupKey;
+          groupLabel = groupKey === 'Unspecified' ? groupKey : (ngStates.find(s => s.code === groupKey)?.name || groupKey);
           break;
         case 'clinic':
           groupKey = caseItem.clinic?.id || 'Unspecified';
