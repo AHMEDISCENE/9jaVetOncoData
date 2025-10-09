@@ -170,6 +170,24 @@ export const attachments = pgTable("attachments", {
   caseIdx: index("attachments_case_idx").on(table.caseId),
 }));
 
+// Case files - for App Storage attachments
+export const caseFiles = pgTable("case_files", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }).notNull(),
+  kind: text("kind").notNull().$type<"image" | "file">(),
+  storageKey: text("storage_key").notNull(),
+  publicUrl: text("public_url").notNull(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  uploadedBy: uuid("uploaded_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+}, (table) => ({
+  caseIdx: index("case_files_case_idx").on(table.caseId),
+  deletedIdx: index("case_files_deleted_idx").on(table.deletedAt),
+}));
+
 // Reports system
 export const reportTemplates = pgTable("report_templates", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -346,6 +364,7 @@ export const casesRelations = relations(cases, ({ one, many }) => ({
     references: [anatomicalSites.id],
   }),
   attachments: many(attachments),
+  caseFiles: many(caseFiles),
   followUps: many(followUps),
 }));
 
@@ -353,6 +372,17 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
   case: one(cases, {
     fields: [attachments.caseId],
     references: [cases.id],
+  }),
+}));
+
+export const caseFilesRelations = relations(caseFiles, ({ one }) => ({
+  case: one(cases, {
+    fields: [caseFiles.caseId],
+    references: [cases.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [caseFiles.uploadedBy],
+    references: [users.id],
   }),
 }));
 
@@ -408,6 +438,12 @@ export const insertAttachmentSchema = createInsertSchema(attachments).omit({
   createdAt: true,
 });
 
+export const insertCaseFileSchema = createInsertSchema(caseFiles).omit({
+  id: true,
+  createdAt: true,
+  deletedAt: true,
+});
+
 export const insertFeedPostSchema = createInsertSchema(feedPosts).omit({
   id: true,
   createdAt: true,
@@ -428,6 +464,7 @@ export type Case = typeof cases.$inferSelect;
 export type TumourType = typeof tumourTypes.$inferSelect;
 export type AnatomicalSite = typeof anatomicalSites.$inferSelect;
 export type Attachment = typeof attachments.$inferSelect;
+export type CaseFile = typeof caseFiles.$inferSelect;
 export type ReportTemplate = typeof reportTemplates.$inferSelect;
 export type ReportInstance = typeof reportInstances.$inferSelect;
 export type ScheduledReport = typeof scheduledReports.$inferSelect;
@@ -443,6 +480,7 @@ export type InsertCase = z.infer<typeof insertCaseSchema>;
 export type InsertTumourType = z.infer<typeof insertTumourTypeSchema>;
 export type InsertAnatomicalSite = z.infer<typeof insertAnatomicalSiteSchema>;
 export type InsertAttachment = z.infer<typeof insertAttachmentSchema>;
+export type InsertCaseFile = z.infer<typeof insertCaseFileSchema>;
 export type InsertFeedPost = z.infer<typeof insertFeedPostSchema>;
 export type InsertFollowUp = z.infer<typeof insertFollowUpSchema>;
 

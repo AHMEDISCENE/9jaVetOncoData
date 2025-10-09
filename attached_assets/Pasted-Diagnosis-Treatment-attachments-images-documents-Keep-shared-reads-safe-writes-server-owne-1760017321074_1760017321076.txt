@@ -1,0 +1,168 @@
+Diagnosis & Treatment attachments (images + documents)
+
+(Keep shared reads, safe writes, server-owned atomic case_number, and previous tasks unchanged.)
+
+Goal
+
+Allow users to attach images and documents to a case in the Diagnosis & Treatment step, store them in Replit App Storage, and show them on the Case Detail page.
+
+A) Database (idempotent migration)
+
+Create a new table case_files (and indexes). Make the migration safe to re-run.
+
+case_files (
+  id            uuid primary key default gen_random_uuid(),
+  case_id       uuid not null references cases(id) on delete cascade,
+  kind          text not null check (kind in ('image','file')),
+  storage_key   text not null,                -- unique path/key in App Storage
+  public_url    text not null,                -- fetchable URL
+  original_name text not null,
+  mime_type     text not null,
+  size_bytes    integer not null check (size_bytes > 0),
+  uploaded_by   uuid not null,                -- user id
+  created_at    timestamptz not null default now(),
+  deleted_at    timestamptz null              -- soft delete (protect from accidental removal)
+)
+
+
+Indexes:
+
+idx_case_files_case_id on (case_id)
+
+idx_case_files_deleted_at on (deleted_at)
+
+Soft delete via deleted_at lets us recover mistakes. Physical delete from storage happens only when deleted_at is not null and a later cleanup job runs (not part of this task).
+
+B) Storage & security
+
+Use Replit App Storage (object storage) SDK already available in the project; if none, add a tiny service wrapper server/storage/files.ts with helpers:
+
+putObject({ key, buffer, contentType }) -> { publicUrl }
+
+deleteObject({ key })
+
+Key format: cases/${caseId}/${timestamp}-${random8}-${safeFilename} (URL-safe; strip path traversal, spaces, control chars).
+
+Detect content type on the server; do not trust client’s Content-Type.
+
+Allowed MIME types (reject otherwise, 415):
+
+Images: image/*
+
+Docs: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/csv
+
+Limits: default 10 files per case, 20 MB per file (config constants).
+
+Access control:
+
+Create/Delete: only created_by of the case or roles clinic_admin/super_admin.
+
+Read list/download: any authenticated user (shared-read model), but URLs should be public-read or signed (whichever the App Storage supports; prefer public for now).
+
+C) API endpoints (multipart)
+
+Add/extend routes under /api/cases/:caseId/files:
+
+POST /api/cases/:caseId/files
+
+Auth required.
+
+Accept multipart/form-data field file.
+
+Validate ownership/role for writes.
+
+Enforce type & size limits, and file-count limit for the case.
+
+Derive kind = image | file from MIME (image/* → image, else file).
+
+Store in App Storage, persist a row in case_files.
+
+Return stored record: { id, kind, public_url, original_name, mime_type, size_bytes, created_at }.
+
+GET /api/cases/:caseId/files
+
+Auth required.
+
+Return non-deleted records ordered by created_at desc.
+
+DELETE /api/cases/:caseId/files/:fileId
+
+Auth required; same write guard.
+
+Perform soft delete (deleted_at = now()).
+
+(Do not hard-delete from storage in this task.)
+
+Keep existing case create/update endpoints untouched. Do not change numbering/auth.
+
+D) Client UI (Diagnosis & Treatment step + Case Detail)
+
+In the Diagnosis & Treatment step, add an Attachments panel:
+
+Upload button (or drag & drop). On select:
+
+Show local preview while uploading.
+
+Upload via the new POST endpoint (multipart).
+
+On success, show the server-returned item in a list.
+
+Image previews: show thumbnail (use the returned public_url) and original file name.
+
+Files list: show file icon + name; clicking opens/link downloads.
+
+Remove: show a small “Remove” button per item → calls DELETE, then hides the item.
+
+Enforce count/size limits on the client too (with friendly toasts).
+
+Case Detail page:
+
+Add an Attachments section listing non-deleted items (images in a grid; files in a list with download links).
+
+UX polishing:
+
+Show progress indicator during upload; disable Next while an upload is in flight.
+
+Clear, localized error messages for size/type violations and permission denials.
+
+E) Logging & errors
+
+Log upload attempts (user id, case id, mime, size).
+
+Normalize failing responses:
+
+400: validation (too large, too many files, unsupported type).
+
+401/403: not signed in / no permission.
+
+404: case or file not found.
+
+415: unsupported media type.
+
+500: storage error (include request id in logs).
+
+F) Documentation
+
+Update README/SECURITY with:
+
+Allowed MIME types, size & count limits.
+
+Soft-delete policy for case files.
+
+Who can upload/delete (creator or admin).
+
+Storage notes (App Storage key format, public URLs).
+
+G) Acceptance checks (manual)
+
+Upload an image (≤20 MB) and a PDF to an existing case from the Diagnosis & Treatment step → both appear immediately in the list.
+
+Refresh the case page → the attachments are listed (image shows thumbnail; PDF shows file row).
+
+Remove an item → it disappears; subsequent GET does not return it.
+
+As a non-owner, non-admin, attempt to upload/delete → blocked with a clear message.
+
+Try to upload an EXE or an oversize file → rejected with 415/400 and a friendly UI error.
+
+No regressions: case creation still succeeds; case_number remains server-generated; shared reads persist.
