@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertClinicSchema, insertCaseSchema, insertTumourTypeSchema, insertAnatomicalSiteSchema, insertFeedPostSchema, insertFollowUpSchema } from "@shared/schema";
+import { insertUserSchema, insertClinicSchema, insertCaseSchema, insertTumourTypeSchema, insertAnatomicalSiteSchema, insertFeedPostSchema, insertFollowUpSchema, insertCaseFileSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
@@ -10,6 +10,8 @@ import multer from "multer";
 import { z } from "zod";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { putObject, deleteObject, generateStorageKey, isAllowedMimeType, determineFileKind, MAX_FILE_SIZE, MAX_FILES_PER_CASE } from "./storage/files";
+import { readFile } from "fs/promises";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -44,7 +46,7 @@ const filterSchema = z.object({
   clinicId: z.string().optional(), // For optional clinic filtering in shared reads
 });
 
-// File upload configuration
+// File upload configuration for bulk import
 const upload = multer({
   dest: 'uploads/',
   limits: {
@@ -65,6 +67,14 @@ const upload = multer({
     } else {
       cb(new Error('Invalid file type'));
     }
+  },
+});
+
+// File upload configuration for case files
+const caseFileUpload = multer({
+  dest: 'uploads/case-files/',
+  limits: {
+    fileSize: MAX_FILE_SIZE,
   },
 });
 
@@ -681,6 +691,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Case deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete case" });
+    }
+  });
+
+  // Case file routes
+  app.post("/api/cases/:caseId/files", requireAuth, caseFileUpload.single('file'), async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const clinicId = (req.session as any).clinicId;
+      const { caseId } = req.params;
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Verify case exists and user has access
+      const caseData = await storage.getCase(caseId, clinicId);
+      if (!caseData) {
+        return res.status(404).json({ message: "Case not found" });
+      }
+
+      // Check file count limit
+      const existingFiles = await storage.getCaseFiles(caseId);
+      if (existingFiles.length >= MAX_FILES_PER_CASE) {
+        return res.status(400).json({ message: `Maximum ${MAX_FILES_PER_CASE} files per case allowed` });
+      }
+
+      // Validate MIME type
+      if (!isAllowedMimeType(req.file.mimetype)) {
+        return res.status(415).json({ message: "Unsupported file type. Allowed: images and documents (PDF, DOC, CSV)" });
+      }
+
+      // Check file size
+      if (req.file.size > MAX_FILE_SIZE) {
+        return res.status(400).json({ message: `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit` });
+      }
+
+      // Check write permission: creator or admin
+      const user = await storage.getUser(userId);
+      const isCreator = caseData.createdBy.id === userId;
+      const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+      
+      if (!isCreator && !isAdmin) {
+        return res.status(403).json({ message: "Only case creator or admins can upload files" });
+      }
+
+      // Read file buffer
+      const fileBuffer = await readFile(req.file.path);
+
+      // Generate storage key and upload to object storage
+      const storageKey = generateStorageKey(caseId, req.file.originalname);
+      const { publicUrl } = await putObject({
+        key: storageKey,
+        buffer: fileBuffer,
+        contentType: req.file.mimetype,
+      });
+
+      // Determine file kind
+      const kind = determineFileKind(req.file.mimetype);
+
+      // Save to database
+      const caseFile = insertCaseFileSchema.parse({
+        caseId,
+        kind,
+        storageKey,
+        publicUrl,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        sizeBytes: req.file.size,
+        uploadedBy: userId,
+      });
+
+      const savedFile = await storage.createCaseFile(caseFile);
+
+      await storage.createAuditLog({
+        actorId: userId,
+        clinicId,
+        entityType: 'CASE_FILE',
+        entityId: savedFile.id,
+        action: 'CREATE',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.status(201).json(savedFile);
+    } catch (error) {
+      console.error('File upload error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to upload file" });
+    }
+  });
+
+  app.get("/api/cases/:caseId/files", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const { caseId } = req.params;
+
+      // Verify case exists and user has access
+      const caseData = await storage.getCase(caseId, clinicId);
+      if (!caseData) {
+        return res.status(404).json({ message: "Case not found" });
+      }
+
+      const files = await storage.getCaseFiles(caseId);
+      res.json(files);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get files" });
+    }
+  });
+
+  app.delete("/api/cases/:caseId/files/:fileId", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const clinicId = (req.session as any).clinicId;
+      const { caseId, fileId } = req.params;
+
+      // Verify case exists and user has access
+      const caseData = await storage.getCase(caseId, clinicId);
+      if (!caseData) {
+        return res.status(404).json({ message: "Case not found" });
+      }
+
+      // Verify file exists
+      const file = await storage.getCaseFileById(fileId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Check write permission: creator or admin
+      const user = await storage.getUser(userId);
+      const isCreator = caseData.createdBy.id === userId;
+      const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+      
+      if (!isCreator && !isAdmin) {
+        return res.status(403).json({ message: "Only case creator or admins can delete files" });
+      }
+
+      // Soft delete
+      await storage.softDeleteCaseFile(fileId);
+
+      await storage.createAuditLog({
+        actorId: userId,
+        clinicId,
+        entityType: 'CASE_FILE',
+        entityId: fileId,
+        action: 'DELETE',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.json({ message: "File deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete file" });
     }
   });
 

@@ -13,6 +13,8 @@ import {
   type InsertAnatomicalSite,
   type Attachment,
   type InsertAttachment,
+  type CaseFile,
+  type InsertCaseFile,
   type FeedPost,
   type InsertFeedPost,
   type FollowUp,
@@ -26,6 +28,7 @@ import {
   tumourTypes,
   anatomicalSites,
   attachments,
+  caseFiles,
   feedPosts,
   followUps,
   auditLogs,
@@ -94,6 +97,12 @@ export interface IStorage {
   createAttachment(attachment: InsertAttachment): Promise<Attachment>;
   getAttachments(caseId: string): Promise<Attachment[]>;
   deleteAttachment(id: string, clinicId: string): Promise<void>;
+  
+  // Case Files
+  createCaseFile(caseFile: InsertCaseFile): Promise<CaseFile>;
+  getCaseFiles(caseId: string): Promise<CaseFile[]>;
+  softDeleteCaseFile(id: string): Promise<void>;
+  getCaseFileById(id: string): Promise<CaseFile | undefined>;
   
   // Feeds
   getFeedPosts(clinicId?: string, limit?: number): Promise<FeedPost[]>;
@@ -489,6 +498,34 @@ export class DatabaseStorage implements IStorage {
         eq(attachments.id, id),
         sql`EXISTS (SELECT 1 FROM ${cases} WHERE ${cases.id} = ${attachments.caseId} AND ${cases.clinicId} = ${clinicId})`
       ));
+  }
+
+  async createCaseFile(caseFile: InsertCaseFile): Promise<CaseFile> {
+    const [newFile] = await db.insert(caseFiles).values(caseFile).returning();
+    return newFile;
+  }
+
+  async getCaseFiles(caseId: string): Promise<CaseFile[]> {
+    return await db
+      .select()
+      .from(caseFiles)
+      .where(and(
+        eq(caseFiles.caseId, caseId),
+        isNull(caseFiles.deletedAt)
+      ))
+      .orderBy(desc(caseFiles.createdAt));
+  }
+
+  async softDeleteCaseFile(id: string): Promise<void> {
+    await db
+      .update(caseFiles)
+      .set({ deletedAt: new Date() })
+      .where(eq(caseFiles.id, id));
+  }
+
+  async getCaseFileById(id: string): Promise<CaseFile | undefined> {
+    const [file] = await db.select().from(caseFiles).where(eq(caseFiles.id, id));
+    return file || undefined;
   }
 
   async getFeedPosts(clinicId?: string, limit: number = 20): Promise<FeedPost[]> {
