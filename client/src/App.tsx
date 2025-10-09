@@ -19,6 +19,35 @@ import Header from "@/components/header";
 import { useAuth } from "@/hooks/use-auth";
 import SetupClinic from "@/pages/setup-clinic";
 import Settings from "@/pages/settings";
+import { SidebarProvider, useSidebar } from "@/contexts/sidebar-context";
+
+function AuthenticatedLayout() {
+  const { isCollapsed } = useSidebar();
+  
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar />
+      <div className={`transition-all duration-200 ${isCollapsed ? "lg:ml-20" : "lg:ml-64"}`}>
+        <Header />
+        <main>
+          <Switch>
+            <Route path="/" component={Dashboard} />
+            <Route path="/dashboard" component={Dashboard} />
+            <Route path="/cases" component={Cases} />
+            <Route path="/cases/new" component={NewCase} />
+            <Route path="/bulk-upload" component={BulkUpload} />
+            <Route path="/analytics" component={Analytics} />
+            <Route path="/reports" component={Reports} />
+            <Route path="/feeds" component={Feeds} />
+            <Route path="/calendar" component={Calendar} />
+            <Route path="/settings" component={Settings} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
+    </div>
+  );
+}
 
 function Router() {
   const { user, clinic, isLoading } = useAuth();
@@ -64,27 +93,9 @@ function Router() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar />
-      <div className="lg:ml-64">
-        <Header />
-        <main>
-          <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/dashboard" component={Dashboard} />
-            <Route path="/cases" component={Cases} />
-            <Route path="/cases/new" component={NewCase} />
-            <Route path="/bulk-upload" component={BulkUpload} />
-            <Route path="/analytics" component={Analytics} />
-            <Route path="/reports" component={Reports} />
-            <Route path="/feeds" component={Feeds} />
-            <Route path="/calendar" component={Calendar} />
-            <Route path="/settings" component={Settings} />
-            <Route component={NotFound} />
-          </Switch>
-        </main>
-      </div>
-    </div>
+    <SidebarProvider>
+      <AuthenticatedLayout />
+    </SidebarProvider>
   );
 }
 

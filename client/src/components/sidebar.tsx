@@ -2,11 +2,14 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useSidebar } from "@/contexts/sidebar-context";
 
 export default function Sidebar() {
   const [location] = useLocation();
   const { user, clinic, logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { isCollapsed, setIsCollapsed } = useSidebar();
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: "fas fa-chart-line" },
@@ -51,17 +54,19 @@ export default function Sidebar() {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+      <div className={`fixed inset-y-0 left-0 z-50 bg-card border-r border-border transform transition-all duration-200 ease-in-out lg:translate-x-0 ${
         isMobileOpen ? "translate-x-0" : "-translate-x-full"
-      }`}>
+      } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
+            <div className="flex items-center space-x-2 overflow-hidden">
+              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                 <i className="fas fa-stethoscope text-primary-foreground text-sm"></i>
               </div>
-              <span className="text-lg font-semibold text-foreground">9ja VetOncoData</span>
+              {!isCollapsed && (
+                <span className="text-lg font-semibold text-foreground whitespace-nowrap">9ja VetOncoData</span>
+              )}
             </div>
             <button 
               className="lg:hidden text-muted-foreground hover:text-foreground"
@@ -72,49 +77,89 @@ export default function Sidebar() {
             </button>
           </div>
 
+          {/* Desktop Collapse Toggle */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden lg:flex items-center justify-center h-10 mx-2 mt-2 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            data-testid="button-toggle-sidebar"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <>
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                <span className="text-sm">Collapse</span>
+              </>
+            )}
+          </button>
+
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-2">
             {navigation.map((item) => (
               <Link 
                 key={item.name} 
                 href={item.href}
-                className={`nav-item ${isActive(item.href) ? "active" : ""}`}
+                className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "justify-center" : ""}`}
                 data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
                 onClick={() => setIsMobileOpen(false)}
+                title={isCollapsed ? item.name : undefined}
               >
                 <i className={item.icon}></i>
-                {item.name}
+                {!isCollapsed && item.name}
               </Link>
             ))}
           </nav>
 
           {/* User Profile */}
           <div className="border-t border-border p-4">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium" data-testid="text-user-initials">
-                  {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
-                </span>
+            {isCollapsed ? (
+              <div className="flex flex-col items-center space-y-3">
+                <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center" title={user?.name || "Unknown User"}>
+                  <span className="text-sm font-medium" data-testid="text-user-initials">
+                    {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
+                  </span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full px-2" 
+                  onClick={handleLogout}
+                  data-testid="button-logout"
+                  title="Logout"
+                >
+                  <i className="fas fa-sign-out-alt"></i>
+                </Button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-name">
-                  {user?.name || "Unknown User"}
-                </p>
-                <p className="text-xs text-muted-foreground truncate" data-testid="text-clinic-name">
-                  {clinic?.name || "No Clinic"}
-                </p>
-              </div>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full" 
-              onClick={handleLogout}
-              data-testid="button-logout"
-            >
-              <i className="fas fa-sign-out-alt mr-2"></i>
-              Logout
-            </Button>
+            ) : (
+              <>
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium" data-testid="text-user-initials">
+                      {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-name">
+                      {user?.name || "Unknown User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate" data-testid="text-clinic-name">
+                      {clinic?.name || "No Clinic"}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full" 
+                  onClick={handleLogout}
+                  data-testid="button-logout"
+                >
+                  <i className="fas fa-sign-out-alt mr-2"></i>
+                  Logout
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
