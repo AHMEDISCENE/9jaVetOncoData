@@ -1,0 +1,129 @@
+Task — Add Filters: Geo-zone → State, Clinic, Tumour Type + Group by Zone
+
+(Keep shared reads, write guards, server-owned case_number, and form clinic prefill unchanged.)
+
+Goals
+
+Filters on Cases (and reused in Analytics/Reports):
+
+Geo-political Zone (Nigeria’s 6 zones)
+
+State (driven by selected Zone)
+
+Clinic (multi-select, typeahead)
+
+Tumour Type (multi-select from lookup)
+
+Grouping in Cases list: “Group by: Zone / State / Clinic / None”; default to Zone and render sticky headers.
+
+Sorting: keep diagnosis_date desc default; add sort options for Clinic, Tumour Type, State.
+
+A) Data & joins (idempotent; don’t duplicate existing work)
+
+If not already present, ensure a lookup source for States → Zones: table ng_states(name text primary key, zone text not null). (Seed only if missing.)
+
+Server queries should not trust client for zone; compute zone from cases.state by joining ng_states or using the existing server mapping.
+
+Add indexes if missing: cases(state), cases(clinic_id), cases(tumour_type_id), cases(diagnosis_date).
+
+B) Server: list/read endpoints accept filters (shared dataset)
+
+Update the cases list data path used by the Cases screen (and reuse the same logic for Analytics/Reports loaders):
+
+Accept query params / payload keys (multi-select friendly):
+
+{
+  "zone": ["South West", "North Central"],
+  "state": ["Lagos", "Oyo"],
+  "clinicIds": ["<uuid>", "<uuid>"],
+  "tumourTypeIds": ["<uuid>", "<uuid>"],
+  "sort": "date_desc | date_asc | clinic | tumour | state",
+  "groupBy": "zone | state | clinic | none",
+  "dateFrom": "YYYY-MM-DD",
+  "dateTo": "YYYY-MM-DD"
+}
+
+
+Default scope remains the shared dataset (no owner/clinic auto-filter). Keep “My clinic only” as an optional toggle that sets clinicIds = [session.clinicId].
+
+Build SQL with optional WHEREs:
+
+Zone filter: join ng_states on cases.state = ng_states.name and filter ng_states.zone in (...).
+
+State filter: cases.state in (...).
+
+Clinic filter: cases.clinic_id in (...).
+
+Tumour filter: cases.tumour_type_id in (...) (also allow fallback to text match if an id is missing).
+
+Sorting:
+
+date_desc (default): diagnosis_date desc, case_number desc.
+
+date_asc: diagnosis_date asc, case_number asc.
+
+clinic: clinic_name asc, diagnosis_date desc.
+
+tumour: tumour_label asc, diagnosis_date desc (use lookup name or custom text).
+
+state: cases.state asc, diagnosis_date desc.
+
+Return records with the extra projection fields needed for the UI:
+
+zone (derived), state, clinic_name, tumour_label (lookup name or custom), plus existing columns.
+
+Keep write guards and server-owned case_number untouched.
+
+C) Client: Filters UI (Cases screen)
+
+Filter bar (top of the Cases page):
+
+Zone: multi-select.
+
+State: multi-select; options are narrowed to states in the selected zones (if no zone selected, show all states).
+
+Clinic: multi-select typeahead; list popular/owned first.
+
+Tumour Type: multi-select from lookup.
+
+Keep existing Species/Date filters and “My clinic only” toggle.
+
+Add “Clear all” button that resets only the new filters (keep date/species as they were).
+
+Trigger reload on change with a tiny debounce; persist current filter state in the URL/querystring so reloading keeps the selection.
+
+D) Client: Grouping + sticky headers (Cases table)
+
+Add a “Group by” control with options Zone / State / Clinic / None; default Zone.
+
+When grouped:
+
+Partition rows by the chosen key.
+
+Render group headers (e.g., “South West (12 cases)”) as sticky at the top of the viewport when their section is in view.
+
+Group header style should visually separate sections (slightly tinted background, bold label).
+
+Columns should include Case ID | Patient | Tumour Type | Diagnosis Date | Status | Clinic | State | Zone (hide Zone column when grouping by Zone if space is tight).
+
+E) Analytics/Reports (re-use)
+
+Reuse the same filter model for Analytics/Reports loaders so charts/tables can be scoped by Zone/State/Clinic/Tumour in addition to existing filters.
+
+F) Acceptance checks (manual)
+
+Zone → State linkage: Selecting South West limits State options to South-West states; clearing Zone re-enables all states.
+
+Filtering: Applying Zone + State + Clinic + Tumour filters narrows results correctly (shared dataset). “My clinic only” narrows to session clinic.
+
+Grouping: Group by Zone shows sticky headers; switching to State/Clinic/None updates sections as expected.
+
+Sorting: Sorting by Clinic, Tumour, State, and Date works and is stable.
+
+Persistence: Refresh keeps the selected filters via URL/querystring.
+
+No regressions: Case creation still succeeds; server-owned case_number ok; write guards unchanged.
+
+Commit message
+
+feat(filters): add zone→state, clinic, tumour filters + group-by with sticky headers (shared dataset)
