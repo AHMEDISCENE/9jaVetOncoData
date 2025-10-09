@@ -1,0 +1,95 @@
+Add tumour/site searchable dropdowns with “Other (specify)”
+
+(Keep shared reads, safe writes, server-owned atomic case_number, and all prior work unchanged.)
+
+Goal
+
+On the New Case flow, replace the free-text tumour/site inputs with searchable dropdowns. Each dropdown must offer an “Other (specify)” choice that reveals a custom text box. Store either a lookup id or the custom text (mutually exclusive), and show the selected value on case detail.
+
+A) Database lookups (idempotent migrations)
+
+Create tables (if not present):
+
+tumour_types (id uuid pk default gen_random_uuid(), name text unique not null)
+
+anatomical_sites (id uuid pk default gen_random_uuid(), name text unique not null)
+
+Seed with common values (insert-ignore/upsert so re-running is safe):
+
+Tumour Types (≥20)
+Lymphoma; Mast Cell Tumour; Soft Tissue Sarcoma; Osteosarcoma; Hemangiosarcoma; Melanoma (cutaneous); Melanoma (oral); Squamous Cell Carcinoma; Transitional Cell Carcinoma; Mammary Carcinoma; Fibrosarcoma; Meningioma; Hepatocellular Carcinoma; Insulinoma; Anal Sac Adenocarcinoma; Thyroid Carcinoma; Nasal Adenocarcinoma; Histiocytic Sarcoma; Hemangioendothelioma; Leukemia (CLL/ALL); GI Lymphoma; Oral Squamous Cell Carcinoma; Urothelial Carcinoma; Peripheral Nerve Sheath Tumour.
+
+Anatomical Sites (≥20)
+Skin; Subcutis; Oral Cavity; Nasal Cavity; Head/Neck; Forelimb; Hindlimb; Mammary Gland; Spleen; Liver; Kidney; Urinary Bladder; Prostate; Brain/CNS; Eye/Orbit; Bone; Lymph Node; Gastrointestinal Tract; Lung; Perianal/Anal Sac; Endocrine (Thyroid/Adrenal/Pancreas); Reproductive (Ovary/Uterus/Testis); Thorax/Mediastinum; Abdomen/Retroperitoneum.
+
+Keep existing cases schema. If columns already exist to hold ids/custom text, reuse them. Otherwise add nullable columns (idempotent):
+
+cases.tumour_type_id uuid null
+
+cases.tumour_type_custom text null
+
+cases.anatomical_site_id uuid null
+
+cases.anatomical_site_custom text null
+Add indexes on the two *_id columns.
+
+Optional: maintain backwards compatibility by also setting cases.tumour_type and cases.anatomical_location to the chosen label on insert/update.
+
+B) API (read + create/update mapping)
+
+Add read-only endpoints (or extend existing lookups route):
+
+GET /api/lookups/tumour-types → { id, name }[]
+
+GET /api/lookups/anatomical-sites → { id, name }[]
+
+In create and update case handlers, accept:
+
+{
+  "tumourTypeId": "uuid | null",
+  "tumourTypeCustom": "string | null",
+  "anatomicalSiteId": "uuid | null",
+  "anatomicalSiteCustom": "string | null"
+}
+
+
+Server rules (mutual exclusivity):
+
+If tumourTypeId is set ⇒ persist id; clear tumourTypeCustom.
+
+Else if tumourTypeCustom non-empty ⇒ persist custom; clear id.
+
+Same for anatomicalSite*.
+
+If both are provided, prefer the id and strip the custom.
+
+Optionally populate denormalized labels (cases.tumour_type, cases.anatomical_location) from the lookup name or the custom string.
+
+Keep existing write guards and case_number generation intact.
+
+C) Client UI (New Case + Case Detail)
+
+Files to touch (typical):
+client/src/components/case-wizard.tsx (Tumour Details step), small UI atoms (Combobox/Select), case detail component.
+
+Replace the tumour/site inputs with searchable comboboxes fed by the new lookup endpoints.
+
+Add a final option “Other (specify)” which, when selected, reveals a text input beneath; typing into it disallows a lookup id for that field.
+
+Validation (Zod/Yup): accept either id or custom, not both; allow empty until the user advances past the step only if your current flow permits (otherwise mark as required).
+
+Persist the chosen values to the API using the payload keys above.
+
+On Case Detail, show the resolved label (lookup name or custom string).
+
+D) Acceptance checks (manual)
+
+Searchable lists appear for Tumour Type and Anatomical Site with responsive filtering.
+
+Selecting Other (specify) shows a free-text field; saving and reloading shows the custom value.
+
+If a lookup option is chosen, custom text is ignored; if custom text is entered, id is cleared.
+
+Case Detail displays the right label.
+
+No regressions: case creation still succeeds, case_number still server-generated; shared reads and write guards unaffected.
