@@ -36,15 +36,12 @@ const inviteSchema = z.object({
 const filterSchema = z.object({
   species: z.string().optional(),
   tumourType: z.string().optional(),
-  tumourTypeId: z.string().optional(),
   outcome: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   limit: z.coerce.number().optional(),
   offset: z.coerce.number().optional(),
   clinicId: z.string().optional(), // For optional clinic filtering in shared reads
-  geoZone: z.string().optional(), // Geo-political zone filter
-  state: z.string().optional(), // State filter
 });
 
 // File upload configuration
@@ -537,9 +534,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: filters.endDate ? new Date(filters.endDate) : undefined,
         // Optional clinic filter from query params
         clinicFilter: filters.clinicId,
-        geoZone: filters.geoZone,
-        state: filters.state,
-        tumourTypeId: filters.tumourTypeId,
       });
       
       res.json(cases);
@@ -716,38 +710,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(newSite);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create anatomical site" });
-    }
-  });
-
-  // Nigerian states endpoints
-  app.get("/api/ng-states", requireAuth, async (req, res) => {
-    try {
-      const { zone } = req.query;
-      const states = await storage.getNgStates(zone as string);
-      res.json(states);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get states" });
-    }
-  });
-
-  // Case files endpoints
-  app.get("/api/case-files/:caseId", requireAuth, async (req, res) => {
-    try {
-      const files = await storage.getCaseFiles(req.params.caseId);
-      res.json(files);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get case files" });
-    }
-  });
-
-  app.delete("/api/case-files/:id", requireAuth, async (req, res) => {
-    try {
-      const userId = (req.session as any).userId;
-      const clinicId = (req.session as any).clinicId;
-      await storage.deleteCaseFile(req.params.id, userId, clinicId);
-      res.json({ message: "File deleted successfully" });
-    } catch (error) {
-      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to delete file" });
     }
   });
 

@@ -20,9 +20,6 @@ import {
   type DashboardStats,
   type Invitation,
   type ImportJob,
-  type NgState,
-  type CaseFile,
-  type InsertCaseFile,
   users,
   clinics,
   cases,
@@ -33,9 +30,7 @@ import {
   followUps,
   auditLogs,
   invitations,
-  importJobs,
-  ngStates,
-  caseFiles
+  importJobs
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull, inArray } from "drizzle-orm";
@@ -130,15 +125,6 @@ export interface IStorage {
     ip?: string;
     userAgent?: string;
   }): Promise<void>;
-  
-  // Geo-political zones
-  getNgStates(zone?: string): Promise<NgState[]>;
-  getGeoZoneFromState(stateCode: string): Promise<string>;
-  
-  // Case files
-  createCaseFile(file: InsertCaseFile): Promise<CaseFile>;
-  getCaseFiles(caseId: string): Promise<CaseFile[]>;
-  deleteCaseFile(id: string, userId: string, userClinicId?: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -291,9 +277,6 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
     clinicFilter?: string;
-    geoZone?: string;
-    state?: string;
-    tumourTypeId?: string;
   } = {}): Promise<CaseWithDetails[]> {
     const creator = alias(users, 'creator');
     
@@ -316,15 +299,6 @@ export class DatabaseStorage implements IStorage {
 
     if (filters.species) {
       query = query.where(eq(cases.species, filters.species));
-    }
-    if (filters.geoZone) {
-      query = query.where(eq(cases.geoZone, filters.geoZone as any));
-    }
-    if (filters.state) {
-      query = query.where(eq(cases.state, filters.state as any));
-    }
-    if (filters.tumourTypeId) {
-      query = query.where(eq(cases.tumourTypeId, filters.tumourTypeId));
     }
     if (filters.outcome) {
       query = query.where(eq(cases.outcome, filters.outcome as any));
@@ -402,42 +376,19 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getGeoZoneFromState(stateCode: string): Promise<string> {
-    const [stateInfo] = await db
-      .select()
-      .from(ngStates)
-      .where(eq(ngStates.code, stateCode));
-    
-    if (!stateInfo) {
-      throw new Error(`Invalid state code: ${stateCode}`);
-    }
-    
-    return stateInfo.zone;
-  }
-
   async createCase(caseData: InsertCase): Promise<Case> {
     const caseNumber = await this.generateCaseNumber(caseData.clinicId);
-    
-    // Auto-derive geo_zone from state
-    const geoZone = await this.getGeoZoneFromState(caseData.state as string);
-    
     const [newCase] = await db
       .insert(cases)
-      .values({ ...caseData, caseNumber, geoZone })
+      .values({ ...caseData, caseNumber })
       .returning();
     return newCase;
   }
 
   async updateCase(id: string, updates: Partial<InsertCase>, clinicId: string): Promise<Case> {
-    // If state is being updated, auto-derive geo_zone
-    let geoZone;
-    if (updates.state) {
-      geoZone = await this.getGeoZoneFromState(updates.state as string);
-    }
-    
     const [updatedCase] = await db
       .update(cases)
-      .set({ ...updates, ...(geoZone ? { geoZone } : {}), updatedAt: new Date() })
+      .set({ ...updates, updatedAt: new Date() })
       .where(and(
         eq(cases.id, id),
         eq(cases.clinicId, clinicId)
@@ -737,62 +688,6 @@ export class DatabaseStorage implements IStorage {
     userAgent?: string;
   }): Promise<void> {
     await db.insert(auditLogs).values(log);
-  }
-
-  async getNgStates(zone?: string): Promise<NgState[]> {
-    let query = db.select().from(ngStates);
-    
-    if (zone) {
-      query = query.where(eq(ngStates.zone, zone as any));
-    }
-    
-    return await query.orderBy(asc(ngStates.name));
-  }
-
-  async createCaseFile(file: InsertCaseFile): Promise<CaseFile> {
-    const [newFile] = await db.insert(caseFiles).values(file).returning();
-    return newFile;
-  }
-
-  async getCaseFiles(caseId: string): Promise<CaseFile[]> {
-    return await db
-      .select()
-      .from(caseFiles)
-      .where(eq(caseFiles.caseId, caseId))
-      .orderBy(desc(caseFiles.createdAt));
-  }
-
-  async deleteCaseFile(id: string, userId: string, userClinicId?: string): Promise<void> {
-    // Get user to check role
-    const user = await this.getUser(userId);
-    if (!user) throw new Error("User not found");
-    
-    // Allow deletion if:
-    // 1. User is the uploader, OR
-    // 2. User is ADMIN/MANAGER and file belongs to their clinic's case
-    const isAdmin = user.role === "ADMIN" || user.role === "MANAGER";
-    
-    if (isAdmin && userClinicId) {
-      // Verify file belongs to a case from user's clinic
-      await db
-        .delete(caseFiles)
-        .where(and(
-          eq(caseFiles.id, id),
-          sql`EXISTS (
-            SELECT 1 FROM ${cases} 
-            WHERE ${cases.id} = ${caseFiles.caseId} 
-            AND ${cases.clinicId} = ${userClinicId}
-          )`
-        ));
-    } else {
-      // Non-admin: can only delete their own uploads
-      await db
-        .delete(caseFiles)
-        .where(and(
-          eq(caseFiles.id, id),
-          eq(caseFiles.uploadedBy, userId)
-        ));
-    }
   }
 }
 
