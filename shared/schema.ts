@@ -22,7 +22,28 @@ export const stateEnum = pgEnum("state", [
   "RIVERS", "SOKOTO", "TARABA", "YOBE", "ZAMFARA"
 ]);
 
+// Geo-political zones
+export const geoZoneEnum = pgEnum("geo_zone", [
+  "NORTH_CENTRAL", "NORTH_EAST", "NORTH_WEST", 
+  "SOUTH_EAST", "SOUTH_SOUTH", "SOUTH_WEST"
+]);
+
+// Treatment protocol enums
+export const treatmentIntentEnum = pgEnum("treatment_intent", [
+  "CURATIVE", "PALLIATIVE", "ADJUVANT", "NEOADJUVANT", "OTHER"
+]);
+
 // Core Tables
+
+// Nigerian states with geo-political zone mapping
+export const ngStates = pgTable("ng_states", {
+  code: text("code").primaryKey(), // uppercase state code
+  name: text("name").notNull().unique(),
+  zone: geoZoneEnum("zone").notNull(),
+}, (table) => ({
+  zoneIdx: index("ng_states_zone_idx").on(table.zone),
+}));
+
 export const clinics = pgTable("clinics", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -112,10 +133,15 @@ export const cases = pgTable("cases", {
   clinicId: uuid("clinic_id").references(() => clinics.id).notNull(),
   createdBy: uuid("created_by").references(() => users.id).notNull(),
   
+  // Location - required fields
+  state: stateEnum("state").notNull(),
+  geoZone: geoZoneEnum("geo_zone").notNull(), // auto-derived from state
+  
   // Patient information
   patientName: text("patient_name"),
   species: text("species").notNull(),
   breed: text("breed").notNull(),
+  breedId: uuid("breed_id"), // optional reference to breeds table if needed later
   sex: sexEnum("sex"),
   ageYears: integer("age_years"),
   ageMonths: integer("age_months"),
@@ -136,6 +162,14 @@ export const cases = pgTable("cases", {
   treatmentPlan: text("treatment_plan"),
   treatmentStart: timestamp("treatment_start"),
   
+  // Treatment Protocol
+  treatmentIntent: treatmentIntentEnum("treatment_intent"),
+  protocolName: text("protocol_name"),
+  regimen: text("regimen"), // drugs, doses, frequency, cycles
+  protocolNotes: text("protocol_notes"),
+  protocolStartDate: timestamp("protocol_start_date"),
+  protocolEndDate: timestamp("protocol_end_date"),
+  
   // Outcome
   outcome: outcomeEnum("outcome"),
   lastFollowUp: timestamp("last_follow_up"),
@@ -149,6 +183,8 @@ export const cases = pgTable("cases", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
   clinicIdx: index("cases_clinic_idx").on(table.clinicId),
+  stateIdx: index("cases_state_idx").on(table.state),
+  geoZoneIdx: index("cases_geo_zone_idx").on(table.geoZone),
   speciesIdx: index("cases_species_idx").on(table.species),
   tumourTypeIdx: index("cases_tumour_type_idx").on(table.tumourTypeId),
   anatomicalSiteIdx: index("cases_anatomical_site_idx").on(table.anatomicalSiteId),
@@ -156,6 +192,24 @@ export const cases = pgTable("cases", {
   diagnosisDateIdx: index("cases_diagnosis_date_idx").on(table.diagnosisDate),
 }));
 
+// Case files - images, PDFs, lab documents
+export const caseFiles = pgTable("case_files", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }).notNull(),
+  kind: text("kind").notNull(), // 'image' or 'file'
+  storageKey: text("storage_key").notNull(), // Replit storage key
+  publicUrl: text("public_url"),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(), // bytes
+  uploadedBy: uuid("uploaded_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  caseIdx: index("case_files_case_idx").on(table.caseId),
+  kindIdx: index("case_files_kind_idx").on(table.kind),
+}));
+
+// Keep legacy attachments table for backward compatibility
 export const attachments = pgTable("attachments", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   caseId: uuid("case_id").references(() => cases.id).notNull(),
@@ -346,7 +400,19 @@ export const casesRelations = relations(cases, ({ one, many }) => ({
     references: [anatomicalSites.id],
   }),
   attachments: many(attachments),
+  caseFiles: many(caseFiles),
   followUps: many(followUps),
+}));
+
+export const caseFilesRelations = relations(caseFiles, ({ one }) => ({
+  case: one(cases, {
+    fields: [caseFiles.caseId],
+    references: [cases.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [caseFiles.uploadedBy],
+    references: [users.id],
+  }),
 }));
 
 export const attachmentsRelations = relations(attachments, ({ one }) => ({
@@ -385,11 +451,13 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export const insertCaseSchema = createInsertSchema(cases).omit({
   id: true,
   caseNumber: true,
+  geoZone: true, // server-derived from state
   createdAt: true,
   updatedAt: true,
 }).extend({
   species: z.string().min(1),
   breed: z.string().min(1),
+  state: z.string().min(1), // required
   diagnosisDate: z.string().or(z.date()),
 });
 
@@ -421,6 +489,13 @@ export const insertFollowUpSchema = createInsertSchema(followUps).omit({
   completedAt: true,
 });
 
+export const insertNgStateSchema = createInsertSchema(ngStates);
+
+export const insertCaseFileSchema = createInsertSchema(caseFiles).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Clinic = typeof clinics.$inferSelect;
 export type User = typeof users.$inferSelect;
@@ -436,6 +511,8 @@ export type FollowUp = typeof followUps.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type ImportJob = typeof importJobs.$inferSelect;
 export type Invitation = typeof invitations.$inferSelect;
+export type NgState = typeof ngStates.$inferSelect;
+export type CaseFile = typeof caseFiles.$inferSelect;
 
 export type InsertClinic = z.infer<typeof insertClinicSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -445,6 +522,8 @@ export type InsertAnatomicalSite = z.infer<typeof insertAnatomicalSiteSchema>;
 export type InsertAttachment = z.infer<typeof insertAttachmentSchema>;
 export type InsertFeedPost = z.infer<typeof insertFeedPostSchema>;
 export type InsertFollowUp = z.infer<typeof insertFollowUpSchema>;
+export type InsertNgState = z.infer<typeof insertNgStateSchema>;
+export type InsertCaseFile = z.infer<typeof insertCaseFileSchema>;
 
 // User with clinic data
 export type UserWithClinic = User & {

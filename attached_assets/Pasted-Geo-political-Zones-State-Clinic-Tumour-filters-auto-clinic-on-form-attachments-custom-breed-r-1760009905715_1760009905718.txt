@@ -1,0 +1,226 @@
+Geo-political Zones + State/Clinic/Tumour filters; auto-clinic on form; attachments; custom breed; richer tumour/site lists; treatment protocol
+(Keep shared reads, safe writes, and server-owned atomic case_number exactly as implemented.)
+
+Context
+
+Platform: Replit (Replit Auth, Replit-managed Postgres), React/TypeScript frontend, server/API layer in repo.
+
+The app already has:
+
+Shared reads (all authenticated users can see all cases),
+
+Restricted writes (creator or admin roles only),
+
+Clinic and State required,
+
+Server-owned, atomic case_number (no collisions).
+
+We’re adding filters + form features requested by the user.
+
+Objectives
+
+State → Geo-political zone auto-mapping on New Case.
+
+New filters on Cases/Analytics: Geo-zone, State, Clinic, Tumour type.
+
+Grouping by Geo-zone in the Cases list (visible zone headers).
+
+Auto-fill Clinic on New Case from the user’s session, but keep it editable (typeahead/create).
+
+Attachments in Diagnosis & Treatment (images + files).
+
+Breed combobox with custom input (Dog/Cat species only).
+
+Tumour Type and Anatomical Site dropdowns pre-seeded with rich lists plus “Other (specify)”.
+
+Treatment protocol section under Diagnosis & Treatment.
+
+Implement
+A) Nigeria Geo-political zones (derived from State)
+
+Schema
+
+Create lookup table ng_states(code text, name text, zone text); seed with official mapping:
+
+North Central: Benue, Kogi, Kwara, Nasarawa, Niger, Plateau, FCT
+
+North East: Adamawa, Bauchi, Borno, Gombe, Taraba, Yobe
+
+North West: Jigawa, Kaduna, Kano, Katsina, Kebbi, Sokoto, Zamfara
+
+South East: Abia, Anambra, Ebonyi, Enugu, Imo
+
+South South: Akwa Ibom, Bayelsa, Cross River, Delta, Edo, Rivers
+
+South West: Ekiti, Lagos, Ogun, Ondo, Osun, Oyo
+
+Ensure cases.state is NOT NULL and validated against ng_states.name (FK or CHECK).
+
+Add cases.geo_zone text NOT NULL and set it server-side from ng_states.zone on create/update (clients never send geo_zone).
+
+Indexes: cases(geo_zone), cases(state), keep existing case filters indexes.
+
+UI
+
+New Case: required State dropdown (36 + FCT); display Geo-zone as read-only once state is chosen.
+
+Cases filters: add Geo-zone (drives State options) and State.
+
+Cases table: add columns Zone, State, Clinic and implement “Group by: Zone / State / Clinic / None”.
+
+When grouped by Zone, render sticky group headers (the screenshot’s header row should now include Zone labels).
+
+B) Clinic filter + auto-clinic on form
+
+Session exposes clinicId + clinicName.
+
+New Case: pre-fill Clinic from session; keep editable (typeahead).
+
+If clinic name doesn’t exist and user has permission, allow create; otherwise map to Unassigned and show a non-blocking warning.
+
+Filters: add Clinic (single or multi-select).
+
+Keep write guards (creator/admin only).
+
+C) Tumour filter + richer dropdowns
+
+Lookup tables
+
+tumour_types(id, name) — seed ≥ 20 common canine/feline tumours (e.g., lymphoma, mast cell tumour, osteosarcoma, hemangiosarcoma, soft tissue sarcoma, melanoma, squamous cell carcinoma, mammary carcinoma, fibrosarcoma, transitional cell carcinoma, meningioma, oral melanoma, hepatocellular carcinoma, insulinoma, anal sac adenocarcinoma, thyroid carcinoma, nasal adenocarcinoma, leukemia (CLL/ALL), GI lymphoma, osteoma).
+
+anatomical_sites(id, name) — seed common sites (skin, subcutis, oral cavity, nasal cavity, limbs, mammary gland, spleen, liver, kidney, bladder, prostate, brain/CNS, eye/orbit, bone, lymph node, GI tract, lung, perianal region, endocrine, reproductive).
+
+UI
+
+New Case: searchable dropdowns for Tumour Type and Anatomical Site with “Other (specify)” path that reveals a custom text input.
+
+Filters: add Tumour Type across Cases/Analytics/Reports.
+
+D) Breed combobox with custom input
+
+Species limited to Canine and Feline.
+
+Breed control is a combobox: choose from species-specific list or type a custom breed (persist as text; optionally store breed_id when chosen from list).
+
+E) Attachments in Diagnosis & Treatment
+
+Storage & DB
+
+Use Replit App Storage for files.
+
+New table case_files(id, case_id, kind text CHECK(kind IN ('image','file')), storage_key, public_url, original_name, mime_type, size, uploaded_by, created_at).
+
+Accept: image/*, application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/csv (optionally DICOM).
+
+Per-file size guard (e.g., 10–20 MB), max ~10 files per case.
+
+UI
+
+In Diagnosis & Treatment step, add Attachments: image preview thumbnails + file list, with remove buttons.
+
+Show attachments on Case Detail with download/view.
+
+F) Treatment protocol section
+
+In Diagnosis & Treatment, add Treatment Protocol with:
+
+intent (Curative / Palliative / Adjuvant / Neoadjuvant / Other),
+
+protocol_name (free text),
+
+regimen (free text / markdown for drugs, doses, frequency, cycles),
+
+notes (free text),
+
+start_date, end_date (optional).
+
+Persist under cases (if lightweight) or a new treatment_protocols table linked by case_id. Start simple (single protocol per case) and leave room for multiple later.
+
+G) Bulk upload alignment
+
+Required columns: Clinic, State, core case fields (and optional Tumour Type/Site).
+
+Normalize State to ng_states names; reject unknowns with row-level errors in preview.
+
+Map Clinic by name (create if permitted); else Unassigned with warning.
+
+Server assigns case_number (clients never send it).
+
+When Tumour Type/Site provided, map to lookup ids if they exist; otherwise store as custom text.
+
+Keep existing guarantees (do not change)
+
+Shared reads across all authenticated users.
+
+Restricted writes (creator/admin).
+
+Server-owned atomic case_number generation and immutability.
+
+Clinic & State are mandatory.
+
+Acceptance Tests (add to PR body)
+
+Zones & States
+
+Selecting Lagos auto-shows South West on the form.
+
+Filter by South West → State dropdown only lists South-West states.
+
+Cases table grouped by Zone displays sticky headers per zone.
+
+Clinic
+
+New Case pre-fills clinic from session; user can change it.
+
+Filter by Clinic narrows correctly.
+
+Tumour
+
+Seeded list appears; choosing Other (specify) saves custom text.
+
+Filtering by a tumour type works across the shared dataset.
+
+Breed
+
+User can type a custom breed and it persists correctly.
+
+Attachments
+
+Upload an image + a PDF in Diagnosis & Treatment; they display on Case Detail with working links.
+
+Protocol
+
+Enter a protocol (intent/name/regimen/notes/dates) → saves and reloads.
+
+No regressions
+
+Second account can save (no duplicate case_number).
+
+Cross-account visibility: A’s cases appear for B.
+
+Write protections still enforced.
+
+Deliverables
+
+Single commit (or auto-merged PR) titled:
+feat(filters): geo-zones + state/clinic/tumour filters; attachments; custom breed; treatment protocol
+
+Includes:
+
+DB migrations: ng_states + seed, cases.geo_zone, indexes; case_files; seeds for tumour_types & anatomical_sites.
+
+Server: state→zone mapping on save; new filters (zone/state/clinic/tumour) in list/analytics; attachments endpoints; protocol persistence.
+
+Client: State dropdown + zone display; Clinic pre-fill (editable); new filters and “Group by Zone”; tumour/site searchable with “Other”; breed combobox; attachments UI; protocol UI.
+
+Docs: update README/SECURITY with zone mapping, filters, attachments limits, protocol field, and rollback.
+
+Rollback note: Drop cases.geo_zone and ng_states references; remove new filters and grouping; drop case_files and UI; revert protocol fields.
+
+Operational Notes
+
+Don’t change secrets or Replit runtime settings.
+
+Don’t run the app; edit code/migrations/docs only.
+
+If multiple create/read paths exist, update them consistently and list file paths in the commit/PR body.
