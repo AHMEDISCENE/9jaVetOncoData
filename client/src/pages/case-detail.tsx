@@ -42,12 +42,12 @@ export default function CaseDetail() {
   const [isUploading, setIsUploading] = useState(false);
 
   const { data: caseData, isLoading: caseLoading } = useQuery<CaseWithDetails>({
-    queryKey: ["/api/cases", caseId],
+    queryKey: [`/api/cases/${caseId}`],
     enabled: !!caseId,
   });
 
   const { data: files = [], isLoading: filesLoading } = useQuery<CaseFile[]>({
-    queryKey: ["/api/cases", caseId, "files"],
+    queryKey: [`/api/cases/${caseId}/files`],
     enabled: !!caseId,
   });
 
@@ -70,7 +70,7 @@ export default function CaseDetail() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", caseId, "files"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cases/${caseId}/files`] });
       toast({
         title: "File uploaded successfully",
       });
@@ -97,7 +97,7 @@ export default function CaseDetail() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", caseId, "files"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cases/${caseId}/files`] });
       toast({
         title: "File deleted successfully",
       });
