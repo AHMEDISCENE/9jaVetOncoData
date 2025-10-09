@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Cases from "@/pages/cases";
+import CaseDetail from "@/pages/case-detail";
 import NewCase from "@/pages/new-case";
 import BulkUpload from "@/pages/bulk-upload";
 import Analytics from "@/pages/analytics";
@@ -35,6 +36,7 @@ function AuthenticatedLayout() {
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/cases" component={Cases} />
             <Route path="/cases/new" component={NewCase} />
+            <Route path="/cases/:id" component={CaseDetail} />
             <Route path="/bulk-upload" component={BulkUpload} />
             <Route path="/analytics" component={Analytics} />
             <Route path="/reports" component={Reports} />

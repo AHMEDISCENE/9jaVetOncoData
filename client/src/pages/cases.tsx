@@ -277,9 +277,11 @@ export default function Cases() {
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button variant="ghost" size="sm" data-testid={`button-view-case-${caseItem.id}`}>
-                            <i className="fas fa-eye mr-1"></i>View
-                          </Button>
+                          <Link href={`/cases/${caseItem.id}`}>
+                            <Button variant="ghost" size="sm" data-testid={`button-view-case-${caseItem.id}`}>
+                              <i className="fas fa-eye mr-1"></i>View
+                            </Button>
+                          </Link>
                           <Button variant="ghost" size="sm" data-testid={`button-edit-case-${caseItem.id}`}>
                             <i className="fas fa-edit mr-1"></i>Edit
                           </Button>
