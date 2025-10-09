@@ -41,6 +41,7 @@ const filterSchema = z.object({
   endDate: z.string().optional(),
   limit: z.coerce.number().optional(),
   offset: z.coerce.number().optional(),
+  clinicId: z.string().optional(), // For optional clinic filtering in shared reads
 });
 
 // File upload configuration
@@ -526,10 +527,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const filters = filterSchema.parse(req.query);
       
-      const cases = await storage.getCases(clinicId, {
+      // Shared reads - all authenticated users see all cases
+      const cases = await storage.getCases(undefined, {
         ...filters,
         startDate: filters.startDate ? new Date(filters.startDate) : undefined,
         endDate: filters.endDate ? new Date(filters.endDate) : undefined,
+        // Optional clinic filter from query params
+        clinicFilter: filters.clinicId,
       });
       
       res.json(cases);
@@ -541,8 +545,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/cases/:id", requireAuth, async (req, res) => {
     try {
-      const clinicId = (req.session as any).clinicId;
-      const caseData = await storage.getCase(req.params.id, clinicId);
+      // Shared reads - any authenticated user can view any case
+      const caseData = await storage.getCase(req.params.id);
       
       if (!caseData) {
         return res.status(404).json({ message: "Case not found" });

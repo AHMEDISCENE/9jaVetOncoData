@@ -268,7 +268,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(invitations.token, token));
   }
 
-  async getCases(clinicId: string, filters: {
+  async getCases(clinicId?: string, filters: {
     species?: string;
     tumourType?: string;
     outcome?: string;
@@ -276,6 +276,7 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     limit?: number;
     offset?: number;
+    clinicFilter?: string;
   } = {}): Promise<CaseWithDetails[]> {
     const creator = alias(users, 'creator');
     
@@ -286,7 +287,15 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(creator, eq(cases.createdBy, creator.id))
       .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
       .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
-      .where(eq(cases.clinicId, clinicId));
+      .$dynamic();
+
+    // Shared reads - only filter by clinic if explicitly requested
+    if (filters.clinicFilter) {
+      query = query.where(eq(cases.clinicId, filters.clinicFilter));
+    } else {
+      // Default to showing all cases (shared reads)
+      query = query.where(sql`1=1`);
+    }
 
     if (filters.species) {
       query = query.where(eq(cases.species, filters.species));
@@ -331,7 +340,7 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getCase(id: string, clinicId: string): Promise<CaseWithDetails | undefined> {
+  async getCase(id: string, clinicId?: string): Promise<CaseWithDetails | undefined> {
     const creator = alias(users, 'creator');
     
     const [result] = await db
@@ -341,10 +350,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(creator, eq(cases.createdBy, creator.id))
       .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
       .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
-      .where(and(
-        eq(cases.id, id),
-        eq(cases.clinicId, clinicId)
-      ));
+      .where(eq(cases.id, id));
 
     if (!result) return undefined;
 
@@ -401,17 +407,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateCaseNumber(clinicId: string): Promise<string> {
+    // Atomic generation using sequence - prevents race conditions
     const year = new Date().getFullYear();
-    const [result] = await db
-      .select({ count: count() })
-      .from(cases)
-      .where(and(
-        eq(cases.clinicId, clinicId),
-        sql`EXTRACT(YEAR FROM ${cases.createdAt}) = ${year}`
-      ));
+    const result = await db.execute<{ nextval: number }>(
+      sql`SELECT nextval('case_number_seq') as nextval`
+    );
     
-    const nextNumber = (result?.count || 0) + 1;
-    return `VC-${year}-${nextNumber.toString().padStart(3, '0')}`;
+    const seqNumber = result.rows[0]?.nextval || 1;
+    return `VC-${year}-${seqNumber.toString().padStart(5, '0')}`;
   }
 
   async getTumourTypes(clinicId?: string, species?: string): Promise<TumourType[]> {

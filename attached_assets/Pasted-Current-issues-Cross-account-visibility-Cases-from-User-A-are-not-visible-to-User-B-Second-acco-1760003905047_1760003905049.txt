@@ -1,0 +1,226 @@
+Current issues:
+
+Cross-account visibility: Cases from User A are not visible to User B.
+
+Second account insert fails with duplicate case_number (unique constraint).
+
+Clinic & State missing in cases, blocking downstream analytics/filters.
+
+Objectives
+
+Shared reads ON: Every authenticated user can read all cases (platform-wide).
+
+Restricted writes: Only creator or privileged roles (clinic_admin / super_admin or project’s equivalent) can update/delete.
+
+Clinic & State are mandatory on every case:
+
+clinic_id (FK to clinics) is NOT NULL.
+
+state (Nigeria’s 36 states + FCT) is NOT NULL and validated.
+
+Atomic, server-owned case_number generation—no client collision; fixes second account cannot save.
+
+Bulk upload enforces/normalizes Clinic and State and refuses invalid rows with actionable feedback.
+
+Minimal UI change: keep design; add required Clinic/State inputs and proper filters.
+
+Inspect (no edits yet)
+
+DB schema: cases, clinics, any states/lookup tables, unique constraint for cases.case_number.
+
+Server routes/storage: create/read/update/delete for cases; any middleware that loads session (user.id, role, clinicId).
+
+Client data loaders for: Cases list, Analytics/Reports, Dashboard, Search, Bulk upload.
+
+Check where case_number is currently set (client vs server).
+
+Confirm if a shared read view already exists (e.g., shared_cases_view / public_cases_view).
+
+Implement
+A) Shared reads (make all uploaded cases viewable to all users)
+
+Default all read paths (Cases list, Analytics/Reports, Dashboard, Search) to query the shared dataset:
+
+If a de-identified view exists, use it by default for lists/analytics; otherwise read from cases.
+
+Remove any hard created_by = session.user.id or automatic “my clinic” scoping.
+
+Provide only optional user filters (see Section D).
+
+Detail page: if PII exists, gate the sensitive fields by role; otherwise show the same fields as the list.
+
+Do not weaken auth: only signed-in users can access reads.
+
+B) Clinic & State are required everywhere
+
+Schema
+
+Ensure cases.clinic_id is NOT NULL and FK → clinics.id.
+
+Ensure cases.state is NOT NULL and limited to Nigeria’s 36 states + FCT via one of:
+
+states lookup table with FK, or
+
+a check constraint that validates against the allowed list.
+
+Add/ensure indexes: cases(clinic_id), cases(state), cases(species), cases(tumour_type), cases(diagnosis_date).
+
+Clinic bootstrap
+
+Upsert a global clinic row named “Unassigned” (stable id).
+
+On first login / first-seen user, if no clinic is set, assign “Unassigned” and store it in the profile/session (clinicId).
+
+State defaults
+
+Do not auto-default a state. Require the user to pick one in the form (and in bulk upload).
+
+If a backfill is needed for legacy cases, set state='Unknown' temporarily and flag them for remediation; include this in migration notes.
+
+Form/UI
+
+New Case: Clinic (pre-filled from session, editable) and State (required dropdown) using the 36 states + FCT list; allow search and manual override only if it passes validation.
+
+Account → Clinic: simple selector to change the user’s clinic from “Unassigned” to their real clinic.
+
+C) Atomic, server-owned case_number (fix second-account save)
+
+Add a Postgres sequence (e.g., case_number_seq).
+
+In the server create-case handler:
+
+Ignore any client-supplied case_number.
+
+Generate within the same transaction/CTE:
+
+n = nextval('case_number_seq')
+
+case_number = 'VC-' + YYYY + '-' + leftpad(n, 5) (or keep your current prefix/format).
+
+Keep the unique constraint; on rare conflict, retry quickly (up to 3 attempts).
+
+Result: any account can save, no collisions.
+
+D) Filters, sorting, analytics
+
+Cases page defaults to All data.
+
+Add/keep filters:
+
+Clinic (single/multi select)
+
+State (must use the same 36+FCT list)
+
+Species, Tumour Type, Anatomical Site
+
+Date range (diagnosis date)
+
+“My clinic only” toggle that applies a clinic_id = session.clinicId filter
+
+Sorting: allow sort by diagnosis_date (desc), state, clinic_name, case_number.
+
+Analytics/Reports:
+
+Include by-State and by-Clinic aggregations (counts, time trends).
+
+Use the shared dataset by default; allow scoping by clinic/state.
+
+E) Bulk upload (CSV/XLSX)
+
+Enforce required columns: Clinic, State, plus core case fields.
+
+State normalization: case-insensitive match to official state names; reject unknowns with actionable error in the preview.
+
+Clinic mapping: try exact match by name; if not found and user has permission, offer to create the clinic; otherwise map to Unassigned and warn.
+
+Preview: show row-level errors (missing state/clinic, invalid values) and don’t import until fixed.
+
+Insert: server assigns case_number (client must not send it).
+
+F) Security & docs
+
+Writes: only created_by or privileged roles can update/delete; enforce server-side.
+
+Reads: shared across authenticated users; lists use de-identified fields if available.
+
+Update SECURITY.md/README:
+
+Shared-read model, restricted writes
+
+Clinic bootstrap flow and Account → Clinic selector
+
+Mandatory State list (36 states + FCT)
+
+Atomic case numbering policy
+
+Rollback instructions
+
+Acceptance Tests (must pass)
+
+Shared reads
+
+User A creates a case (with Clinic + State).
+
+User B opens Cases list → sees A’s case (without applying any filter).
+
+Second account save
+
+User B creates a case immediately → succeeds; each case has a unique case_number.
+
+Clinic/State required
+
+New Case form cannot submit without State; Clinic defaults to session clinic but is editable.
+
+Bulk upload refuses rows without valid State/Clinic (clear errors in preview).
+
+Filters & sort
+
+Filter by State and Clinic; results update correctly.
+
+Sort by date / case_number / clinic_name works.
+
+Analytics
+
+“By State” and “By Clinic” charts show correct counts over the shared dataset; “My clinic only” narrows scope.
+
+Write protections
+
+Non-admin cannot edit/delete someone else’s case; admin roles can.
+
+No console/server noise
+
+No duplicate-key errors; no uncontrolled/controlled input warnings; clean server logs on insert.
+
+Deliverables
+
+Single commit (or auto-merged PR) titled:
+feat(data): shared reads for all users; require clinic & state; atomic case_number; safe writes
+
+Must include:
+
+DB migrations:
+
+states lookup (or check constraint) & NOT NULL on cases.state
+
+NOT NULL FK on cases.clinic_id
+
+case_number_seq creation (+ optional backfill for legacy rows)
+
+Helpful indexes (clinic_id, state, tumour_type, diagnosis_date)
+
+Server changes: shared reads, atomic case_number generation, insert/update/delete guards, bulk upload validation/normalization.
+
+Client changes: New Case requires Clinic & State; filters/sorting; Account → Clinic selector; bulk upload UI validation.
+
+Docs: Security/README sections updated; rollback note.
+
+Rollback note (include in commit/PR body):
+To revert: restore owner-only filters on readers; drop mandatory State/clinic checks; remove server-owned numbering and accept client case_number (not recommended); remove or disable Clinic bootstrap.
+
+Operational Notes
+
+Do not touch secrets or Replit runtime settings.
+
+Do not run the app—only edit code/migrations/docs.
+
+If there are multiple code paths for create/read, update them all and list file paths in the commit message.
