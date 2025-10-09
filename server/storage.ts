@@ -423,21 +423,21 @@ export class DatabaseStorage implements IStorage {
     
     const [newCase] = await db
       .insert(cases)
-      .values({ ...caseData, caseNumber, geoZone: geoZone as any })
+      .values({ ...caseData, caseNumber, geoZone })
       .returning();
     return newCase;
   }
 
   async updateCase(id: string, updates: Partial<InsertCase>, clinicId: string): Promise<Case> {
     // If state is being updated, auto-derive geo_zone
-    let geoZone: any;
+    let geoZone;
     if (updates.state) {
       geoZone = await this.getGeoZoneFromState(updates.state as string);
     }
     
     const [updatedCase] = await db
       .update(cases)
-      .set({ ...updates as any, ...(geoZone ? { geoZone } : {}), updatedAt: new Date() })
+      .set({ ...updates, ...(geoZone ? { geoZone } : {}), updatedAt: new Date() })
       .where(and(
         eq(cases.id, id),
         eq(cases.clinicId, clinicId)
