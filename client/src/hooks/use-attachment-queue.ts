@@ -3,12 +3,23 @@ import { useState, useCallback } from 'react';
 const MAX_FILES = 10;
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
-const ALLOWED_DOC_MIME_TYPES = new Set([
+const ALLOWED_MIME_TYPES = [
+  // Images
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/bmp',
+  'image/tiff',
+  // Documents
   'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword', // .doc
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
   'text/csv',
-]);
+  'application/vnd.ms-excel', // .xls
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+];
 
 export interface QueuedFile {
   file: File;
@@ -33,8 +44,8 @@ export function useAttachmentQueue() {
       return `File size exceeds 20MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)`;
     }
 
-    // Check MIME type (allow any image/* plus permitted document types)
-    if (!(file.type?.startsWith('image/') || ALLOWED_DOC_MIME_TYPES.has(file.type))) {
+    // Check MIME type
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return `File type not allowed: ${file.type || 'unknown'}`;
     }
 
@@ -46,29 +57,18 @@ export function useAttachmentQueue() {
     const errors: ValidationError[] = [];
     const newFiles: QueuedFile[] = [];
 
-    const availableSlots = MAX_FILES - queuedFiles.length;
-
-    if (availableSlots <= 0) {
+    // Check total file count limit
+    if (queuedFiles.length + fileArray.length > MAX_FILES) {
       errors.push({
         type: 'limit',
-        message: `Maximum ${MAX_FILES} files allowed. Remove a file before adding another.`,
+        message: `Cannot add ${fileArray.length} files. Maximum ${MAX_FILES} files allowed (${queuedFiles.length} already queued)`,
         fileName: 'multiple files',
       });
       setValidationErrors(errors);
       return;
     }
 
-    const filesToProcess = fileArray.slice(0, availableSlots);
-
-    if (fileArray.length > availableSlots) {
-      errors.push({
-        type: 'limit',
-        message: `Only ${availableSlots} more file(s) can be added (maximum ${MAX_FILES}).`,
-        fileName: 'multiple files',
-      });
-    }
-
-    filesToProcess.forEach(file => {
+    fileArray.forEach(file => {
       const validationError = validateFile(file);
       
       if (validationError) {
@@ -134,7 +134,5 @@ export function useAttachmentQueue() {
     hasFiles: queuedFiles.length > 0,
     fileCount: queuedFiles.length,
     canAddMore: queuedFiles.length < MAX_FILES,
-    maxFiles: MAX_FILES,
-    maxFileSize: MAX_FILE_SIZE,
   };
 }

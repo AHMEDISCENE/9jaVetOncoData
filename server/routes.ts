@@ -75,20 +75,11 @@ const upload = multer({
   },
 });
 
-const CASE_FILE_TYPE_ERROR = 'UNSUPPORTED_FILE_TYPE';
-
 // File upload configuration for case files
 const caseFileUpload = multer({
   dest: 'uploads/case-files/',
   limits: {
     fileSize: MAX_FILE_SIZE,
-  },
-  fileFilter: (req, file, cb) => {
-    if (isAllowedMimeType(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error(CASE_FILE_TYPE_ERROR));
-    }
   },
 });
 
@@ -720,20 +711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Case file routes
-  app.post("/api/cases/:caseId/files", requireAuth, (req, res, next) => {
-    caseFileUpload.single('file')(req, res, (err: any) => {
-      if (err) {
-        if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ message: `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit` });
-        }
-        if (err?.message === CASE_FILE_TYPE_ERROR) {
-          return res.status(415).json({ message: "Unsupported file type. Allowed: images and documents (PDF, DOC, DOCX, CSV)." });
-        }
-        return res.status(400).json({ message: err?.message || "Unable to upload file" });
-      }
-      next();
-    });
-  }, async (req, res) => {
+  app.post("/api/cases/:caseId/files", requireAuth, caseFileUpload.single('file'), async (req, res) => {
     try {
       const userId = (req.session as any).userId;
       const clinicId = (req.session as any).clinicId;

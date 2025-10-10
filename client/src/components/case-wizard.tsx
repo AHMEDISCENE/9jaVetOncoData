@@ -12,14 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import type { TumourType, AnatomicalSite, Clinic } from "@shared/schema";
 import { NIGERIA_STATES, getZoneForState, formatStateName, formatZoneName, SPECIES_BREEDS } from "@/lib/constants";
 import { useAttachmentQueue } from "@/hooks/use-attachment-queue";
-import { Paperclip, X, Upload, FileText } from "lucide-react";
+import { Paperclip, X, Upload, FileText, Image as ImageIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const caseSchema = z.object({
@@ -64,21 +63,6 @@ export default function CaseWizard() {
   const attachmentQueue = useAttachmentQueue();
   const [uploadProgress, setUploadProgress] = useState<Record<string, { progress: number; error?: string }>>({});
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
-
-  useEffect(() => {
-    setUploadProgress(prev => {
-      const activeIds = new Set(attachmentQueue.queuedFiles.map(file => file.id));
-      let mutated = false;
-      const next = { ...prev };
-      for (const key of Object.keys(prev)) {
-        if (!activeIds.has(key)) {
-          delete next[key];
-          mutated = true;
-        }
-      }
-      return mutated ? next : prev;
-    });
-  }, [attachmentQueue.queuedFiles]);
 
   const form = useForm<CaseFormData>({
     resolver: zodResolver(caseSchema),
@@ -177,104 +161,59 @@ export default function CaseWizard() {
       if (attachmentQueue.hasFiles) {
         setIsUploadingFiles(true);
         const failedFiles: string[] = [];
-        const totalFiles = attachmentQueue.fileCount;
-
+        const totalFiles = attachmentQueue.fileCount; // Capture count before clearing
+        
         for (const queuedFile of attachmentQueue.queuedFiles) {
-          setUploadProgress(prev => ({ ...prev, [queuedFile.id]: { progress: 0 } }));
-
-          const formData = new FormData();
-          formData.append('file', queuedFile.file);
-
-          const result = await new Promise<{ success: boolean; error?: string }>((resolve) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `/api/cases/${newCase.id}/files`);
-            xhr.withCredentials = true;
-            xhr.upload.onprogress = (event) => {
-              if (!event.lengthComputable) return;
-              const percent = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress(prev => ({
-                ...prev,
-                [queuedFile.id]: { progress: percent },
-              }));
-            };
-
-            xhr.onload = () => {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                setUploadProgress(prev => ({
-                  ...prev,
-                  [queuedFile.id]: { progress: 100 },
-                }));
-                resolve({ success: true });
-              } else {
-                let errorMessage = 'Upload failed';
-                try {
-                  const response = JSON.parse(xhr.responseText);
-                  if (response?.message) {
-                    errorMessage = response.message;
-                  }
-                } catch (parseError) {
-                  console.error('Failed to parse upload error response', parseError);
-                }
-                setUploadProgress(prev => ({
-                  ...prev,
-                  [queuedFile.id]: { progress: 0, error: errorMessage },
-                }));
-                resolve({ success: false, error: errorMessage });
-              }
-            };
-
-            xhr.onerror = () => {
-              const errorMessage = 'Network error while uploading';
-              setUploadProgress(prev => ({
-                ...prev,
-                [queuedFile.id]: { progress: 0, error: errorMessage },
-              }));
-              resolve({ success: false, error: errorMessage });
-            };
-
-            xhr.send(formData);
-          });
-
-          if (!result.success) {
+          try {
+            setUploadProgress(prev => ({ ...prev, [queuedFile.id]: { progress: 0 } }));
+            
+            const formData = new FormData();
+            formData.append('file', queuedFile.file);
+            
+            const response = await fetch(`/api/cases/${newCase.id}/files`, {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Upload failed: ${response.statusText}`);
+            }
+            
+            setUploadProgress(prev => ({ ...prev, [queuedFile.id]: { progress: 100 } }));
+          } catch (error) {
+            console.error(`Failed to upload ${queuedFile.file.name}:`, error);
             failedFiles.push(queuedFile.file.name);
+            setUploadProgress(prev => ({
+              ...prev,
+              [queuedFile.id]: { progress: 0, error: 'Upload failed' }
+            }));
           }
         }
-
+        
         setIsUploadingFiles(false);
         attachmentQueue.clearQueue();
-        setUploadProgress({});
-
-        try {
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: [`/api/cases/${newCase.id}/files`] }),
-            queryClient.invalidateQueries({ queryKey: [`/api/cases/${newCase.id}`] }),
-          ]);
-        } catch (invalidateError) {
-          console.error('Failed to refresh case attachment queries', invalidateError);
-        }
-
+        
         if (failedFiles.length > 0) {
           toast({
-            title: 'Case saved',
-            description: failedFiles.length === 1
-              ? 'Case saved; 1 file failed to upload. You can retry from Attachments.'
-              : `Case saved; ${failedFiles.length} files failed to upload. You can retry from Attachments.`,
+            title: "Case created with warnings",
+            description: `Case saved successfully, but ${failedFiles.length} file(s) failed to upload. You can try uploading them again from the case details.`,
+            variant: "default",
           });
         } else {
           toast({
-            title: 'Case saved',
-            description: totalFiles > 0
-              ? `Case saved; ${totalFiles} attachment${totalFiles === 1 ? '' : 's'} uploaded.`
-              : 'The new case has been added to your records.',
+            title: "Case created successfully",
+            description: totalFiles > 0 
+              ? `Case and ${totalFiles} attachment(s) uploaded successfully.`
+              : "The new case has been added to your records.",
           });
         }
       } else {
         toast({
-          title: 'Case saved',
-          description: 'The new case has been added to your records.',
+          title: "Case created successfully",
+          description: "The new case has been added to your records.",
         });
       }
-
+      
       setLocation(`/cases/${newCase.id}`);
     },
     onError: (error) => {
@@ -830,11 +769,11 @@ export default function CaseWizard() {
                             Attachments (Optional)
                           </h3>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Add images, PDFs, or documents. Max 20MB per file, up to {attachmentQueue.maxFiles} files total.
+                            Add images, PDFs, or documents. Max 20MB per file, up to 10 files total.
                           </p>
                         </div>
                         <Badge variant="secondary">
-                          {attachmentQueue.fileCount}/{attachmentQueue.maxFiles}
+                          {attachmentQueue.fileCount}/{10}
                         </Badge>
                       </div>
 
@@ -884,7 +823,7 @@ export default function CaseWizard() {
                           id="file-input"
                           type="file"
                           multiple
-                          accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv"
+                          accept="image/*,application/pdf,.doc,.docx,.csv,.xls,.xlsx"
                           className="hidden"
                           onChange={(e) => {
                             if (e.target.files) {
@@ -901,63 +840,49 @@ export default function CaseWizard() {
                         <div className="space-y-2">
                           <h4 className="text-sm font-medium">Queued Files ({attachmentQueue.fileCount})</h4>
                           <div className="space-y-2">
-                            {attachmentQueue.queuedFiles.map((queuedFile) => {
-                              const progressInfo = uploadProgress[queuedFile.id];
-                              return (
-                                <div
-                                  key={queuedFile.id}
-                                  className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30"
-                                  data-testid={`attachment-item-${queuedFile.id}`}
-                                >
-                                  {/* File Preview/Icon */}
-                                  <div className="flex-shrink-0">
-                                    {queuedFile.preview ? (
-                                      <img
-                                        src={queuedFile.preview}
-                                        alt={queuedFile.file.name}
-                                        className="h-12 w-12 object-cover rounded"
-                                      />
-                                    ) : queuedFile.file.type.includes('pdf') ? (
-                                      <FileText className="h-12 w-12 text-red-500" />
-                                    ) : (
-                                      <FileText className="h-12 w-12 text-blue-500" />
-                                    )}
-                                  </div>
-
-                                  {/* File Info */}
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">
-                                      {queuedFile.file.name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {(queuedFile.file.size / (1024 * 1024)).toFixed(2)} MB
-                                    </p>
-                                    {progressInfo && (
-                                      <div className="mt-2 space-y-1">
-                                        <Progress value={progressInfo.progress} className="h-2" />
-                                        <div className="flex items-center justify-between text-xs">
-                                          <span className={progressInfo.error ? 'text-destructive' : 'text-muted-foreground'}>
-                                            {progressInfo.error ?? `${progressInfo.progress}%`}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Remove Button */}
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => attachmentQueue.removeFile(queuedFile.id)}
-                                    data-testid={`button-remove-attachment-${queuedFile.id}`}
-                                    disabled={isUploadingFiles}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
+                            {attachmentQueue.queuedFiles.map((queuedFile) => (
+                              <div
+                                key={queuedFile.id}
+                                className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30"
+                                data-testid={`attachment-item-${queuedFile.id}`}
+                              >
+                                {/* File Preview/Icon */}
+                                <div className="flex-shrink-0">
+                                  {queuedFile.preview ? (
+                                    <img
+                                      src={queuedFile.preview}
+                                      alt={queuedFile.file.name}
+                                      className="h-12 w-12 object-cover rounded"
+                                    />
+                                  ) : queuedFile.file.type.includes('pdf') ? (
+                                    <FileText className="h-12 w-12 text-red-500" />
+                                  ) : (
+                                    <FileText className="h-12 w-12 text-blue-500" />
+                                  )}
                                 </div>
-                              );
-                            })}
+
+                                {/* File Info */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">
+                                    {queuedFile.file.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {(queuedFile.file.size / (1024 * 1024)).toFixed(2)} MB
+                                  </p>
+                                </div>
+
+                                {/* Remove Button */}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => attachmentQueue.removeFile(queuedFile.id)}
+                                  data-testid={`button-remove-attachment-${queuedFile.id}`}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}

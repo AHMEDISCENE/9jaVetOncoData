@@ -517,9 +517,7 @@ export type CaseWithDetails = Case & {
   attachments: Attachment[];
   followUps: FollowUp[];
   attachmentsCount?: number;
-  firstImageUrl?: string | null;
-  attachments_count?: number;
-  first_image_url?: string | null;
+  firstImageUrl?: string;
 };
 
 // Session table for express-session
