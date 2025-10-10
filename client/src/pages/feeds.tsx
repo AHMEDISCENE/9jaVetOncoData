@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { FeedPost } from "@shared/schema";
+import { FilterMultiSelect } from "@/components/filter-multi-select";
+import { useSharedDataFilters } from "@/hooks/use-shared-data-filters";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { FeedItem, FeedResponse } from "@/lib/types";
+
+interface NgState {
+  code: string;
+  name: string;
+  zone: string;
+}
+
+interface ClinicOption {
+  id: string;
+  name: string;
+}
 
 interface CreatePostData {
   title: string;
@@ -29,9 +45,94 @@ export default function Feeds() {
   });
   const [tagInput, setTagInput] = useState("");
 
-  const { data: posts, isLoading, error } = useQuery<FeedPost[]>({
-    queryKey: ["/api/feeds"],
+  const {
+    filters,
+    setMultiFilter,
+    toggleMyClinicOnly,
+    resetFilters,
+    queryParams,
+  } = useSharedDataFilters("/feeds", user?.clinicId);
+
+  const { data: ngStates = [] } = useQuery<NgState[]>({
+    queryKey: ["/api/lookups/ng-states"],
   });
+
+  const { data: clinics = [] } = useQuery<ClinicOption[]>({
+    queryKey: ["/api/lookups/clinics"],
+  });
+
+  const zoneOptions = useMemo(() => {
+    const formatZone = (zone: string) =>
+      zone
+        .split("_")
+        .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+        .join(" ");
+
+    return Array.from(new Set(ngStates.map((state) => state.zone)))
+      .sort()
+      .map((zone) => ({ value: zone, label: formatZone(zone) }));
+  }, [ngStates]);
+
+  const stateOptions = useMemo(() => {
+    const filteredStates = filters.zones.length > 0
+      ? ngStates.filter((state) => filters.zones.includes(state.zone))
+      : ngStates;
+
+    return filteredStates
+      .map((state) => ({ value: state.code, label: state.name }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [ngStates, filters.zones]);
+
+  const clinicOptions = useMemo(
+    () =>
+      clinics
+        .map((clinic) => ({ value: clinic.id, label: clinic.name }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [clinics]
+  );
+
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<FeedResponse>({
+    queryKey: ["/api/feeds", queryParams],
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams();
+      Object.entries(queryParams).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach((v) => params.append(key, v));
+        } else if (value) {
+          params.append(key, value);
+        }
+      });
+
+      if (pageParam) {
+        params.set("cursor", pageParam);
+      }
+
+      const search = params.toString();
+      const url = search ? `/api/feeds?${search}` : "/api/feeds";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      return (await res.json()) as FeedResponse;
+    },
+  });
+
+  const feedItems = useMemo<FeedItem[]>(
+    () => (data ? data.pages.flatMap((page) => page.items) : []),
+    [data]
+  );
+
+  const feedsWarning = data?.pages.find((page) => page.warning)?.warning;
 
   const createPostMutation = useMutation({
     mutationFn: async (data: CreatePostData) => {
@@ -142,8 +243,8 @@ export default function Feeds() {
           <p className="text-muted-foreground">Latest news, research, and announcements</p>
         </div>
         {canCreatePost && (
-          <Button 
-            onClick={() => setIsCreating(true)} 
+          <Button
+            onClick={() => setIsCreating(true)}
             className="mt-4 sm:mt-0"
             data-testid="button-create-post"
           >
@@ -151,6 +252,69 @@ export default function Feeds() {
           </Button>
         )}
       </div>
+
+      <Card className="mb-6">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Filters</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <div>
+              <Label className="text-sm font-medium text-foreground">My clinic only</Label>
+              <div className="flex items-center space-x-3 mt-2">
+                <Switch
+                  checked={filters.myClinicOnly}
+                  onCheckedChange={toggleMyClinicOnly}
+                  disabled={!user?.clinicId}
+                  data-testid="feeds-toggle-my-clinic"
+                />
+                <span className="text-sm text-muted-foreground">Show posts from your clinic</span>
+              </div>
+            </div>
+
+            <FilterMultiSelect
+              label="Geo-Political Zone"
+              options={zoneOptions}
+              values={filters.zones}
+              onChange={(values) => setMultiFilter("zones", values)}
+              placeholder="All zones"
+              testId="feeds-filter-zone"
+            />
+
+            <FilterMultiSelect
+              label="State"
+              options={stateOptions}
+              values={filters.states}
+              onChange={(values) => setMultiFilter("states", values)}
+              placeholder="All states"
+              searchable
+              testId="feeds-filter-state"
+            />
+
+            <FilterMultiSelect
+              label="Clinic"
+              options={clinicOptions}
+              values={filters.clinicIds}
+              onChange={(values) => setMultiFilter("clinicIds", values)}
+              placeholder="All clinics"
+              searchable
+              testId="feeds-filter-clinic"
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button variant="ghost" onClick={resetFilters} data-testid="button-reset-feed-filters">
+              Reset filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {feedsWarning && (
+        <Alert className="mb-6" variant="destructive">
+          <AlertDescription>{feedsWarning}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Create Post Form */}
       {isCreating && (
@@ -242,8 +406,8 @@ export default function Feeds() {
 
       {/* Feed Posts */}
       <div className="space-y-6">
-        {posts && posts.length > 0 ? (
-          posts.map((post) => (
+        {feedItems.length > 0 ? (
+          feedItems.map((post) => (
             <Card key={post.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -258,8 +422,12 @@ export default function Feeds() {
                         <i className="fas fa-calendar mr-1"></i>
                         {new Date(post.createdAt).toLocaleDateString()}
                       </span>
-                      {post.clinicId && (
-                        <Badge variant="outline">Clinic Post</Badge>
+                      <span>
+                        <i className="fas fa-hospital mr-1"></i>
+                        {post.clinic?.name ?? "Global"}
+                      </span>
+                      {post.clinicZone && (
+                        <Badge variant="outline">{post.clinicZone}</Badge>
                       )}
                     </div>
                   </div>
@@ -301,6 +469,26 @@ export default function Feeds() {
           </Card>
         )}
       </div>
+
+      {hasNextPage && (
+        <div className="flex justify-center mt-8">
+          <Button
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            variant="outline"
+            data-testid="button-load-more-feeds"
+          >
+            {isFetchingNextPage ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-2"></i>
+                Loading...
+              </>
+            ) : (
+              <>Load more</>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

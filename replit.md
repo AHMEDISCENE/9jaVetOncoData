@@ -27,11 +27,14 @@ A sophisticated bulk upload system supports multiple file formats (CSV, XLSX, JS
 ## File Handling
 File uploads are managed through Multer middleware with support for images, PDFs, and laboratory documents. Files are associated with cases through an attachments system that tracks file types and metadata.
 
+## New Case Attachments
+The New Case wizard lets clinicians queue up to 10 attachments (images, PDF, DOC/DOCX, or CSV files) at a maximum of 20 MB each. Files are uploaded automatically once the case is saved, with per-file progress feedback and non-blocking error handling. The Case Management table surfaces an attachment count alongside a thumbnail of the most recent image when one is available.
+
 ## Progressive Web App (PWA)
 The application is configured as a PWA with offline capabilities, service worker integration, and installable features. This enables usage in areas with poor connectivity, which is crucial for the Nigerian veterinary clinic context.
 
 ## Security and Audit Trail
-The system implements comprehensive audit logging for all create, update, and delete operations. Role-based access control ensures that users can only access data from their own clinics, preventing cross-clinic data leakage.
+The system implements comprehensive audit logging for all create, update, and delete operations. Role-based access control keeps create/update/delete scoped to the owning clinic while allowing authenticated users to read shared analytics, dashboards, and feeds across clinics.
 
 # External Dependencies
 
