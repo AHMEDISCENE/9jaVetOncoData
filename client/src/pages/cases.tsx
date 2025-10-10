@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Paperclip } from "lucide-react";
 import type { CaseWithDetails } from "@shared/schema";
 import type { CaseFilters } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -379,19 +379,26 @@ export default function Cases() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {[...Array(6)].map((_, i) => (
+                    {Array.from({ length: 10 }).map((_, i) => (
                       <TableHead key={i}>
-                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-20" />
                       </TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {[...Array(5)].map((_, i) => (
+                  {Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {[...Array(6)].map((_, j) => (
+                      {Array.from({ length: 10 }).map((_, j) => (
                         <TableCell key={j}>
-                          <Skeleton className="h-4 w-20" />
+                          {j === 7 ? (
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="h-9 w-9 rounded-md" />
+                              <Skeleton className="h-4 w-10" />
+                            </div>
+                          ) : (
+                            <Skeleton className="h-4 w-24" />
+                          )}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -708,72 +715,88 @@ export default function Cases() {
                   )}
                   <TableBody>
                     {group.cases && group.cases.length > 0 ? (
-                      group.cases.map((caseItem) => (
-                        <TableRow key={caseItem.id} className="hover:bg-muted/50">
-                          <TableCell className="font-medium" data-testid={`case-id-${caseItem.id}`}>
-                            {caseItem.caseNumber}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="text-sm text-foreground" data-testid={`patient-name-${caseItem.id}`}>
-                                {caseItem.patientName || "Unnamed"}
+                      group.cases.map((caseItem) => {
+                        const attachmentsCount = caseItem.attachments_count ?? caseItem.attachmentsCount ?? 0;
+                        const firstImageUrl = caseItem.first_image_url ?? caseItem.firstImageUrl ?? null;
+
+                        const handleNavigateToCase = () => {
+                          setLocation(`/cases/${caseItem.id}`);
+                        };
+
+                        return (
+                          <TableRow key={caseItem.id} className="hover:bg-muted/50">
+                            <TableCell className="font-medium" data-testid={`case-id-${caseItem.id}`}>
+                              {caseItem.caseNumber}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="text-sm text-foreground" data-testid={`patient-name-${caseItem.id}`}>
+                                  {caseItem.patientName || "Unnamed"}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {caseItem.species} • {caseItem.breed} •
+                                  {caseItem.ageYears ? `${caseItem.ageYears}y` : ""}{caseItem.ageMonths ? ` ${caseItem.ageMonths}m` : ""}
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {caseItem.species} • {caseItem.breed} • 
-                                {caseItem.ageYears ? `${caseItem.ageYears}y` : ""}{caseItem.ageMonths ? ` ${caseItem.ageMonths}m` : ""}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {caseItem.tumourType?.name || caseItem.tumourTypeCustom || "Not specified"}
-                          </TableCell>
-                          <TableCell>
-                            {caseItem.clinic?.name || "Not specified"}
-                          </TableCell>
-                          <TableCell>
-                            {caseItem.geoZone || "Unknown"}
-                          </TableCell>
-                          <TableCell>
-                            {caseItem.state ? ngStates.find(s => s.code === caseItem.state)?.name || caseItem.state : "Not specified"}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(caseItem.diagnosisDate).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            {caseItem.attachmentsCount && caseItem.attachmentsCount > 0 ? (
-                              <div className="flex items-center gap-2">
-                                {caseItem.firstImageUrl && (
+                            </TableCell>
+                            <TableCell>
+                              {caseItem.tumourType?.name || caseItem.tumourTypeCustom || "Not specified"}
+                            </TableCell>
+                            <TableCell>
+                              {caseItem.clinic?.name || "Not specified"}
+                            </TableCell>
+                            <TableCell>
+                              {caseItem.geoZone || "Unknown"}
+                            </TableCell>
+                            <TableCell>
+                              {caseItem.state ? ngStates.find(s => s.code === caseItem.state)?.name || caseItem.state : "Not specified"}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(caseItem.diagnosisDate).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <button
+                                type="button"
+                                onClick={handleNavigateToCase}
+                                className="flex w-full items-center gap-3 rounded-md px-2 py-1 text-left transition hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                aria-label={`View attachments for case ${caseItem.caseNumber}`}
+                                data-testid={`attachments-cell-${caseItem.id}`}
+                              >
+                                {firstImageUrl && (
                                   <img
-                                    src={caseItem.firstImageUrl}
-                                    alt="Thumbnail"
-                                    className="h-8 w-8 object-cover rounded border"
+                                    src={firstImageUrl}
+                                    alt="Attachment thumbnail"
+                                    className="h-9 w-9 rounded-md object-cover ring-1 ring-border"
+                                    loading="lazy"
                                     data-testid={`attachment-thumbnail-${caseItem.id}`}
                                   />
                                 )}
-                                <Badge variant="secondary" data-testid={`attachment-count-${caseItem.id}`}>
-                                  {caseItem.attachmentsCount}
+                                <span
+                                  className={`flex items-center gap-1 text-sm ${attachmentsCount === 0 ? "text-muted-foreground" : "text-foreground font-medium"}`}
+                                  data-testid={`attachment-count-${caseItem.id}`}
+                                >
+                                  <Paperclip className="h-4 w-4" />
+                                  {attachmentsCount}
+                                </span>
+                              </button>
+                            </TableCell>
+                            <TableCell>
+                              {caseItem.outcome && (
+                                <Badge className={outcomeColors[caseItem.outcome]}>
+                                  {outcomeLabels[caseItem.outcome]}
                                 </Badge>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">None</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {caseItem.outcome && (
-                              <Badge className={outcomeColors[caseItem.outcome]}>
-                                {outcomeLabels[caseItem.outcome]}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button asChild variant="ghost" size="sm" data-testid={`view-case-${caseItem.id}`}>
-                              <Link href={`/cases/${caseItem.id}`}>
-                                <i className="fas fa-eye mr-2"></i>View
-                              </Link>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button asChild variant="ghost" size="sm" data-testid={`view-case-${caseItem.id}`}>
+                                <Link href={`/cases/${caseItem.id}`}>
+                                  <i className="fas fa-eye mr-2"></i>View
+                                </Link>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     ) : (
                       <TableRow>
                         <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
