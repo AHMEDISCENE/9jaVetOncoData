@@ -1,0 +1,175 @@
+Make Geo-political Zone filters safe (no crashes), with DB-join if available
+
+(Keep shared reads, safe writes, atomic case_number, and all existing features unchanged.)
+
+0) Why we’re doing this
+
+The Cases list endpoint 500s when zone filters or grouping are used because it depends on a new table (ng_states) that might not exist yet or the join fails. We need:
+
+100% no-crash behavior,
+
+geo_zone returned on every row,
+
+zone filtering to work,
+
+and only optionally use the DB join when the table is present.
+
+1) Server: add a resilient zone engine (fallback first, join when safe)
+
+Files to edit (adjust if paths differ):
+
+server/storage.ts (or wherever getCases lives)
+
+client/src/lib/types.ts (filters type, if needed)
+
+client/src/pages/cases.tsx (or cases list components)
+
+1.1 Add a canonical mapping (TS module)
+
+Create server/geo/nigeria-zones.ts:
+
+export const ZONES = [
+  'North Central','North East','North West','South East','South South','South West',
+] as const;
+export type GeoZone = typeof ZONES[number];
+
+export const STATE_TO_ZONE: Record<string, GeoZone> = {
+  // North Central
+  'benue':'North Central','kogi':'North Central','kwara':'North Central','nasarawa':'North Central',
+  'niger':'North Central','plateau':'North Central','fct':'North Central',
+  // North East
+  'adamawa':'North East','bauchi':'North East','borno':'North East','gombe':'North East','taraba':'North East','yobe':'North East',
+  // North West
+  'jigawa':'North West','kaduna':'North West','kano':'North West','katsina':'North West',
+  'kebbi':'North West','sokoto':'North West','zamfara':'North West',
+  // South East
+  'abia':'South East','anambra':'South East','ebonyi':'South East','enugu':'South East','imo':'South East',
+  // South South
+  'akwa ibom':'South South','bayelsa':'South South','cross river':'South South',
+  'delta':'South South','edo':'South South','rivers':'South South',
+  // South West
+  'ekiti':'South West','lagos':'South West','ogun':'South West','ondo':'South West','osun':'South West','oyo':'South West',
+};
+
+export function computeZoneFromState(state?: string | null): GeoZone | 'Unknown' {
+  if (!state) return 'Unknown';
+  const key = state.trim().toLowerCase();
+  return (STATE_TO_ZONE[key] ?? 'Unknown') as GeoZone | 'Unknown';
+}
+
+export function statesForZones(zones: string[]): string[] {
+  const wanted = new Set(zones.map(z => z.trim().toLowerCase()));
+  return Object.entries(STATE_TO_ZONE)
+    .filter(([, zone]) => wanted.has(zone.toLowerCase()))
+    .map(([state]) => state); // lowercased
+}
+
+1.2 Safe capability probe for ng_states
+
+In a small util server/db/capabilities.ts:
+
+let HAS_NG_STATES: boolean | null = null;
+
+export async function hasNgStates(client: any): Promise<boolean> {
+  if (HAS_NG_STATES !== null) return HAS_NG_STATES;
+  try {
+    const res = await client.query(
+      `select 1 from information_schema.tables where table_name = 'ng_states' limit 1`
+    );
+    HAS_NG_STATES = !!res?.rowCount;
+  } catch {
+    HAS_NG_STATES = false;
+  }
+  return HAS_NG_STATES;
+}
+
+1.3 Harden getCases (never throw; prefer join, fallback otherwise)
+
+Parse zone query param into an array (zone=South%20West&zone=North%20Central or comma-separated).
+
+Wrap the new SQL bits in try/catch. If anything fails, log and continue with the fallback logic — do not 500.
+
+Behavior:
+
+If hasNgStates(db) is true:
+
+LEFT JOIN ng_states s ON LOWER(TRIM(cases.state)) = LOWER(TRIM(s.name)).
+
+SELECT s.zone AS geo_zone.
+
+If zone[] present: add WHERE s.zone = ANY($zones).
+
+Else (table not present):
+
+Do not join.
+
+If zone[] present: derive allowed states with statesForZones(zone[]) and add a state-based filter:
+
+WHERE LOWER(TRIM(cases.state)) = ANY($allowedStatesLower).
+
+After fetching rows, set row.geo_zone = computeZoneFromState(row.state).
+
+Critical guardrails:
+
+Never return 500 for zone logic. On error: ignore zone filter, compute zones with computeZoneFromState, and return 200.
+
+Always include geo_zone in every returned row (string; “Unknown” if undetermined).
+
+Commit:
+fix(api): resilient zone filter — join when available, fallback to in-memory mapping; never 500
+
+2) Client: wire to server geo_zone and stabilize grouping
+2.1 Filters payload
+
+Ensure Cases page sends zone as multi-value (array or repeated query param).
+
+Keep state/clinic/tumour/species/date filters as is.
+
+2.2 Group by Zone
+
+Group on row.geo_zone from the API response (do not derive on the client).
+
+Add/keep a “Geo-Political Zone” column so it’s obvious when a row is “Unknown”.
+
+Group header labels should show the zone string; when “Unknown”, still create a section (so the UI never crashes).
+
+2.3 Empty/edge states
+
+If the server returns rows with geo_zone: "Unknown", the filters still work and grouping doesn’t break.
+
+URL preserves zone selections.
+
+Commit:
+fix(cases-ui): group by api geo_zone; stabilize zone filter params; add Unknown group
+
+3) Optional DB migration (can be applied later)
+
+Provide but don’t require the migration so the app works even if it’s not run yet.
+
+Create db/migrations/2025xxxx_ng_states.sql with the CREATE TABLE + INSERT seed from the previous prompt.
+
+Document in README how to run it:
+
+psql "$DATABASE_URL" -f db/migrations/2025xxxx_ng_states.sql
+
+
+Commit:
+chore(db): add ng_states migration and seed (optional)
+
+4) Acceptance (manual)
+
+Cases page loads (no 500) with or without the migration present.
+
+Selecting South West returns SW states; grouping by Zone shows “South West”.
+
+Selecting South West + Lagos narrows further.
+
+Clearing Zone shows all cases again.
+
+Combining Zone with Clinic and Tumour Type works.
+
+If migration is not applied, zone still works via fallback; after migration is applied, the join path is used automatically.
+
+Rollback
+
+Revert the three commits above to remove the zone logic and fallback entirely.

@@ -304,90 +304,211 @@ export class DatabaseStorage implements IStorage {
     sort?: string;
     order?: string;
   } = {}): Promise<CaseWithDetails[]> {
+    const { hasNgStates } = await import('./db/capabilities');
+    const { computeZoneFromState, statesForZones } = await import('./geo/nigeria-zones');
+    
     const creator = alias(users, 'creator');
+    let useJoin = false;
     
-    let query = db
-      .select()
-      .from(cases)
-      .leftJoin(clinics, eq(cases.clinicId, clinics.id))
-      .leftJoin(creator, eq(cases.createdBy, creator.id))
-      .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
-      .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
-      .$dynamic();
-
-    // Shared reads - filter by clinic(s) if explicitly requested
-    if (filters.clinicIds && filters.clinicIds.length > 0) {
-      query = query.where(inArray(cases.clinicId, filters.clinicIds));
-    } else {
-      // Default to showing all cases (shared reads)
-      query = query.where(sql`1=1`);
+    try {
+      useJoin = await hasNgStates();
+    } catch (error) {
+      console.error('[getCases] Error checking ng_states capability:', error);
+      useJoin = false;
     }
-
-    if (filters.species) {
-      query = query.where(eq(cases.species, filters.species));
-    }
-    if (filters.outcome) {
-      query = query.where(eq(cases.outcome, filters.outcome as any));
-    }
-    if (filters.startDate) {
-      query = query.where(gte(cases.diagnosisDate, filters.startDate));
-    }
-    if (filters.endDate) {
-      query = query.where(lte(cases.diagnosisDate, filters.endDate));
-    }
-    if (filters.zones && filters.zones.length > 0) {
-      query = query.where(inArray(cases.geoZone, filters.zones as any));
-    }
-    if (filters.states && filters.states.length > 0) {
-      query = query.where(inArray(cases.state, filters.states as any));
-    }
-    if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
-      query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
-    }
-
-    // Sorting
-    const sortField = filters.sort || 'date';
-    const sortOrder = filters.order || 'desc';
     
-    if (sortField === 'clinic') {
-      query = query.orderBy(sortOrder === 'asc' ? asc(clinics.name) : desc(clinics.name));
-    } else if (sortField === 'zone') {
-      query = query.orderBy(sortOrder === 'asc' ? asc(cases.geoZone) : desc(cases.geoZone));
-    } else if (sortField === 'state') {
-      query = query.orderBy(sortOrder === 'asc' ? asc(cases.state) : desc(cases.state));
-    } else if (sortField === 'case_number') {
-      query = query.orderBy(sortOrder === 'asc' ? asc(cases.caseNumber) : desc(cases.caseNumber));
-    } else {
-      query = query.orderBy(sortOrder === 'asc' ? asc(cases.diagnosisDate) : desc(cases.diagnosisDate));
-    }
-
-    query = query
-      .limit(filters.limit || 50)
-      .offset(filters.offset || 0);
-
-    const results = await query;
-
-    // Get attachments and follow-ups for each case
-    const caseIds = results.map(r => r.cases.id);
-    const attachmentsData = caseIds.length > 0 ? await db
-      .select()
-      .from(attachments)
-      .where(inArray(attachments.caseId, caseIds)) : [];
+    let query;
     
-    const followUpsData = caseIds.length > 0 ? await db
-      .select()
-      .from(followUps)
-      .where(inArray(followUps.caseId, caseIds)) : [];
+    try {
+      if (useJoin) {
+        query = db
+          .select({
+            cases: cases,
+            clinics: clinics,
+            creator: creator,
+            tumour_types: tumourTypes,
+            anatomical_sites: anatomicalSites,
+            geo_zone: sql<string>`COALESCE(ng_states.zone, '')`.as('geo_zone'),
+          })
+          .from(cases)
+          .leftJoin(clinics, eq(cases.clinicId, clinics.id))
+          .leftJoin(creator, eq(cases.createdBy, creator.id))
+          .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
+          .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
+          .leftJoin(
+            sql`ng_states`,
+            sql`LOWER(TRIM(${cases.state})) = LOWER(TRIM(ng_states.name))`
+          )
+          .$dynamic();
+      } else {
+        query = db
+          .select()
+          .from(cases)
+          .leftJoin(clinics, eq(cases.clinicId, clinics.id))
+          .leftJoin(creator, eq(cases.createdBy, creator.id))
+          .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
+          .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
+          .$dynamic();
+      }
 
-    return results.map(result => ({
-      ...result.cases,
-      clinic: result.clinics!,
-      createdBy: result.creator!,
-      tumourType: result.tumour_types,
-      anatomicalSite: result.anatomical_sites,
-      attachments: attachmentsData.filter(a => a.caseId === result.cases.id),
-      followUps: followUpsData.filter(f => f.caseId === result.cases.id),
-    }));
+      // Shared reads - filter by clinic(s) if explicitly requested
+      if (filters.clinicIds && filters.clinicIds.length > 0) {
+        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+      } else {
+        query = query.where(sql`1=1`);
+      }
+
+      if (filters.species) {
+        query = query.where(eq(cases.species, filters.species));
+      }
+      if (filters.outcome) {
+        query = query.where(eq(cases.outcome, filters.outcome as any));
+      }
+      if (filters.startDate) {
+        query = query.where(gte(cases.diagnosisDate, filters.startDate));
+      }
+      if (filters.endDate) {
+        query = query.where(lte(cases.diagnosisDate, filters.endDate));
+      }
+      
+      // Zone filtering - resilient approach
+      if (filters.zones && filters.zones.length > 0) {
+        if (useJoin) {
+          query = query.where(sql`ng_states.zone = ANY(ARRAY[${sql.join(filters.zones.map(z => sql`${z}`), sql`, `)}])`);
+        } else {
+          const allowedStates = statesForZones(filters.zones);
+          if (allowedStates.length > 0) {
+            query = query.where(
+              sql`LOWER(TRIM(${cases.state})) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`${s}`), sql`, `)}])`
+            );
+          }
+        }
+      }
+      
+      if (filters.states && filters.states.length > 0) {
+        query = query.where(inArray(cases.state, filters.states as any));
+      }
+      if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+        query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+      }
+
+      // Sorting
+      const sortField = filters.sort || 'date';
+      const sortOrder = filters.order || 'desc';
+      
+      if (sortField === 'clinic') {
+        query = query.orderBy(sortOrder === 'asc' ? asc(clinics.name) : desc(clinics.name));
+      } else if (sortField === 'zone') {
+        if (useJoin) {
+          query = query.orderBy(sortOrder === 'asc' ? sql`ng_states.zone ASC` : sql`ng_states.zone DESC`);
+        } else {
+          query = query.orderBy(sortOrder === 'asc' ? asc(cases.state) : desc(cases.state));
+        }
+      } else if (sortField === 'state') {
+        query = query.orderBy(sortOrder === 'asc' ? asc(cases.state) : desc(cases.state));
+      } else if (sortField === 'case_number') {
+        query = query.orderBy(sortOrder === 'asc' ? asc(cases.caseNumber) : desc(cases.caseNumber));
+      } else {
+        query = query.orderBy(sortOrder === 'asc' ? asc(cases.diagnosisDate) : desc(cases.diagnosisDate));
+      }
+
+      query = query
+        .limit(filters.limit || 50)
+        .offset(filters.offset || 0);
+
+      const results = await query;
+
+      // Get attachments and follow-ups for each case
+      const caseIds = results.map(r => r.cases.id);
+      const attachmentsData = caseIds.length > 0 ? await db
+        .select()
+        .from(attachments)
+        .where(inArray(attachments.caseId, caseIds)) : [];
+      
+      const followUpsData = caseIds.length > 0 ? await db
+        .select()
+        .from(followUps)
+        .where(inArray(followUps.caseId, caseIds)) : [];
+
+      return results.map(result => {
+        const geoZone = useJoin && 'geo_zone' in result
+          ? (result as any).geo_zone || computeZoneFromState(result.cases.state)
+          : computeZoneFromState(result.cases.state);
+
+        return {
+          ...result.cases,
+          geoZone,
+          clinic: result.clinics!,
+          createdBy: result.creator!,
+          tumourType: result.tumour_types,
+          anatomicalSite: result.anatomical_sites,
+          attachments: attachmentsData.filter(a => a.caseId === result.cases.id),
+          followUps: followUpsData.filter(f => f.caseId === result.cases.id),
+        };
+      });
+    } catch (error) {
+      console.error('[getCases] Error with zone filtering, falling back to safe query:', error);
+      
+      // Fallback: simple query without zone filtering
+      query = db
+        .select()
+        .from(cases)
+        .leftJoin(clinics, eq(cases.clinicId, clinics.id))
+        .leftJoin(creator, eq(cases.createdBy, creator.id))
+        .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
+        .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
+        .$dynamic();
+
+      if (filters.clinicIds && filters.clinicIds.length > 0) {
+        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+      }
+      if (filters.species) {
+        query = query.where(eq(cases.species, filters.species));
+      }
+      if (filters.outcome) {
+        query = query.where(eq(cases.outcome, filters.outcome as any));
+      }
+      if (filters.startDate) {
+        query = query.where(gte(cases.diagnosisDate, filters.startDate));
+      }
+      if (filters.endDate) {
+        query = query.where(lte(cases.diagnosisDate, filters.endDate));
+      }
+      if (filters.states && filters.states.length > 0) {
+        query = query.where(inArray(cases.state, filters.states as any));
+      }
+      if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+        query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+      }
+
+      query = query
+        .limit(filters.limit || 50)
+        .offset(filters.offset || 0)
+        .orderBy(desc(cases.diagnosisDate));
+
+      const results = await query;
+      const caseIds = results.map(r => r.cases.id);
+      const attachmentsData = caseIds.length > 0 ? await db
+        .select()
+        .from(attachments)
+        .where(inArray(attachments.caseId, caseIds)) : [];
+      
+      const followUpsData = caseIds.length > 0 ? await db
+        .select()
+        .from(followUps)
+        .where(inArray(followUps.caseId, caseIds)) : [];
+
+      return results.map(result => ({
+        ...result.cases,
+        geoZone: computeZoneFromState(result.cases.state),
+        clinic: result.clinics!,
+        createdBy: result.creator!,
+        tumourType: result.tumour_types,
+        anatomicalSite: result.anatomical_sites,
+        attachments: attachmentsData.filter(a => a.caseId === result.cases.id),
+        followUps: followUpsData.filter(f => f.caseId === result.cases.id),
+      }));
+    }
   }
 
   async getCase(id: string, clinicId?: string): Promise<CaseWithDetails | undefined> {
