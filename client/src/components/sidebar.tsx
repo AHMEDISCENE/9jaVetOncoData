@@ -2,7 +2,22 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  LogOut,
+  LayoutDashboard,
+  FolderOpen,
+  BarChart3,
+  FileText,
+  Upload,
+  Rss,
+  Calendar,
+  Settings,
+  Stethoscope,
+  X,
+  Menu
+} from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
 
 export default function Sidebar() {
@@ -12,14 +27,14 @@ export default function Sidebar() {
   const { isCollapsed, setIsCollapsed } = useSidebar();
 
   const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: "fas fa-chart-line" },
-    { name: "Cases", href: "/cases", icon: "fas fa-folder-medical" },
-    { name: "Analytics", href: "/analytics", icon: "fas fa-chart-bar" },
-    { name: "Reports", href: "/reports", icon: "fas fa-file-alt" },
-    { name: "Bulk Upload", href: "/bulk-upload", icon: "fas fa-upload" },
-    { name: "Feeds", href: "/feeds", icon: "fas fa-rss" },
-    { name: "Calendar", href: "/calendar", icon: "fas fa-calendar" },
-    { name: "Settings", href: "/settings", icon: "fas fa-cog" },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Cases", href: "/cases", icon: FolderOpen },
+    { name: "Analytics", href: "/analytics", icon: BarChart3 },
+    { name: "Reports", href: "/reports", icon: FileText },
+    { name: "Bulk Upload", href: "/bulk-upload", icon: Upload },
+    { name: "Feeds", href: "/feeds", icon: Rss },
+    { name: "Calendar", href: "/calendar", icon: Calendar },
+    { name: "Settings", href: "/settings", icon: Settings },
   ];
 
   const isActive = (href: string) => {
@@ -62,7 +77,7 @@ export default function Sidebar() {
           <div className="flex items-center justify-between h-16 px-4 border-b border-border">
             <div className="flex items-center space-x-2 overflow-hidden">
               <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                <i className="fas fa-stethoscope text-primary-foreground text-sm"></i>
+                <Stethoscope className="h-4 w-4 text-primary-foreground" />
               </div>
               {!isCollapsed && (
                 <span className="text-lg font-semibold text-foreground whitespace-nowrap">9ja VetOncoData</span>
@@ -73,7 +88,7 @@ export default function Sidebar() {
               onClick={toggleMobileSidebar}
               data-testid="button-close-sidebar"
             >
-              <i className="fas fa-times"></i>
+              <X className="h-5 w-5" />
             </button>
           </div>
 
@@ -96,19 +111,22 @@ export default function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-2">
-            {navigation.map((item) => (
-              <Link 
-                key={item.name} 
-                href={item.href}
-                className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "justify-center" : ""}`}
-                data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
-                onClick={() => setIsMobileOpen(false)}
-                title={isCollapsed ? item.name : undefined}
-              >
-                <i className={item.icon}></i>
-                {!isCollapsed && item.name}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link 
+                  key={item.name} 
+                  href={item.href}
+                  className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "justify-center" : ""}`}
+                  data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
+                  onClick={() => setIsMobileOpen(false)}
+                  title={isCollapsed ? item.name : undefined}
+                >
+                  <Icon className="h-5 w-5" />
+                  {!isCollapsed && item.name}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* User Profile */}
@@ -170,7 +188,7 @@ export default function Sidebar() {
         onClick={toggleMobileSidebar}
         data-testid="button-open-sidebar"
       >
-        <i className="fas fa-bars"></i>
+        <Menu className="h-5 w-5" />
       </button>
     </>
   );
