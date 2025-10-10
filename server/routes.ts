@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, type SharedCaseFilters } from "./storage";
 import { insertUserSchema, insertClinicSchema, insertCaseSchema, insertTumourTypeSchema, insertAnatomicalSiteSchema, insertFeedPostSchema, insertFollowUpSchema, insertCaseFileSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import session from "express-session";
@@ -104,11 +104,40 @@ const requireRole = (minRole: string) => (req: any, res: any, next: any) => {
   const roleHierarchy = ["RESEARCHER", "CLINICIAN", "MANAGER", "ADMIN"];
   const userRoleIndex = roleHierarchy.indexOf(req.session?.userRole || "");
   const minRoleIndex = roleHierarchy.indexOf(minRole);
-  
+
   if (userRoleIndex < minRoleIndex) {
     return res.status(403).json({ message: "Insufficient permissions" });
   }
   next();
+};
+
+const ensureArray = (value: unknown): string[] => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    return [value];
+  }
+  return [];
+};
+
+const buildSharedFilters = (req: any, clinicId?: string | null): SharedCaseFilters => {
+  const filters: SharedCaseFilters = {
+    from: typeof req.query?.from === "string" ? req.query.from : undefined,
+    to: typeof req.query?.to === "string" ? req.query.to : undefined,
+    clinicIds: ensureArray(req.query?.clinicId),
+    geoZones: ensureArray(req.query?.zone),
+    states: ensureArray(req.query?.state),
+    species: ensureArray(req.query?.species),
+    tumourTypeIds: ensureArray(req.query?.tumourTypeId),
+  };
+
+  if (req.query?.myClinicOnly === "true" && clinicId) {
+    filters.clinicIds = [clinicId];
+  }
+
+  return filters;
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -509,10 +538,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dashboard/stats", requireAuth, async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
-      const stats = await storage.getDashboardStats(clinicId);
+      const filters = buildSharedFilters(req, clinicId);
+      const stats = await storage.getDashboardStats(filters);
       res.json(stats);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get dashboard stats" });
+      console.error("[dashboard] stats endpoint failed:", error);
+      res.json({
+        totals: {
+          totalCases: 0,
+          newThisMonth: 0,
+          remissionRate: 0,
+          activeClinics: 0,
+        },
+        casesByMonth: [],
+        topTumourTypes: [],
+        warning: "Dashboard metrics are temporarily unavailable.",
+      });
+    }
+  });
+
+  app.get("/api/analytics/summary", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const filters = buildSharedFilters(req, clinicId);
+      const analytics = await storage.getAnalyticsSummary(filters);
+      res.json(analytics);
+    } catch (error) {
+      console.error("[analytics] summary endpoint failed:", error);
+      res.json({
+        totals: {
+          totalCases: 0,
+          newThisMonth: 0,
+          remissionRate: 0,
+          activeClinics: 0,
+        },
+        casesOverTime: [],
+        tumourDistribution: [],
+        warning: "Analytics are temporarily unavailable.",
+      });
     }
   });
 
@@ -1014,12 +1077,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/feeds", requireAuth, async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
-      const { limit } = req.query;
-      
-      const posts = await storage.getFeedPosts(clinicId, limit ? parseInt(limit as string) : undefined);
-      res.json(posts);
+      const filters = buildSharedFilters(req, clinicId);
+      const limit = req.query?.limit ? Number.parseInt(req.query.limit as string, 10) : undefined;
+      const cursor = typeof req.query?.cursor === "string" ? req.query.cursor : undefined;
+
+      const response = await storage.listFeedPosts({
+        limit,
+        cursor,
+        clinicIds: filters.clinicIds,
+        states: filters.states,
+        geoZones: filters.geoZones,
+      });
+
+      res.json(response);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get feed posts" });
+      console.error("[feeds] listing failed:", error);
+      res.json({
+        items: [],
+        warning: "Feeds are temporarily unavailable.",
+      });
     }
   });
 

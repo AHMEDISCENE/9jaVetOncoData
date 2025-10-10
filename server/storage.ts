@@ -19,7 +19,11 @@ import {
   type InsertFeedPost,
   type FollowUp,
   type InsertFollowUp,
+  type DashboardTotals,
   type DashboardStats,
+  type AnalyticsSummary,
+  type FeedListItem,
+  type FeedListResponse,
   type Invitation,
   type ImportJob,
   users,
@@ -40,6 +44,348 @@ import { db } from "./db";
 import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { randomBytes } from "crypto";
+import { computeZoneFromState, statesForZones } from "./geo/nigeria-zones";
+
+type AttachmentSource = "attachments" | "case_files" | "none";
+
+let resolvedAttachmentSource: AttachmentSource = "none";
+let attachmentSourceChecked = false;
+
+async function resolveAttachmentSource(): Promise<AttachmentSource> {
+  if (attachmentSourceChecked) {
+    return resolvedAttachmentSource;
+  }
+
+  try {
+    const result = await db.execute(
+      sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('attachments', 'case_files')`
+    );
+
+    const tables = Array.isArray((result as any).rows)
+      ? (result as any).rows.map((row: any) => row.table_name as string)
+      : [];
+
+    if (tables.includes("attachments")) {
+      resolvedAttachmentSource = "attachments";
+    } else if (tables.includes("case_files")) {
+      resolvedAttachmentSource = "case_files";
+    } else {
+      resolvedAttachmentSource = "none";
+    }
+  } catch (error) {
+    console.error("[attachments] Failed to detect attachment source:", error);
+    resolvedAttachmentSource = "none";
+  }
+
+  attachmentSourceChecked = true;
+  return resolvedAttachmentSource;
+}
+
+interface AttachmentAggregate {
+  count: number;
+  firstImageUrl: string | null;
+}
+
+async function computeAttachmentAggregates(caseIds: string[], source: AttachmentSource): Promise<Record<string, AttachmentAggregate>> {
+  if (caseIds.length === 0 || source === "none") {
+    return {};
+  }
+
+  const aggregates: Record<string, AttachmentAggregate> = {};
+
+  try {
+    if (source === "case_files") {
+      const counts = await db
+        .select({
+          caseId: caseFiles.caseId,
+          fileCount: count(caseFiles.id).as("file_count"),
+        })
+        .from(caseFiles)
+        .where(and(inArray(caseFiles.caseId, caseIds), isNull(caseFiles.deletedAt)))
+        .groupBy(caseFiles.caseId);
+
+      counts.forEach(({ caseId, fileCount }) => {
+        aggregates[caseId] = {
+          count: Number(fileCount ?? 0),
+          firstImageUrl: null,
+        };
+      });
+
+      const imageRows = await db
+        .select({
+          caseId: caseFiles.caseId,
+          url: caseFiles.publicUrl,
+        })
+        .from(caseFiles)
+        .where(and(
+          inArray(caseFiles.caseId, caseIds),
+          isNull(caseFiles.deletedAt),
+          eq(caseFiles.kind, "image")
+        ))
+        .orderBy(desc(caseFiles.createdAt));
+
+      const seen = new Set<string>();
+      imageRows.forEach(({ caseId, url }) => {
+        if (seen.has(caseId)) return;
+        seen.add(caseId);
+        if (!aggregates[caseId]) {
+          aggregates[caseId] = { count: 0, firstImageUrl: url };
+        } else {
+          aggregates[caseId].firstImageUrl = url;
+        }
+      });
+    } else if (source === "attachments") {
+      const counts = await db
+        .select({
+          caseId: attachments.caseId,
+          fileCount: count(attachments.id).as("file_count"),
+        })
+        .from(attachments)
+        .where(inArray(attachments.caseId, caseIds))
+        .groupBy(attachments.caseId);
+
+      counts.forEach(({ caseId, fileCount }) => {
+        aggregates[caseId] = {
+          count: Number(fileCount ?? 0),
+          firstImageUrl: null,
+        };
+      });
+
+      const imageRows = await db
+        .select({
+          caseId: attachments.caseId,
+          url: attachments.url,
+        })
+        .from(attachments)
+        .where(and(
+          inArray(attachments.caseId, caseIds),
+          eq(attachments.kind, "IMAGE")
+        ))
+        .orderBy(desc(attachments.createdAt));
+
+      const seen = new Set<string>();
+      imageRows.forEach(({ caseId, url }) => {
+        if (seen.has(caseId)) return;
+        seen.add(caseId);
+        if (!aggregates[caseId]) {
+          aggregates[caseId] = { count: 0, firstImageUrl: url };
+        } else {
+          aggregates[caseId].firstImageUrl = url;
+        }
+      });
+    }
+  } catch (error) {
+    console.error("[getCases] Error fetching attachment aggregates:", error);
+    return {};
+  }
+
+  return aggregates;
+}
+
+export interface SharedCaseFilters {
+  from?: string;
+  to?: string;
+  clinicIds?: string[];
+  geoZones?: string[];
+  states?: string[];
+  species?: string[];
+  tumourTypeIds?: string[];
+}
+
+type NormalizedSharedFilters = {
+  from?: Date;
+  to?: Date;
+  clinicIds: string[];
+  geoZoneCodes: string[];
+  geoZoneStateCodes: string[];
+  states: string[];
+  species: string[];
+  tumourTypeIds: string[];
+};
+
+export type CaseRow = Case & {
+  clinic?: Clinic | null;
+  computedZone?: string | null;
+};
+
+function normalizeEnumValue(value: string): string {
+  return value
+    .trim()
+    .replace(/[-\s]+/g, "_")
+    .toUpperCase();
+}
+
+function normalizeSharedFilters(filters: SharedCaseFilters = {}): NormalizedSharedFilters {
+  const parseDate = (value?: string): Date | undefined => {
+    if (!value) return undefined;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return undefined;
+    }
+    return date;
+  };
+
+  const clinicIds = Array.from(new Set((filters.clinicIds ?? []).filter(Boolean)));
+  const states = Array.from(
+    new Set(
+      (filters.states ?? [])
+        .filter(Boolean)
+        .map((state) => normalizeEnumValue(state))
+    )
+  );
+  const species = Array.from(new Set((filters.species ?? []).filter(Boolean)));
+  const tumourTypeIds = Array.from(new Set((filters.tumourTypeIds ?? []).filter(Boolean)));
+
+  const geoZoneCodes: string[] = [];
+  const geoZoneLookups: string[] = [];
+
+  for (const zone of filters.geoZones ?? []) {
+    if (!zone) continue;
+    geoZoneCodes.push(normalizeEnumValue(zone));
+    geoZoneLookups.push(zone.replace(/_/g, " ").replace(/[-\s]+/g, " "));
+  }
+
+  const zoneStates = statesForZones(geoZoneLookups).map((state) => normalizeEnumValue(state));
+
+  return {
+    from: parseDate(filters.from),
+    to: parseDate(filters.to),
+    clinicIds,
+    geoZoneCodes: Array.from(new Set(geoZoneCodes)),
+    geoZoneStateCodes: Array.from(new Set(zoneStates)),
+    states,
+    species,
+    tumourTypeIds,
+  };
+}
+
+function applySharedCaseFilters<T>(query: T, filters: NormalizedSharedFilters) {
+  let builder: any = query;
+
+  if (filters.clinicIds.length > 0) {
+    builder = builder.where(inArray(cases.clinicId, filters.clinicIds));
+  }
+
+  if (filters.geoZoneCodes.length > 0 || filters.geoZoneStateCodes.length > 0) {
+    const zoneClauses: any[] = [];
+
+    if (filters.geoZoneCodes.length > 0) {
+      zoneClauses.push(inArray(cases.geoZone, filters.geoZoneCodes as any));
+    }
+
+    if (filters.geoZoneStateCodes.length > 0) {
+      zoneClauses.push(inArray(cases.state, filters.geoZoneStateCodes as any));
+    }
+
+    if (zoneClauses.length === 1) {
+      builder = builder.where(zoneClauses[0]);
+    } else if (zoneClauses.length === 2) {
+      builder = builder.where(or(zoneClauses[0], zoneClauses[1]));
+    }
+  }
+
+  if (filters.states.length > 0) {
+    builder = builder.where(inArray(cases.state, filters.states as any));
+  }
+
+  if (filters.species.length > 0) {
+    builder = builder.where(inArray(cases.species, filters.species));
+  }
+
+  if (filters.tumourTypeIds.length > 0) {
+    builder = builder.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+  }
+
+  if (filters.from) {
+    builder = builder.where(gte(cases.diagnosisDate, filters.from));
+  }
+
+  if (filters.to) {
+    builder = builder.where(lte(cases.diagnosisDate, filters.to));
+  }
+
+  return builder;
+}
+
+export async function getSharedCases(filters: SharedCaseFilters = {}): Promise<CaseRow[]> {
+  const normalized = normalizeSharedFilters(filters);
+
+  try {
+    let query = db
+      .select({
+        case: cases,
+        clinic: clinics,
+      })
+      .from(cases)
+      .leftJoin(clinics, eq(cases.clinicId, clinics.id))
+      .$dynamic();
+
+    query = applySharedCaseFilters(query, normalized);
+
+    const rows = await query.orderBy(desc(cases.diagnosisDate));
+
+    return rows.map((row) => {
+      const caseRow = row.case;
+      const derivedZone = caseRow.geoZone ?? computeZoneFromState(caseRow.state);
+      return {
+        ...caseRow,
+        clinic: row.clinic ?? null,
+        computedZone: derivedZone === "Unknown" ? null : derivedZone,
+      };
+    });
+  } catch (error) {
+    console.error("[getSharedCases] Error loading shared case data:", error);
+    return [];
+  }
+}
+
+async function computeSharedTotals(normalized: NormalizedSharedFilters): Promise<DashboardTotals> {
+  const totalCount = count(cases.id).as("value");
+  let totalQuery = db.select({ value: totalCount }).from(cases);
+  totalQuery = applySharedCaseFilters(totalQuery, normalized);
+  const [totalRow] = await totalQuery;
+  const totalCases = Number(totalRow?.value ?? 0);
+
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const newCount = count(cases.id).as("value");
+  let newCasesQuery = db.select({ value: newCount }).from(cases);
+  newCasesQuery = applySharedCaseFilters(newCasesQuery, normalized);
+  newCasesQuery = newCasesQuery.where(gte(cases.diagnosisDate, startOfMonth));
+  const [newCasesRow] = await newCasesQuery;
+  const newThisMonth = Number(newCasesRow?.value ?? 0);
+
+  const remissionCount = sql<number>`COUNT(CASE WHEN ${cases.outcome} = 'REMISSION' THEN 1 END)`.as("remission");
+  let remissionQuery = db
+    .select({
+      total: count(cases.id).as("total"),
+      remission: remissionCount,
+    })
+    .from(cases);
+  remissionQuery = applySharedCaseFilters(remissionQuery, normalized);
+  const [remissionRow] = await remissionQuery;
+  const total = Number(remissionRow?.total ?? 0);
+  const remission = Number(remissionRow?.remission ?? 0);
+  const remissionRate = total > 0 ? Math.round((remission / total) * 100) : 0;
+
+  let activeClinicsQuery = db
+    .select({
+      count: sql<number>`COUNT(DISTINCT ${cases.clinicId})`,
+    })
+    .from(cases);
+  activeClinicsQuery = applySharedCaseFilters(activeClinicsQuery, normalized);
+  const [activeRow] = await activeClinicsQuery;
+  const activeClinics = Number(activeRow?.count ?? 0);
+
+  return {
+    totalCases,
+    newThisMonth,
+    remissionRate,
+    activeClinics,
+  };
+}
 
 type AttachmentSource = "attachments" | "case_files" | "none";
 
@@ -253,7 +599,13 @@ export interface IStorage {
   getCaseFileById(id: string): Promise<CaseFile | undefined>;
   
   // Feeds
-  getFeedPosts(clinicId?: string, limit?: number): Promise<FeedPost[]>;
+  listFeedPosts(params: {
+    limit?: number;
+    cursor?: string;
+    clinicIds?: string[];
+    states?: string[];
+    geoZones?: string[];
+  }): Promise<FeedListResponse>;
   createFeedPost(post: InsertFeedPost): Promise<FeedPost>;
   updateFeedPost(id: string, updates: Partial<InsertFeedPost>, clinicId: string): Promise<FeedPost>;
   
@@ -264,7 +616,8 @@ export interface IStorage {
   getUpcomingFollowUps(clinicId: string, days: number): Promise<FollowUp[]>;
   
   // Analytics
-  getDashboardStats(clinicId: string): Promise<DashboardStats>;
+  getDashboardStats(filters?: SharedCaseFilters): Promise<DashboardStats>;
+  getAnalyticsSummary(filters?: SharedCaseFilters): Promise<AnalyticsSummary>;
   
   // Import jobs
   createImportJob(job: Partial<ImportJob>): Promise<ImportJob>;
@@ -890,24 +1243,80 @@ export class DatabaseStorage implements IStorage {
     return file || undefined;
   }
 
-  async getFeedPosts(clinicId?: string, limit: number = 20): Promise<FeedPost[]> {
-    let query = db
-      .select()
-      .from(feedPosts)
-      .where(eq(feedPosts.status, 'PUBLISHED'));
-    
-    if (clinicId) {
-      query = query.where(or(
-        eq(feedPosts.clinicId, clinicId),
-        isNull(feedPosts.clinicId)
-      ));
-    } else {
-      query = query.where(isNull(feedPosts.clinicId));
+  async listFeedPosts(params: {
+    limit?: number;
+    cursor?: string;
+    clinicIds?: string[];
+    states?: string[];
+    geoZones?: string[];
+  }): Promise<FeedListResponse> {
+    const normalized = normalizeSharedFilters({
+      clinicIds: params.clinicIds,
+      states: params.states,
+      geoZones: params.geoZones,
+    });
+
+    const pageSize = Math.min(Math.max(params.limit ?? 20, 1), 50);
+    const cursorDate = params.cursor ? new Date(params.cursor) : undefined;
+
+    if (cursorDate && Number.isNaN(cursorDate.getTime())) {
+      throw new Error("Invalid cursor provided");
     }
-    
-    return await query
-      .orderBy(desc(feedPosts.publishedAt))
-      .limit(limit);
+
+    try {
+      let query = db
+        .select({
+          post: feedPosts,
+          clinic: clinics,
+        })
+        .from(feedPosts)
+        .leftJoin(clinics, eq(feedPosts.clinicId, clinics.id))
+        .where(eq(feedPosts.status, 'PUBLISHED'))
+        .$dynamic();
+
+      if (normalized.clinicIds.length > 0) {
+        query = query.where(inArray(feedPosts.clinicId, normalized.clinicIds));
+      }
+
+      const zoneStates = new Set(normalized.geoZoneStateCodes);
+      if (zoneStates.size > 0) {
+        query = query.where(inArray(clinics.state, Array.from(zoneStates) as any));
+      }
+
+      if (normalized.states.length > 0) {
+        query = query.where(inArray(clinics.state, normalized.states as any));
+      }
+
+      if (cursorDate) {
+        query = query.where(sql`${feedPosts.publishedAt} < ${cursorDate}`);
+      }
+
+      const rows = await query
+        .orderBy(desc(feedPosts.publishedAt), desc(feedPosts.createdAt))
+        .limit(pageSize + 1);
+
+      const items: FeedListItem[] = rows.slice(0, pageSize).map((row) => ({
+        ...row.post,
+        clinic: row.clinic ?? null,
+        clinicZone: row.clinic ? computeZoneFromState(row.clinic.state) : null,
+      }));
+
+      const nextRow = rows.length > pageSize ? rows[pageSize] : undefined;
+      const nextCursor = nextRow?.post?.publishedAt
+        ? nextRow.post.publishedAt.toISOString()
+        : undefined;
+
+      return {
+        items,
+        nextCursor,
+      };
+    } catch (error) {
+      console.error('[feeds] Failed to load shared feed items:', error);
+      return {
+        items: [],
+        warning: 'Feeds are temporarily unavailable.',
+      };
+    }
   }
 
   async createFeedPost(post: InsertFeedPost): Promise<FeedPost> {
@@ -966,92 +1375,137 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(followUps.scheduledFor));
   }
 
-  async getDashboardStats(clinicId: string): Promise<DashboardStats> {
-    // Total cases
-    const [totalCasesResult] = await db
-      .select({ count: count() })
-      .from(cases)
-      .where(eq(cases.clinicId, clinicId));
+  async getDashboardStats(filters: SharedCaseFilters = {}): Promise<DashboardStats> {
+    const normalized = normalizeSharedFilters(filters);
 
-    // New cases this month
-    const thisMonth = new Date();
-    thisMonth.setDate(1);
-    thisMonth.setHours(0, 0, 0, 0);
-    
-    const [newThisMonthResult] = await db
-      .select({ count: count() })
-      .from(cases)
-      .where(and(
-        eq(cases.clinicId, clinicId),
-        gte(cases.createdAt, thisMonth)
-      ));
-
-    // Remission rate
-    const [remissionResult] = await db
-      .select({ 
-        total: count(),
-        remission: count(sql`CASE WHEN ${cases.outcome} = 'REMISSION' THEN 1 END`)
-      })
-      .from(cases)
-      .where(and(
-        eq(cases.clinicId, clinicId),
-        sql`${cases.outcome} IS NOT NULL`
-      ));
-
-    const remissionRate = remissionResult.total > 0 
-      ? Math.round((remissionResult.remission / remissionResult.total) * 100) 
-      : 0;
-
-    // Top tumour types
-    const topTumourTypesRaw = await db
-      .select({
-        name: tumourTypes.name,
-        customName: cases.tumourTypeCustom,
-        count: count()
-      })
-      .from(cases)
-      .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
-      .where(eq(cases.clinicId, clinicId))
-      .groupBy(tumourTypes.name, cases.tumourTypeCustom)
-      .orderBy(desc(count()))
-      .limit(5);
-
-    const topTumourTypes = topTumourTypesRaw.map(item => ({
-      name: item.name || item.customName || 'Unknown',
-      count: item.count
-    }));
-
-    // Cases by month (last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
-    const casesByMonthRaw = await db
-      .select({
-        month: sql<string>`TO_CHAR(${cases.diagnosisDate}, 'YYYY-MM')`,
-        count: count()
-      })
-      .from(cases)
-      .where(and(
-        eq(cases.clinicId, clinicId),
-        gte(cases.diagnosisDate, sixMonthsAgo)
-      ))
-      .groupBy(sql`TO_CHAR(${cases.diagnosisDate}, 'YYYY-MM')`)
-      .orderBy(sql`TO_CHAR(${cases.diagnosisDate}, 'YYYY-MM')`);
-
-    // Mock data for demonstration - replace with real queries
-    return {
-      totalCases: totalCasesResult.count,
-      newThisMonth: newThisMonthResult.count,
-      activeClinics: 1, // Current clinic
-      remissionRate,
-      casesByMonth: casesByMonthRaw.map(item => ({
-        month: item.month,
-        count: item.count
-      })),
-      topTumourTypes,
-      casesByState: [], // Would need clinic location data
-      recentActivity: [] // Would need audit logs
+    const fallback: DashboardStats = {
+      totals: {
+        totalCases: 0,
+        newThisMonth: 0,
+        remissionRate: 0,
+        activeClinics: 0,
+      },
+      casesByMonth: [],
+      topTumourTypes: [],
     };
+
+    try {
+      const totals = await computeSharedTotals(normalized);
+
+      const monthKey = sql<string>`TO_CHAR(date_trunc('month', ${cases.diagnosisDate}), 'YYYY-MM')`;
+      let casesByMonthQuery = db
+        .select({
+          month: monthKey,
+          count: count(cases.id).as("count"),
+        })
+        .from(cases);
+      casesByMonthQuery = applySharedCaseFilters(casesByMonthQuery, normalized);
+      casesByMonthQuery = casesByMonthQuery
+        .groupBy(monthKey)
+        .orderBy(monthKey);
+      const casesByMonthRows = await casesByMonthQuery;
+      const casesByMonth = casesByMonthRows.map((row) => ({
+        month: row.month,
+        count: Number(row.count ?? 0),
+      }));
+
+      let topTumourQuery = db
+        .select({
+          name: tumourTypes.name,
+          customName: cases.tumourTypeCustom,
+          count: count(cases.id).as("count"),
+        })
+        .from(cases)
+        .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id));
+      topTumourQuery = applySharedCaseFilters(topTumourQuery, normalized);
+      topTumourQuery = topTumourQuery
+        .groupBy(tumourTypes.name, cases.tumourTypeCustom)
+        .orderBy(desc(sql`COUNT(${cases.id})`))
+        .limit(5);
+      const topTumourRows = await topTumourQuery;
+      const topTumourTypes = topTumourRows.map((row) => ({
+        name: row.name || row.customName || "Unknown",
+        count: Number(row.count ?? 0),
+      }));
+
+      return {
+        totals,
+        casesByMonth,
+        topTumourTypes,
+      };
+    } catch (error) {
+      console.error("[dashboard] Failed to compute shared metrics:", error);
+      return {
+        ...fallback,
+        warning: "Dashboard metrics are temporarily unavailable.",
+      };
+    }
+  }
+
+  async getAnalyticsSummary(filters: SharedCaseFilters = {}): Promise<AnalyticsSummary> {
+    const normalized = normalizeSharedFilters(filters);
+
+    const fallback: AnalyticsSummary = {
+      totals: {
+        totalCases: 0,
+        newThisMonth: 0,
+        remissionRate: 0,
+        activeClinics: 0,
+      },
+      casesOverTime: [],
+      tumourDistribution: [],
+    };
+
+    try {
+      const totals = await computeSharedTotals(normalized);
+
+      const dateKey = sql<string>`TO_CHAR(date_trunc('month', ${cases.diagnosisDate}), 'YYYY-MM')`;
+      let trendQuery = db
+        .select({
+          date: dateKey,
+          count: count(cases.id).as("count"),
+        })
+        .from(cases);
+      trendQuery = applySharedCaseFilters(trendQuery, normalized);
+      trendQuery = trendQuery
+        .groupBy(dateKey)
+        .orderBy(dateKey);
+      const trendRows = await trendQuery;
+      const casesOverTime = trendRows.map((row) => ({
+        date: row.date,
+        count: Number(row.count ?? 0),
+      }));
+
+      let distributionQuery = db
+        .select({
+          name: tumourTypes.name,
+          customName: cases.tumourTypeCustom,
+          count: count(cases.id).as("count"),
+        })
+        .from(cases)
+        .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id));
+      distributionQuery = applySharedCaseFilters(distributionQuery, normalized);
+      distributionQuery = distributionQuery
+        .groupBy(tumourTypes.name, cases.tumourTypeCustom)
+        .orderBy(desc(sql`COUNT(${cases.id})`));
+      const distributionRows = await distributionQuery;
+      const tumourDistribution = distributionRows.map((row) => ({
+        name: row.name || row.customName || "Unknown",
+        count: Number(row.count ?? 0),
+      }));
+
+      return {
+        totals,
+        casesOverTime,
+        tumourDistribution,
+      };
+    } catch (error) {
+      console.error("[analytics] Failed to compute analytics summary:", error);
+      return {
+        ...fallback,
+        warning: "Analytics are temporarily unavailable.",
+      };
+    }
   }
 
   async createImportJob(job: Partial<ImportJob>): Promise<ImportJob> {
