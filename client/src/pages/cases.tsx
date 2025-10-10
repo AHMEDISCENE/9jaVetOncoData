@@ -700,6 +700,7 @@ export default function Cases() {
                         <TableHead>Geo-Political Zone</TableHead>
                         <TableHead>State</TableHead>
                         <TableHead>Diagnosis Date</TableHead>
+                        <TableHead>Files</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -739,6 +740,25 @@ export default function Cases() {
                             {new Date(caseItem.diagnosisDate).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
+                            {caseItem.attachmentsCount && caseItem.attachmentsCount > 0 ? (
+                              <div className="flex items-center gap-2">
+                                {caseItem.firstImageUrl && (
+                                  <img
+                                    src={caseItem.firstImageUrl}
+                                    alt="Thumbnail"
+                                    className="h-8 w-8 object-cover rounded border"
+                                    data-testid={`attachment-thumbnail-${caseItem.id}`}
+                                  />
+                                )}
+                                <Badge variant="secondary" data-testid={`attachment-count-${caseItem.id}`}>
+                                  {caseItem.attachmentsCount}
+                                </Badge>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">None</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             {caseItem.outcome && (
                               <Badge className={outcomeColors[caseItem.outcome]}>
                                 {outcomeLabels[caseItem.outcome]}
@@ -756,7 +776,7 @@ export default function Cases() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                           No cases found
                         </TableCell>
                       </TableRow>

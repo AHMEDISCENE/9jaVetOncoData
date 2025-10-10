@@ -161,6 +161,7 @@ export default function CaseWizard() {
       if (attachmentQueue.hasFiles) {
         setIsUploadingFiles(true);
         const failedFiles: string[] = [];
+        const totalFiles = attachmentQueue.fileCount; // Capture count before clearing
         
         for (const queuedFile of attachmentQueue.queuedFiles) {
           try {
@@ -201,8 +202,8 @@ export default function CaseWizard() {
         } else {
           toast({
             title: "Case created successfully",
-            description: attachmentQueue.fileCount > 0 
-              ? `Case and ${attachmentQueue.fileCount} attachment(s) uploaded successfully.`
+            description: totalFiles > 0 
+              ? `Case and ${totalFiles} attachment(s) uploaded successfully.`
               : "The new case has been added to your records.",
           });
         }
