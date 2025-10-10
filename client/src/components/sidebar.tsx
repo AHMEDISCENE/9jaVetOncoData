@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
 
 export default function Sidebar() {
@@ -128,7 +128,7 @@ export default function Sidebar() {
                   data-testid="button-logout"
                   title="Logout"
                 >
-                  <i className="fas fa-sign-out-alt"></i>
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
@@ -155,7 +155,7 @@ export default function Sidebar() {
                   onClick={handleLogout}
                   data-testid="button-logout"
                 >
-                  <i className="fas fa-sign-out-alt mr-2"></i>
+                  <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </Button>
               </>
