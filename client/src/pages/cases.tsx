@@ -301,7 +301,7 @@ export default function Cases() {
     setCurrentPage(1);
   };
 
-  // Group cases
+  // Group cases - trust server-provided geoZone
   const groupedCases = useMemo(() => {
     if (!cases || filters.groupBy === 'none') {
       return [{ key: 'all', label: '', cases: cases || [] }];
@@ -315,7 +315,8 @@ export default function Cases() {
       
       switch (filters.groupBy) {
         case 'zone':
-          groupKey = caseItem.geoZone || 'Unspecified';
+          // Use server-computed geoZone (always present, may be "Unknown")
+          groupKey = caseItem.geoZone || 'Unknown';
           groupLabel = groupKey;
           break;
         case 'state':
@@ -696,6 +697,7 @@ export default function Cases() {
                         <TableHead>Patient</TableHead>
                         <TableHead>Tumour Type</TableHead>
                         <TableHead>Clinic</TableHead>
+                        <TableHead>Geo-Political Zone</TableHead>
                         <TableHead>State</TableHead>
                         <TableHead>Diagnosis Date</TableHead>
                         <TableHead>Status</TableHead>
@@ -728,6 +730,9 @@ export default function Cases() {
                             {caseItem.clinic?.name || "Not specified"}
                           </TableCell>
                           <TableCell>
+                            {caseItem.geoZone || "Unknown"}
+                          </TableCell>
+                          <TableCell>
                             {caseItem.state ? ngStates.find(s => s.code === caseItem.state)?.name || caseItem.state : "Not specified"}
                           </TableCell>
                           <TableCell>
@@ -751,7 +756,7 @@ export default function Cases() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                           No cases found
                         </TableCell>
                       </TableRow>
