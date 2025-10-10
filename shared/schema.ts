@@ -530,34 +530,20 @@ export const session = pgTable("session", {
 });
 
 // Dashboard stats type
-export type DashboardTotals = {
+export type DashboardStats = {
   totalCases: number;
   newThisMonth: number;
-  remissionRate: number;
   activeClinics: number;
-};
-
-export type DashboardStats = {
-  totals: DashboardTotals;
-  casesByMonth: Array<{ month: string; count: number }>;
-  topTumourTypes: Array<{ name: string; count: number }>;
-  warning?: string;
-};
-
-export type AnalyticsSummary = {
-  totals: DashboardTotals;
-  casesOverTime: Array<{ date: string; count: number }>;
-  tumourDistribution: Array<{ name: string; count: number }>;
-  warning?: string;
-};
-
-export type FeedListItem = FeedPost & {
-  clinic?: Pick<Clinic, "id" | "name" | "state"> | null;
-  clinicZone?: string | null;
-};
-
-export type FeedListResponse = {
-  items: FeedListItem[];
-  nextCursor?: string;
-  warning?: string;
+  remissionRate: number;
+  casesByMonth: Array<{month: string; count: number}>;
+  topTumourTypes: Array<{name: string; count: number}>;
+  casesByState: Array<{state: string; count: number}>;
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    description: string;
+    timestamp: Date;
+    user: string;
+    clinic: string;
+  }>;
 };

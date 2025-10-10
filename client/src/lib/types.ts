@@ -1,17 +1,20 @@
-import type {
-  DashboardStats as SharedDashboardStats,
-  AnalyticsSummary as SharedAnalyticsSummary,
-  FeedListItem,
-  FeedListResponse,
-} from "@shared/schema";
-
-export type DashboardStats = SharedDashboardStats;
-
-export type AnalyticsSummary = SharedAnalyticsSummary;
-
-export type FeedResponse = FeedListResponse;
-
-export type FeedItem = FeedListItem;
+export interface DashboardStats {
+  totalCases: number;
+  newThisMonth: number;
+  activeClinics: number;
+  remissionRate: number;
+  casesByMonth: Array<{month: string; count: number}>;
+  topTumourTypes: Array<{name: string; count: number}>;
+  casesByState: Array<{state: string; count: number}>;
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    description: string;
+    timestamp: Date;
+    user: string;
+    clinic: string;
+  }>;
+}
 
 export interface CaseFilters {
   species?: string;

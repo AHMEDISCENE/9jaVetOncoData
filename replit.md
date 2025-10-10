@@ -34,7 +34,7 @@ The New Case wizard lets clinicians queue up to 10 attachments (images, PDF, DOC
 The application is configured as a PWA with offline capabilities, service worker integration, and installable features. This enables usage in areas with poor connectivity, which is crucial for the Nigerian veterinary clinic context.
 
 ## Security and Audit Trail
-The system implements comprehensive audit logging for all create, update, and delete operations. Role-based access control keeps create/update/delete scoped to the owning clinic while allowing authenticated users to read shared analytics, dashboards, and feeds across clinics.
+The system implements comprehensive audit logging for all create, update, and delete operations. Role-based access control ensures that users can only access data from their own clinics, preventing cross-clinic data leakage.
 
 # External Dependencies
 

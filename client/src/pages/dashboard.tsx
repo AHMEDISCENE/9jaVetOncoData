@@ -11,13 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { useSharedDataFilters } from "@/hooks/use-shared-data-filters";
-import { FilterMultiSelect } from "@/components/filter-multi-select";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Label } from "@/components/ui/label";
 import {
   BarChart,
   Bar,
@@ -37,105 +30,16 @@ const COLORS = [
   "hsl(var(--chart-5))",
 ];
 
-interface NgState {
-  code: string;
-  name: string;
-  zone: string;
-}
-
-interface ClinicOption {
-  id: string;
-  name: string;
-}
-
-interface TumourTypeOption {
-  id: string;
-  name: string;
-}
-
 export default function Dashboard() {
-  const { user } = useAuth();
-  const {
-    filters,
-    setMultiFilter,
-    setDateRange,
-    toggleMyClinicOnly,
-    resetFilters,
-    queryParams,
-  } = useSharedDataFilters("/dashboard", user?.clinicId);
-
-  const { data: ngStates = [] } = useQuery<NgState[]>({
-    queryKey: ["/api/lookups/ng-states"],
-  });
-
-  const { data: clinics = [] } = useQuery<ClinicOption[]>({
-    queryKey: ["/api/lookups/clinics"],
-  });
-
-  const { data: tumourTypes = [] } = useQuery<TumourTypeOption[]>({
-    queryKey: ["/api/lookups/tumour-types"],
-  });
-
-  const zoneOptions = useMemo(() => {
-    const formatZone = (zone: string) =>
-      zone
-        .split("_")
-        .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-        .join(" ");
-
-    return Array.from(new Set(ngStates.map((state) => state.zone)))
-      .sort()
-      .map((zone) => ({ value: zone, label: formatZone(zone) }));
-  }, [ngStates]);
-
-  const stateOptions = useMemo(() => {
-    const filteredStates = filters.zones.length > 0
-      ? ngStates.filter((state) => filters.zones.includes(state.zone))
-      : ngStates;
-
-    return filteredStates
-      .map((state) => ({ value: state.code, label: state.name }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [ngStates, filters.zones]);
-
-  const clinicOptions = useMemo(
-    () =>
-      clinics
-        .map((clinic) => ({ value: clinic.id, label: clinic.name }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
-    [clinics]
-  );
-
-  const tumourTypeOptions = useMemo(
-    () =>
-      tumourTypes
-        .map((tumour) => ({ value: tumour.id, label: tumour.name }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
-    [tumourTypes]
-  );
-
-  const speciesOptions = useMemo(
-    () => [
-      { value: "Dog", label: "Dog" },
-      { value: "Cat", label: "Cat" },
-    ],
-    []
-  );
-
   const {
     data: stats,
     isLoading,
     error,
   } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats", queryParams],
+    queryKey: ["/api/dashboard/stats"],
   });
   const { toast } = useToast();
   const [isTumourDialogOpen, setIsTumourDialogOpen] = useState(false);
-  const totals = stats?.totals;
-  const totalCases = totals?.totalCases ?? 0;
-  const newThisMonth = totals?.newThisMonth ?? 0;
-  const activeClinics = totals?.activeClinics ?? 0;
-  const remissionRate = totals?.remissionRate ?? 0;
 
   const casesByMonthCsv = useMemo(() => {
     if (!stats || stats.casesByMonth.length === 0) {
@@ -240,112 +144,6 @@ export default function Dashboard() {
   return (
     <>
       <div className="p-4 sm:p-6">
-        <Card className="mb-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Filters</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-foreground">My clinic only</Label>
-                <div className="flex items-center space-x-3 mt-2">
-                  <Switch
-                    checked={filters.myClinicOnly}
-                    onCheckedChange={toggleMyClinicOnly}
-                    disabled={!user?.clinicId}
-                    data-testid="toggle-my-clinic-only"
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    Limit metrics to your clinic
-                  </span>
-                </div>
-              </div>
-
-              <FilterMultiSelect
-                label="Geo-Political Zone"
-                options={zoneOptions}
-                values={filters.zones}
-                onChange={(values) => setMultiFilter("zones", values)}
-                placeholder="All zones"
-                testId="filter-zone"
-              />
-
-              <FilterMultiSelect
-                label="State"
-                options={stateOptions}
-                values={filters.states}
-                onChange={(values) => setMultiFilter("states", values)}
-                placeholder="All states"
-                searchable
-                testId="filter-state"
-              />
-
-              <FilterMultiSelect
-                label="Clinic"
-                options={clinicOptions}
-                values={filters.clinicIds}
-                onChange={(values) => setMultiFilter("clinicIds", values)}
-                placeholder="All clinics"
-                searchable
-                testId="filter-clinic"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-              <FilterMultiSelect
-                label="Species"
-                options={speciesOptions}
-                values={filters.species}
-                onChange={(values) => setMultiFilter("species", values)}
-                placeholder="All species"
-                testId="filter-species"
-              />
-
-              <FilterMultiSelect
-                label="Tumour Type"
-                options={tumourTypeOptions}
-                values={filters.tumourTypeIds}
-                onChange={(values) => setMultiFilter("tumourTypeIds", values)}
-                placeholder="All tumour types"
-                searchable
-                testId="filter-tumour-type"
-              />
-
-              <div>
-                <Label className="text-sm font-medium text-foreground">From</Label>
-                <Input
-                  type="date"
-                  value={filters.from ?? ""}
-                  onChange={(event) => setDateRange(event.target.value || undefined, filters.to)}
-                  data-testid="filter-from-date"
-                />
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium text-foreground">To</Label>
-                <Input
-                  type="date"
-                  value={filters.to ?? ""}
-                  onChange={(event) => setDateRange(filters.from, event.target.value || undefined)}
-                  data-testid="filter-to-date"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <Button variant="ghost" onClick={resetFilters} data-testid="button-reset-dashboard-filters">
-                Reset filters
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {stats?.warning && (
-          <Alert className="mb-6" variant="destructive">
-            <AlertDescription>{stats.warning}</AlertDescription>
-          </Alert>
-        )}
-
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -359,7 +157,7 @@ export default function Dashboard() {
                     className="text-3xl font-bold text-foreground"
                     data-testid="stat-total-cases"
                   >
-                    {totalCases.toLocaleString()}
+                    {stats.totalCases.toLocaleString()}
                   </p>
                 </div>
                 <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
@@ -383,7 +181,7 @@ export default function Dashboard() {
                     className="text-3xl font-bold text-foreground"
                     data-testid="stat-new-this-month"
                   >
-                    {newThisMonth.toLocaleString()}
+                    {stats.newThisMonth.toLocaleString()}
                   </p>
                 </div>
                 <div className="h-12 w-12 bg-accent/10 rounded-full flex items-center justify-center">
@@ -407,7 +205,7 @@ export default function Dashboard() {
                     className="text-3xl font-bold text-foreground"
                     data-testid="stat-active-clinics"
                   >
-                    {activeClinics.toLocaleString()}
+                    {stats.activeClinics.toLocaleString()}
                   </p>
                 </div>
                 <div className="h-12 w-12 bg-secondary/10 rounded-full flex items-center justify-center">
@@ -431,7 +229,7 @@ export default function Dashboard() {
                     className="text-3xl font-bold text-foreground"
                     data-testid="stat-remission-rate"
                   >
-                    {remissionRate}%
+                    {stats.remissionRate}%
                   </p>
                 </div>
                 <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
