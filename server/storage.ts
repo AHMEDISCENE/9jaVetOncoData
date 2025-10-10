@@ -1210,16 +1210,7 @@ export class DatabaseStorage implements IStorage {
     tumourTypeIds?: string[];
     from?: string;
     to?: string;
-  } = {}): Promise<{
-    totals: {
-      totalCases: number;
-      newThisMonth: number;
-      remissionRate: number;
-      activeClinics: number;
-    };
-    casesByMonth: Array<{ month: string; count: number }>;
-    topTumourTypes: Array<{ name: string; count: number }>;
-  }> {
+  } = {}): Promise<DashboardStats> {
     try {
       const { hasNgStates } = await import('./db/capabilities');
       const { statesForZones } = await import('./geo/nigeria-zones');
@@ -1342,26 +1333,26 @@ export class DatabaseStorage implements IStorage {
         .slice(0, 5);
 
       return {
-        totals: {
-          totalCases,
-          newThisMonth,
-          remissionRate,
-          activeClinics,
-        },
+        totalCases,
+        newThisMonth,
+        remissionRate: Math.round(remissionRate * 100),
+        activeClinics,
         casesByMonth,
         topTumourTypes,
+        casesByState: [],
+        recentActivity: [],
       };
     } catch (error) {
       console.error('[getSharedDashboardStats] Error:', error);
       return {
-        totals: {
-          totalCases: 0,
-          newThisMonth: 0,
-          remissionRate: 0,
-          activeClinics: 0,
-        },
+        totalCases: 0,
+        newThisMonth: 0,
+        remissionRate: 0,
+        activeClinics: 0,
         casesByMonth: [],
         topTumourTypes: [],
+        casesByState: [],
+        recentActivity: [],
       };
     }
   }

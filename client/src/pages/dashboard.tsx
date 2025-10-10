@@ -1,21 +1,80 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Filter, X } from "lucide-react";
 import type { DashboardStats } from "@/lib/types";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--secondary))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
+const ZONES = [
+  { value: "North Central", label: "North Central" },
+  { value: "North East", label: "North East" },
+  { value: "North West", label: "North West" },
+  { value: "South East", label: "South East" },
+  { value: "South South", label: "South South" },
+  { value: "South West", label: "South West" },
+];
+
+const SPECIES = [
+  { value: "Canine", label: "Canine (Dog)" },
+  { value: "Feline", label: "Feline (Cat)" },
+  { value: "Equine", label: "Equine (Horse)" },
+  { value: "Bovine", label: "Bovine (Cattle)" },
+  { value: "Caprine", label: "Caprine (Goat)" },
+  { value: "Ovine", label: "Ovine (Sheep)" },
+  { value: "Porcine", label: "Porcine (Pig)" },
+  { value: "Avian", label: "Avian (Bird)" },
+  { value: "Other", label: "Other" },
+];
+
 export default function Dashboard() {
+  const [myClinicOnly, setMyClinicOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [zone, setZone] = useState<string>("");
+  const [species, setSpecies] = useState<string>("");
+  
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    if (myClinicOnly) {
+      params.append("myClinicOnly", "true");
+    }
+    if (zone) params.append("zone", zone);
+    if (species) params.append("species", species);
+    return params.toString();
+  };
+
   const { data: stats, isLoading, error } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"],
+    queryKey: ["/api/dashboard/stats", myClinicOnly, zone, species],
+    queryFn: async () => {
+      const queryString = buildQueryParams();
+      const url = `/api/dashboard/stats${queryString ? `?${queryString}` : ""}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch dashboard stats");
+      return response.json();
+    },
   });
+
+  const clearFilters = () => {
+    setZone("");
+    setSpecies("");
+  };
+
+  const hasActiveFilters = zone || species;
 
   if (isLoading) {
     return (
       <div className="p-4 sm:p-6">
+        <div className="mb-6">
+          <Skeleton className="h-10 w-64 mb-4" />
+          <Skeleton className="h-10 w-full max-w-2xl" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
@@ -68,6 +127,84 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 sm:p-6">
+      {/* Header with Filters */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              {myClinicOnly ? "Viewing your clinic's data" : "Viewing shared data from all clinics"}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            data-testid="button-toggle-filters"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+        </div>
+
+        {/* Filter Bar */}
+        <Card className={showFilters ? "block" : "hidden"}>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* My Clinic Toggle */}
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="my-clinic-only"
+                  checked={myClinicOnly}
+                  onCheckedChange={setMyClinicOnly}
+                  data-testid="switch-my-clinic-only"
+                />
+                <Label htmlFor="my-clinic-only" className="text-sm">My clinic only</Label>
+              </div>
+
+              {/* Zone Filter */}
+              <Select value={zone} onValueChange={setZone} disabled={myClinicOnly}>
+                <SelectTrigger data-testid="select-zone">
+                  <SelectValue placeholder="All zones" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All zones</SelectItem>
+                  {ZONES.map(z => (
+                    <SelectItem key={z.value} value={z.value}>{z.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Species Filter */}
+              <Select value={species} onValueChange={setSpecies}>
+                <SelectTrigger data-testid="select-species">
+                  <SelectValue placeholder="All species" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All species</SelectItem>
+                  {SPECIES.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  data-testid="button-clear-filters"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
@@ -84,7 +221,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">+12%</span> from last month
+              {myClinicOnly ? "From your clinic" : "Across all clinics"}
             </p>
           </CardContent>
         </Card>
@@ -103,7 +240,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">+8%</span> vs last month
+              Diagnosed this month
             </p>
           </CardContent>
         </Card>
@@ -136,12 +273,12 @@ export default function Dashboard() {
                   {stats.remissionRate}%
                 </p>
               </div>
-              <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                <i className="fas fa-heart text-green-600"></i>
+              <div className="h-12 w-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                <i className="fas fa-heart text-green-600 dark:text-green-400"></i>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">+5%</span> improvement
+              Treatment success
             </p>
           </CardContent>
         </Card>
@@ -284,7 +421,7 @@ export default function Dashboard() {
                       <span className="font-medium">{activity.user}</span> {activity.description}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {activity.clinic} • {new Date(activity.timestamp).toRelativeTimeString()}
+                      {activity.clinic} • {activity.timestamp ? new Date(activity.timestamp).toLocaleString() : 'N/A'}
                     </p>
                   </div>
                 </div>
