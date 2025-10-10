@@ -41,6 +41,142 @@ import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull, inArray } 
 import { alias } from "drizzle-orm/pg-core";
 import { randomBytes } from "crypto";
 
+type AttachmentSource = "attachments" | "case_files" | "none";
+
+let resolvedAttachmentSource: AttachmentSource = "none";
+let attachmentSourceChecked = false;
+
+async function resolveAttachmentSource(): Promise<AttachmentSource> {
+  if (attachmentSourceChecked) {
+    return resolvedAttachmentSource;
+  }
+
+  try {
+    const result = await db.execute(
+      sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('attachments', 'case_files')`
+    );
+
+    const tables = Array.isArray((result as any).rows)
+      ? (result as any).rows.map((row: any) => row.table_name as string)
+      : [];
+
+    if (tables.includes("attachments")) {
+      resolvedAttachmentSource = "attachments";
+    } else if (tables.includes("case_files")) {
+      resolvedAttachmentSource = "case_files";
+    } else {
+      resolvedAttachmentSource = "none";
+    }
+  } catch (error) {
+    console.error("[attachments] Failed to detect attachment source:", error);
+    resolvedAttachmentSource = "none";
+  }
+
+  attachmentSourceChecked = true;
+  return resolvedAttachmentSource;
+}
+
+interface AttachmentAggregate {
+  count: number;
+  firstImageUrl: string | null;
+}
+
+async function computeAttachmentAggregates(caseIds: string[], source: AttachmentSource): Promise<Record<string, AttachmentAggregate>> {
+  if (caseIds.length === 0 || source === "none") {
+    return {};
+  }
+
+  const aggregates: Record<string, AttachmentAggregate> = {};
+
+  try {
+    if (source === "case_files") {
+      const counts = await db
+        .select({
+          caseId: caseFiles.caseId,
+          fileCount: count(caseFiles.id).as("file_count"),
+        })
+        .from(caseFiles)
+        .where(and(inArray(caseFiles.caseId, caseIds), isNull(caseFiles.deletedAt)))
+        .groupBy(caseFiles.caseId);
+
+      counts.forEach(({ caseId, fileCount }) => {
+        aggregates[caseId] = {
+          count: Number(fileCount ?? 0),
+          firstImageUrl: null,
+        };
+      });
+
+      const imageRows = await db
+        .select({
+          caseId: caseFiles.caseId,
+          url: caseFiles.publicUrl,
+        })
+        .from(caseFiles)
+        .where(and(
+          inArray(caseFiles.caseId, caseIds),
+          isNull(caseFiles.deletedAt),
+          eq(caseFiles.kind, "image")
+        ))
+        .orderBy(desc(caseFiles.createdAt));
+
+      const seen = new Set<string>();
+      imageRows.forEach(({ caseId, url }) => {
+        if (seen.has(caseId)) return;
+        seen.add(caseId);
+        if (!aggregates[caseId]) {
+          aggregates[caseId] = { count: 0, firstImageUrl: url };
+        } else {
+          aggregates[caseId].firstImageUrl = url;
+        }
+      });
+    } else if (source === "attachments") {
+      const counts = await db
+        .select({
+          caseId: attachments.caseId,
+          fileCount: count(attachments.id).as("file_count"),
+        })
+        .from(attachments)
+        .where(inArray(attachments.caseId, caseIds))
+        .groupBy(attachments.caseId);
+
+      counts.forEach(({ caseId, fileCount }) => {
+        aggregates[caseId] = {
+          count: Number(fileCount ?? 0),
+          firstImageUrl: null,
+        };
+      });
+
+      const imageRows = await db
+        .select({
+          caseId: attachments.caseId,
+          url: attachments.url,
+        })
+        .from(attachments)
+        .where(and(
+          inArray(attachments.caseId, caseIds),
+          eq(attachments.kind, "IMAGE")
+        ))
+        .orderBy(desc(attachments.createdAt));
+
+      const seen = new Set<string>();
+      imageRows.forEach(({ caseId, url }) => {
+        if (seen.has(caseId)) return;
+        seen.add(caseId);
+        if (!aggregates[caseId]) {
+          aggregates[caseId] = { count: 0, firstImageUrl: url };
+        } else {
+          aggregates[caseId].firstImageUrl = url;
+        }
+      });
+    }
+  } catch (error) {
+    console.error("[getCases] Error fetching attachment aggregates:", error);
+    return {};
+  }
+
+  return aggregates;
+}
+
 export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
@@ -418,68 +554,28 @@ export class DatabaseStorage implements IStorage {
 
       const results = await query;
 
-      // Get attachments and follow-ups for each case
       const caseIds = results.map(r => r.cases.id);
-      const attachmentsData = caseIds.length > 0 ? await db
-        .select()
-        .from(attachments)
-        .where(inArray(attachments.caseId, caseIds)) : [];
-      
+      const attachmentSource = await resolveAttachmentSource();
+
+      let attachmentsData: Attachment[] = [];
+      if (caseIds.length > 0 && attachmentSource === "attachments") {
+        try {
+          attachmentsData = await db
+            .select()
+            .from(attachments)
+            .where(inArray(attachments.caseId, caseIds));
+        } catch (error) {
+          console.error("[getCases] Error loading attachment rows:", error);
+          attachmentsData = [];
+        }
+      }
+
       const followUpsData = caseIds.length > 0 ? await db
         .select()
         .from(followUps)
         .where(inArray(followUps.caseId, caseIds)) : [];
 
-      // Get attachment aggregates (count + first image) - resilient
-      let attachmentAggregates: Record<string, { count: number; firstImageUrl?: string }> = {};
-      try {
-        if (caseIds.length > 0) {
-          const fileCountsQuery = await db
-            .select({
-              caseId: caseFiles.caseId,
-              count: count(caseFiles.id).as('count'),
-            })
-            .from(caseFiles)
-            .where(and(
-              inArray(caseFiles.caseId, caseIds),
-              isNull(caseFiles.deletedAt)
-            ))
-            .groupBy(caseFiles.caseId);
-
-          const firstImages = await db
-            .select({
-              caseId: caseFiles.caseId,
-              publicUrl: caseFiles.publicUrl,
-            })
-            .from(caseFiles)
-            .where(and(
-              inArray(caseFiles.caseId, caseIds),
-              isNull(caseFiles.deletedAt),
-              eq(caseFiles.kind, 'image')
-            ))
-            .orderBy(desc(caseFiles.createdAt));
-
-          fileCountsQuery.forEach(fc => {
-            attachmentAggregates[fc.caseId] = { count: fc.count };
-          });
-
-          const imageMap = new Map<string, string>();
-          firstImages.forEach(img => {
-            if (!imageMap.has(img.caseId)) {
-              imageMap.set(img.caseId, img.publicUrl);
-            }
-          });
-
-          imageMap.forEach((url, caseId) => {
-            if (attachmentAggregates[caseId]) {
-              attachmentAggregates[caseId].firstImageUrl = url;
-            }
-          });
-        }
-      } catch (error) {
-        console.error('[getCases] Error fetching attachment aggregates:', error);
-        // Continue without aggregates - non-blocking
-      }
+      const attachmentAggregates = await computeAttachmentAggregates(caseIds, attachmentSource);
 
       return results.map(result => {
         const geoZone = useJoin && 'geo_zone' in result
@@ -495,10 +591,14 @@ export class DatabaseStorage implements IStorage {
           createdBy: result.creator!,
           tumourType: result.tumour_types,
           anatomicalSite: result.anatomical_sites,
-          attachments: attachmentsData.filter(a => a.caseId === result.cases.id),
+          attachments: attachmentSource === "attachments"
+            ? attachmentsData.filter(a => a.caseId === result.cases.id)
+            : [],
           followUps: followUpsData.filter(f => f.caseId === result.cases.id),
           attachmentsCount: aggregates.count,
-          firstImageUrl: aggregates.firstImageUrl,
+          firstImageUrl: aggregates.firstImageUrl ?? undefined,
+          attachments_count: aggregates.count,
+          first_image_url: aggregates.firstImageUrl ?? null,
         };
       });
     } catch (error) {
@@ -543,65 +643,27 @@ export class DatabaseStorage implements IStorage {
 
       const results = await query;
       const caseIds = results.map(r => r.cases.id);
-      const attachmentsData = caseIds.length > 0 ? await db
-        .select()
-        .from(attachments)
-        .where(inArray(attachments.caseId, caseIds)) : [];
-      
+      const attachmentSource = await resolveAttachmentSource();
+
+      let attachmentsData: Attachment[] = [];
+      if (caseIds.length > 0 && attachmentSource === "attachments") {
+        try {
+          attachmentsData = await db
+            .select()
+            .from(attachments)
+            .where(inArray(attachments.caseId, caseIds));
+        } catch (error) {
+          console.error("[getCases fallback] Error loading attachment rows:", error);
+          attachmentsData = [];
+        }
+      }
+
       const followUpsData = caseIds.length > 0 ? await db
         .select()
         .from(followUps)
         .where(inArray(followUps.caseId, caseIds)) : [];
 
-      // Get attachment aggregates (fallback path)
-      let attachmentAggregates: Record<string, { count: number; firstImageUrl?: string }> = {};
-      try {
-        if (caseIds.length > 0) {
-          const fileCountsQuery = await db
-            .select({
-              caseId: caseFiles.caseId,
-              count: count(caseFiles.id).as('count'),
-            })
-            .from(caseFiles)
-            .where(and(
-              inArray(caseFiles.caseId, caseIds),
-              isNull(caseFiles.deletedAt)
-            ))
-            .groupBy(caseFiles.caseId);
-
-          const firstImages = await db
-            .select({
-              caseId: caseFiles.caseId,
-              publicUrl: caseFiles.publicUrl,
-            })
-            .from(caseFiles)
-            .where(and(
-              inArray(caseFiles.caseId, caseIds),
-              isNull(caseFiles.deletedAt),
-              eq(caseFiles.kind, 'image')
-            ))
-            .orderBy(desc(caseFiles.createdAt));
-
-          fileCountsQuery.forEach(fc => {
-            attachmentAggregates[fc.caseId] = { count: fc.count };
-          });
-
-          const imageMap = new Map<string, string>();
-          firstImages.forEach(img => {
-            if (!imageMap.has(img.caseId)) {
-              imageMap.set(img.caseId, img.publicUrl);
-            }
-          });
-
-          imageMap.forEach((url, caseId) => {
-            if (attachmentAggregates[caseId]) {
-              attachmentAggregates[caseId].firstImageUrl = url;
-            }
-          });
-        }
-      } catch (error) {
-        console.error('[getCases fallback] Error fetching attachment aggregates:', error);
-      }
+      const attachmentAggregates = await computeAttachmentAggregates(caseIds, attachmentSource);
 
       return results.map(result => {
         const aggregates = attachmentAggregates[result.cases.id] || { count: 0 };
@@ -612,10 +674,14 @@ export class DatabaseStorage implements IStorage {
           createdBy: result.creator!,
           tumourType: result.tumour_types,
           anatomicalSite: result.anatomical_sites,
-          attachments: attachmentsData.filter(a => a.caseId === result.cases.id),
+          attachments: attachmentSource === "attachments"
+            ? attachmentsData.filter(a => a.caseId === result.cases.id)
+            : [],
           followUps: followUpsData.filter(f => f.caseId === result.cases.id),
           attachmentsCount: aggregates.count,
-          firstImageUrl: aggregates.firstImageUrl,
+          firstImageUrl: aggregates.firstImageUrl ?? undefined,
+          attachments_count: aggregates.count,
+          first_image_url: aggregates.firstImageUrl ?? null,
         };
       });
     }
