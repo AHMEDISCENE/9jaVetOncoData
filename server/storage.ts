@@ -307,12 +307,20 @@ export class DatabaseStorage implements IStorage {
     const creator = alias(users, 'creator');
     
     let query = db
-      .select()
+      .select({
+        cases: cases,
+        clinics: clinics,
+        creator: creator,
+        tumour_types: tumourTypes,
+        anatomical_sites: anatomicalSites,
+        geo_zone: sql<string>`COALESCE(${ngStates.zone}, 'Unknown')`.as('geo_zone'),
+      })
       .from(cases)
       .leftJoin(clinics, eq(cases.clinicId, clinics.id))
       .leftJoin(creator, eq(cases.createdBy, creator.id))
       .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
       .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
+      .leftJoin(ngStates, sql`LOWER(TRIM(${cases.state})) = LOWER(TRIM(${ngStates.name}))`)
       .$dynamic();
 
     // Shared reads - filter by clinic(s) if explicitly requested
@@ -336,7 +344,7 @@ export class DatabaseStorage implements IStorage {
       query = query.where(lte(cases.diagnosisDate, filters.endDate));
     }
     if (filters.zones && filters.zones.length > 0) {
-      query = query.where(inArray(cases.geoZone, filters.zones as any));
+      query = query.where(inArray(ngStates.zone, filters.zones as any));
     }
     if (filters.states && filters.states.length > 0) {
       query = query.where(inArray(cases.state, filters.states as any));
@@ -352,7 +360,7 @@ export class DatabaseStorage implements IStorage {
     if (sortField === 'clinic') {
       query = query.orderBy(sortOrder === 'asc' ? asc(clinics.name) : desc(clinics.name));
     } else if (sortField === 'zone') {
-      query = query.orderBy(sortOrder === 'asc' ? asc(cases.geoZone) : desc(cases.geoZone));
+      query = query.orderBy(sortOrder === 'asc' ? asc(ngStates.zone) : desc(ngStates.zone));
     } else if (sortField === 'state') {
       query = query.orderBy(sortOrder === 'asc' ? asc(cases.state) : desc(cases.state));
     } else if (sortField === 'case_number') {
@@ -381,6 +389,7 @@ export class DatabaseStorage implements IStorage {
 
     return results.map(result => ({
       ...result.cases,
+      geoZone: result.geo_zone, // Computed from ng_states join
       clinic: result.clinics!,
       createdBy: result.creator!,
       tumourType: result.tumour_types,
@@ -394,12 +403,20 @@ export class DatabaseStorage implements IStorage {
     const creator = alias(users, 'creator');
     
     const [result] = await db
-      .select()
+      .select({
+        cases: cases,
+        clinics: clinics,
+        creator: creator,
+        tumour_types: tumourTypes,
+        anatomical_sites: anatomicalSites,
+        geo_zone: sql<string>`COALESCE(${ngStates.zone}, 'Unknown')`.as('geo_zone'),
+      })
       .from(cases)
       .leftJoin(clinics, eq(cases.clinicId, clinics.id))
       .leftJoin(creator, eq(cases.createdBy, creator.id))
       .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
       .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
+      .leftJoin(ngStates, sql`LOWER(TRIM(${cases.state})) = LOWER(TRIM(${ngStates.name}))`)
       .where(eq(cases.id, id));
 
     if (!result) return undefined;
@@ -417,6 +434,7 @@ export class DatabaseStorage implements IStorage {
 
     return {
       ...result.cases,
+      geoZone: result.geo_zone, // Computed from ng_states join
       clinic: result.clinics!,
       createdBy: result.creator!,
       tumourType: result.tumour_types,

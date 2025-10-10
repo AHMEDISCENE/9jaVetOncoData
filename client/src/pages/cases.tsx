@@ -694,6 +694,7 @@ export default function Cases() {
                       <TableRow>
                         <TableHead>Case ID</TableHead>
                         <TableHead>Patient</TableHead>
+                        <TableHead>Geo-Political Zone</TableHead>
                         <TableHead>Tumour Type</TableHead>
                         <TableHead>Clinic</TableHead>
                         <TableHead>State</TableHead>
@@ -720,6 +721,9 @@ export default function Cases() {
                                 {caseItem.ageYears ? `${caseItem.ageYears}y` : ""}{caseItem.ageMonths ? ` ${caseItem.ageMonths}m` : ""}
                               </div>
                             </div>
+                          </TableCell>
+                          <TableCell data-testid={`geo-zone-${caseItem.id}`}>
+                            {caseItem.geoZone || "Unknown"}
                           </TableCell>
                           <TableCell>
                             {caseItem.tumourType?.name || caseItem.tumourTypeCustom || "Not specified"}
@@ -751,7 +755,7 @@ export default function Cases() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                           No cases found
                         </TableCell>
                       </TableRow>

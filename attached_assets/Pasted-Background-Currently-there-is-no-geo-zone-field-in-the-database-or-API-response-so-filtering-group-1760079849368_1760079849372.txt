@@ -1,0 +1,164 @@
+Background
+
+Currently there is no geo_zone field in the database or API response, so filtering/grouping by zone fails.
+
+States are stored in the cases.state column but the code never maps them to zones when listing cases.
+
+Objectives
+
+Create and seed a lookup table of Nigerian states and their geo‑political zones.
+
+Expose geo_zone for each case in the Cases list API by joining the lookup table.
+
+Add filters for zone, state, clinic, and tumour type in the Cases list query and UI.
+
+Group the Cases table by zone with sticky headers when requested.
+
+Persist zone and state choices in the URL so the view is shareable.
+
+Maintain all existing functionality: shared reads, restricted writes, atomic case number generation, clinic & state requirements, and previously added form features.
+
+1. Data & Schema
+
+1.1 Lookup table
+Create a migration that adds ng_states if it doesn’t exist:
+
+CREATE TABLE IF NOT EXISTS ng_states (
+  code TEXT PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL,
+  zone TEXT NOT NULL
+);
+
+INSERT INTO ng_states (code, name, zone) VALUES
+  -- North Central
+  ('BEN', 'Benue', 'North Central'),
+  ('KOG', 'Kogi', 'North Central'),
+  ('KWR', 'Kwara', 'North Central'),
+  ('NAS', 'Nasarawa', 'North Central'),
+  ('NGR', 'Niger', 'North Central'),
+  ('PLT', 'Plateau', 'North Central'),
+  ('FCT', 'FCT', 'North Central'),
+  -- North East
+  ('ADA', 'Adamawa', 'North East'),
+  ('BAU', 'Bauchi', 'North East'),
+  ('BOR', 'Borno', 'North East'),
+  ('GOM', 'Gombe', 'North East'),
+  ('TRB', 'Taraba', 'North East'),
+  ('YOB', 'Yobe', 'North East'),
+  -- North West
+  ('JIG', 'Jigawa', 'North West'),
+  ('KAD', 'Kaduna', 'North West'),
+  ('KAN', 'Kano', 'North West'),
+  ('KAT', 'Katsina', 'North West'),
+  ('KEB', 'Kebbi', 'North West'),
+  ('SOK', 'Sokoto', 'North West'),
+  ('ZAM', 'Zamfara', 'North West'),
+  -- South East
+  ('ABI', 'Abia', 'South East'),
+  ('ANA', 'Anambra', 'South East'),
+  ('EBO', 'Ebonyi', 'South East'),
+  ('ENU', 'Enugu', 'South East'),
+  ('IMO', 'Imo', 'South East'),
+  -- South South
+  ('AKW', 'Akwa Ibom', 'South South'),
+  ('BAY', 'Bayelsa', 'South South'),
+  ('CRV', 'Cross River', 'South South'),
+  ('DEL', 'Delta', 'South South'),
+  ('EDO', 'Edo', 'South South'),
+  ('RIV', 'Rivers', 'South South'),
+  -- South West
+  ('EKI', 'Ekiti', 'South West'),
+  ('LAG', 'Lagos', 'South West'),
+  ('OGN', 'Ogun', 'South West'),
+  ('OND', 'Ondo', 'South West'),
+  ('OSU', 'Osun', 'South West'),
+  ('OYO', 'Oyo', 'South West');
+
+
+1.2 Case list join
+In getCases (and any other list method), add a LEFT JOIN on ng_states using a case-insensitive, trimmed comparison to compute zone:
+
+leftJoin(ngStates, sql`LOWER(TRIM(${cases.state})) = LOWER(TRIM(${ngStates.name}))`)
+
+
+Select ngStates.zone as geo_zone in your query and include it on each returned case row (use "Unknown" when no state match). Do not rely on the form to set zone; compute it here every time.
+
+1.3 Zone filtering
+Accept an optional zone query parameter (single or comma-separated). In SQL, if present, add:
+
+.where(ngStates.zone.in(zoneFilterArray))
+
+
+Combine with state, clinic, tumour type, species, and date filters if they are provided.
+
+1.4 Backfill (optional)
+If you have an existing cases.geo_zone column from earlier experiments, update it once from the lookup (UPDATE cases c SET geo_zone = s.zone FROM ng_states s WHERE LOWER(TRIM(c.state)) = LOWER(TRIM(s.name));). Otherwise, ignore it; always compute zone in the list.
+
+2. Client & Filters
+
+2.1 Update CaseFilters interface
+Extend CaseFilters to include zone?: string[], state?: string[], clinicId?: string[], and tumourTypeId?: string[].
+
+2.2 Filter bar
+On the Cases page, above the table:
+
+Geo‑Political Zone (multi-select of the six zones)
+
+When a zone is selected, narrow the State dropdown to only those states.
+
+State (multi-select of all states + FCT)
+
+Clinic (multi-select/typeahead of clinics accessible to the user)
+
+Tumour Type (multi-select/typeahead seeded with available tumour types)
+
+Keep existing Species, Outcome, Date filters.
+
+Persist selected filters in the URL querystring.
+
+2.3 Send new filters to server
+When filters change, serialize zone, state, clinicId, tumourTypeId, etc., into the querystring and call /api/cases with these params. The API should return cases plus geo_zone, state, clinic_name, and tumour_type_label for each row.
+
+2.4 Group by
+Add a “Group by” control with options Zone / State / Clinic / None (default: Zone). When grouping is active, group rows using the server‑returned keys (e.g. row.geo_zone for zone), and render a sticky header for each group. Add a Geo‑Political Zone column to the table so the grouping context is clear.
+
+3. Acceptance Tests (manual/QA)
+
+Select South West → Only cases with states in South West appear; the table shows a Geo‑Political Zone column with “South West”.
+
+Select South West + Lagos → List narrows to Lagos; State shows only Lagos.
+
+Select a Clinic → Cases narrow accordingly; sorting by Clinic works.
+
+Select a Tumour Type → Cases filter correctly.
+
+Group by Zone → Table sections for each zone appear; zone headers are sticky.
+
+Clear filters → All cases reappear.
+
+URL includes zone and other filter params, and reloading reproduces the same view.
+
+No regressions: species/outcome/date filters still work; second account can save; shared reads persist; write restrictions enforced.
+
+Deliverable
+
+A single commit titled:
+
+feat(cases): enable geo-zone/state/clinic/tumour filters and grouping; compute geo_zone via ng_states
+
+
+It includes:
+
+The ng_states table & seed migration.
+
+Updated case list query to return geo_zone and accept new filters.
+
+Extended CaseFilters and any new query parameters.
+
+Updated Cases page UI with zone/state/clinic/tumour filters, and group-by control with sticky headers.
+
+Added Zone column to the table.
+
+Update README/SECURITY if needed to describe the new filters and zone mapping.
+
+Rollback note: Remove the ng_states join, zone column, new filters, and group-by controls.
