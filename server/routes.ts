@@ -496,14 +496,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dashboard routes
+  // Dashboard routes  
   app.get("/api/dashboard/stats", requireAuth, async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
-      const stats = await storage.getDashboardStats(clinicId);
+      
+      // Parse optional filters from query params
+      const filters: any = {};
+      
+      if (req.query.clinicIds) {
+        filters.clinicIds = Array.isArray(req.query.clinicIds) 
+          ? req.query.clinicIds 
+          : [req.query.clinicIds];
+      } else if (req.query.myClinicOnly === 'true' && clinicId) {
+        filters.clinicIds = [clinicId];
+      }
+      
+      if (req.query.geoZones) {
+        filters.geoZones = Array.isArray(req.query.geoZones) 
+          ? req.query.geoZones 
+          : [req.query.geoZones];
+      }
+      
+      if (req.query.states) {
+        filters.states = Array.isArray(req.query.states) 
+          ? req.query.states 
+          : [req.query.states];
+      }
+      
+      if (req.query.species) {
+        filters.species = Array.isArray(req.query.species) 
+          ? req.query.species 
+          : [req.query.species];
+      }
+      
+      if (req.query.tumourTypeIds) {
+        filters.tumourTypeIds = Array.isArray(req.query.tumourTypeIds) 
+          ? req.query.tumourTypeIds 
+          : [req.query.tumourTypeIds];
+      }
+      
+      if (req.query.from) filters.from = req.query.from as string;
+      if (req.query.to) filters.to = req.query.to as string;
+      
+      // Use shared stats with optional filters
+      const stats = await storage.getSharedDashboardStats(filters);
       res.json(stats);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get dashboard stats" });
+      console.error("[ERROR] Dashboard stats failed:", error);
+      // Return empty stats instead of 500
+      res.json({
+        totals: { totalCases: 0, newThisMonth: 0, remissionRate: 0, activeClinics: 0 },
+        casesByMonth: [],
+        topTumourTypes: [],
+        warning: "Failed to load dashboard stats"
+      });
+    }
+  });
+
+  // Analytics routes
+  app.get("/api/analytics/stats", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      
+      // Parse optional filters from query params
+      const filters: any = {};
+      
+      if (req.query.clinicIds) {
+        filters.clinicIds = Array.isArray(req.query.clinicIds) 
+          ? req.query.clinicIds 
+          : [req.query.clinicIds];
+      } else if (req.query.myClinicOnly === 'true' && clinicId) {
+        filters.clinicIds = [clinicId];
+      }
+      
+      if (req.query.geoZones) {
+        filters.geoZones = Array.isArray(req.query.geoZones) 
+          ? req.query.geoZones 
+          : [req.query.geoZones];
+      }
+      
+      if (req.query.states) {
+        filters.states = Array.isArray(req.query.states) 
+          ? req.query.states 
+          : [req.query.states];
+      }
+      
+      if (req.query.species) {
+        filters.species = Array.isArray(req.query.species) 
+          ? req.query.species 
+          : [req.query.species];
+      }
+      
+      if (req.query.tumourTypeIds) {
+        filters.tumourTypeIds = Array.isArray(req.query.tumourTypeIds) 
+          ? req.query.tumourTypeIds 
+          : [req.query.tumourTypeIds];
+      }
+      
+      if (req.query.from) filters.from = req.query.from as string;
+      if (req.query.to) filters.to = req.query.to as string;
+      
+      // Use shared analytics stats with optional filters
+      const stats = await storage.getSharedAnalyticsStats(filters);
+      res.json(stats);
+    } catch (error) {
+      console.error("[ERROR] Analytics stats failed:", error);
+      // Return empty stats instead of 500
+      res.json({
+        totals: { totalCases: 0, newThisMonth: 0, remissionRate: 0, activeClinics: 0 },
+        casesOverTime: [],
+        tumourDistribution: [],
+        warning: "Failed to load analytics stats"
+      });
     }
   });
 
@@ -992,12 +1097,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/feeds", requireAuth, async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
-      const { limit } = req.query;
       
-      const posts = await storage.getFeedPosts(clinicId, limit ? parseInt(limit as string) : undefined);
-      res.json(posts);
+      // Parse optional filters from query params
+      const filters: any = {};
+      
+      if (req.query.clinicId) {
+        filters.clinicId = req.query.clinicId as string;
+      } else if (req.query.myClinicOnly === 'true' && clinicId) {
+        filters.clinicId = clinicId;
+      }
+      
+      if (req.query.state) filters.state = req.query.state as string;
+      if (req.query.zone) filters.zone = req.query.zone as string;
+      if (req.query.from) filters.from = req.query.from as string;
+      if (req.query.to) filters.to = req.query.to as string;
+      if (req.query.limit) filters.limit = parseInt(req.query.limit as string);
+      if (req.query.cursor) filters.cursor = req.query.cursor as string;
+      
+      // Use shared feed posts with cursor pagination
+      const result = await storage.getSharedFeedPosts(filters);
+      res.json(result);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get feed posts" });
+      console.error("[ERROR] Get feed posts failed:", error);
+      // Return empty result instead of 500
+      res.json({ items: [], warning: "Failed to load feed posts" });
     }
   });
 

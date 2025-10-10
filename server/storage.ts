@@ -88,6 +88,15 @@ export interface IStorage {
     sort?: string;
     order?: string;
   }): Promise<CaseWithDetails[]>;
+  getSharedCases(filters?: {
+    from?: string;
+    to?: string;
+    clinicIds?: string[];
+    geoZones?: string[];
+    states?: string[];
+    species?: string[];
+    tumourTypeIds?: string[];
+  }): Promise<Case[]>;
   getCase(id: string, clinicId: string): Promise<CaseWithDetails | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
   updateCase(id: string, updates: Partial<InsertCase>, clinicId: string): Promise<Case>;
@@ -118,6 +127,15 @@ export interface IStorage {
   
   // Feeds
   getFeedPosts(clinicId?: string, limit?: number): Promise<FeedPost[]>;
+  getSharedFeedPosts(filters?: {
+    clinicId?: string;
+    state?: string;
+    zone?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+    cursor?: string;
+  }): Promise<{ items: FeedPost[]; nextCursor?: string }>;
   createFeedPost(post: InsertFeedPost): Promise<FeedPost>;
   updateFeedPost(id: string, updates: Partial<InsertFeedPost>, clinicId: string): Promise<FeedPost>;
   
@@ -129,6 +147,42 @@ export interface IStorage {
   
   // Analytics
   getDashboardStats(clinicId: string): Promise<DashboardStats>;
+  getSharedDashboardStats(filters?: {
+    clinicIds?: string[];
+    geoZones?: string[];
+    states?: string[];
+    species?: string[];
+    tumourTypeIds?: string[];
+    from?: string;
+    to?: string;
+  }): Promise<{
+    totals: {
+      totalCases: number;
+      newThisMonth: number;
+      remissionRate: number;
+      activeClinics: number;
+    };
+    casesByMonth: Array<{ month: string; count: number }>;
+    topTumourTypes: Array<{ name: string; count: number }>;
+  }>;
+  getSharedAnalyticsStats(filters?: {
+    clinicIds?: string[];
+    geoZones?: string[];
+    states?: string[];
+    species?: string[];
+    tumourTypeIds?: string[];
+    from?: string;
+    to?: string;
+  }): Promise<{
+    totals: {
+      totalCases: number;
+      newThisMonth: number;
+      remissionRate: number;
+      activeClinics: number;
+    };
+    casesOverTime: Array<{ date: string; count: number }>;
+    tumourDistribution: Array<{ name: string; count: number }>;
+  }>;
   
   // Import jobs
   createImportJob(job: Partial<ImportJob>): Promise<ImportJob>;
@@ -657,6 +711,88 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getSharedCases(filters: {
+    from?: string;
+    to?: string;
+    clinicIds?: string[];
+    geoZones?: string[];
+    states?: string[];
+    species?: string[];
+    tumourTypeIds?: string[];
+  } = {}): Promise<Case[]> {
+    try {
+      const { hasNgStates } = await import('./db/capabilities');
+      const { statesForZones } = await import('./geo/nigeria-zones');
+      
+      let useJoin = false;
+      try {
+        useJoin = await hasNgStates();
+      } catch (error) {
+        console.error('[getSharedCases] Error checking ng_states capability:', error);
+        useJoin = false;
+      }
+
+      let query = db
+        .select()
+        .from(cases)
+        .$dynamic();
+
+      // Apply filters only if provided
+      if (filters.clinicIds && filters.clinicIds.length > 0) {
+        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+      }
+
+      if (filters.geoZones && filters.geoZones.length > 0) {
+        if (useJoin) {
+          // Use ng_states table for zone filtering
+          const allowedStates = await db
+            .select({ code: sql<string>`name` })
+            .from(sql`ng_states`)
+            .where(sql`zone = ANY(ARRAY[${sql.join(filters.geoZones.map(z => sql`${z}`), sql`, `)}])`);
+          
+          if (allowedStates.length > 0) {
+            query = query.where(
+              sql`LOWER(TRIM(${cases.state})) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`LOWER(TRIM(${s.code}))`), sql`, `)}])`
+            );
+          }
+        } else {
+          const allowedStates = statesForZones(filters.geoZones);
+          if (allowedStates.length > 0) {
+            query = query.where(
+              sql`LOWER(TRIM(${cases.state})) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`${s}`), sql`, `)}])`
+            );
+          }
+        }
+      }
+
+      if (filters.states && filters.states.length > 0) {
+        query = query.where(inArray(cases.state, filters.states));
+      }
+
+      if (filters.species && filters.species.length > 0) {
+        query = query.where(inArray(cases.species, filters.species as any));
+      }
+
+      if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+        query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+      }
+
+      if (filters.from) {
+        query = query.where(gte(cases.diagnosisDate, new Date(filters.from)));
+      }
+
+      if (filters.to) {
+        query = query.where(lte(cases.diagnosisDate, new Date(filters.to)));
+      }
+
+      const results = await query;
+      return results;
+    } catch (error) {
+      console.error('[getSharedCases] Error:', error);
+      return [];
+    }
+  }
+
   async createCase(caseData: InsertCase): Promise<Case> {
     const caseNumber = await this.generateCaseNumber(caseData.clinicId);
     const [newCase] = await db
@@ -844,6 +980,84 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
+  async getSharedFeedPosts(filters: {
+    clinicId?: string;
+    state?: string;
+    zone?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+    cursor?: string;
+  } = {}): Promise<{ items: FeedPost[]; nextCursor?: string }> {
+    try {
+      const limit = filters.limit || 20;
+      
+      let query = db
+        .select({
+          post: feedPosts,
+          clinic: clinics,
+        })
+        .from(feedPosts)
+        .leftJoin(clinics, eq(feedPosts.clinicId, clinics.id))
+        .where(eq(feedPosts.status, 'PUBLISHED'))
+        .$dynamic();
+
+      // Apply cursor pagination
+      if (filters.cursor) {
+        query = query.where(sql`${feedPosts.createdAt} < ${new Date(filters.cursor)}`);
+      }
+
+      // Apply optional filters
+      if (filters.clinicId) {
+        query = query.where(eq(feedPosts.clinicId, filters.clinicId));
+      }
+
+      if (filters.state) {
+        query = query.where(eq(clinics.state, filters.state));
+      }
+
+      if (filters.zone) {
+        // Zone filtering through clinic's state
+        const { statesForZones } = await import('./geo/nigeria-zones');
+        const allowedStates = statesForZones([filters.zone]);
+        if (allowedStates.length > 0) {
+          query = query.where(inArray(clinics.state, allowedStates));
+        }
+      }
+
+      if (filters.from) {
+        query = query.where(gte(feedPosts.createdAt, new Date(filters.from)));
+      }
+
+      if (filters.to) {
+        query = query.where(lte(feedPosts.createdAt, new Date(filters.to)));
+      }
+
+      // Fetch limit + 1 to determine if there's a next page
+      const results = await query
+        .orderBy(desc(feedPosts.createdAt))
+        .limit(limit + 1);
+
+      const hasMore = results.length > limit;
+      const items = hasMore ? results.slice(0, limit) : results;
+      
+      const feedItems = items.map(r => r.post);
+      const nextCursor = hasMore && feedItems.length > 0
+        ? feedItems[feedItems.length - 1].createdAt.toISOString()
+        : undefined;
+
+      return {
+        items: feedItems,
+        nextCursor,
+      };
+    } catch (error) {
+      console.error('[getSharedFeedPosts] Error:', error);
+      return {
+        items: [],
+      };
+    }
+  }
+
   async createFeedPost(post: InsertFeedPost): Promise<FeedPost> {
     const [newPost] = await db.insert(feedPosts).values(post).returning();
     return newPost;
@@ -986,6 +1200,216 @@ export class DatabaseStorage implements IStorage {
       casesByState: [], // Would need clinic location data
       recentActivity: [] // Would need audit logs
     };
+  }
+
+  async getSharedDashboardStats(filters: {
+    clinicIds?: string[];
+    geoZones?: string[];
+    states?: string[];
+    species?: string[];
+    tumourTypeIds?: string[];
+    from?: string;
+    to?: string;
+  } = {}): Promise<{
+    totals: {
+      totalCases: number;
+      newThisMonth: number;
+      remissionRate: number;
+      activeClinics: number;
+    };
+    casesByMonth: Array<{ month: string; count: number }>;
+    topTumourTypes: Array<{ name: string; count: number }>;
+  }> {
+    try {
+      const { hasNgStates } = await import('./db/capabilities');
+      const { statesForZones } = await import('./geo/nigeria-zones');
+      
+      let useJoin = false;
+      try {
+        useJoin = await hasNgStates();
+      } catch {
+        useJoin = false;
+      }
+
+      // Build dynamic query with filters
+      let query = db.select().from(cases).$dynamic();
+
+      if (filters.clinicIds && filters.clinicIds.length > 0) {
+        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+      }
+
+      if (filters.geoZones && filters.geoZones.length > 0) {
+        if (useJoin) {
+          const allowedStates = await db
+            .select({ code: sql<string>`name` })
+            .from(sql`ng_states`)
+            .where(sql`zone = ANY(ARRAY[${sql.join(filters.geoZones.map(z => sql`${z}`), sql`, `)}])`);
+          
+          if (allowedStates.length > 0) {
+            query = query.where(
+              sql`LOWER(TRIM(${cases.state})) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`LOWER(TRIM(${s.code}))`), sql`, `)}])`
+            );
+          }
+        } else {
+          const allowedStates = statesForZones(filters.geoZones);
+          if (allowedStates.length > 0) {
+            query = query.where(
+              sql`LOWER(TRIM(${cases.state})) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`${s}`), sql`, `)}])`
+            );
+          }
+        }
+      }
+
+      if (filters.states && filters.states.length > 0) {
+        query = query.where(inArray(cases.state, filters.states));
+      }
+
+      if (filters.species && filters.species.length > 0) {
+        query = query.where(inArray(cases.species, filters.species as any));
+      }
+
+      if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+        query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+      }
+
+      if (filters.from) {
+        query = query.where(gte(cases.diagnosisDate, new Date(filters.from)));
+      }
+
+      if (filters.to) {
+        query = query.where(lte(cases.diagnosisDate, new Date(filters.to)));
+      }
+
+      // Execute the filtered query to get all matching cases
+      const allCases = await query;
+
+      // Total cases
+      const totalCases = allCases.length;
+
+      // New cases this month
+      const thisMonth = new Date();
+      thisMonth.setDate(1);
+      thisMonth.setHours(0, 0, 0, 0);
+      const newThisMonth = allCases.filter(c => new Date(c.diagnosisDate) >= thisMonth).length;
+
+      // Remission rate
+      const casesWithOutcome = allCases.filter(c => c.outcome);
+      const remissionCases = casesWithOutcome.filter(c => c.outcome === 'REMISSION').length;
+      const remissionRate = casesWithOutcome.length > 0 
+        ? remissionCases / casesWithOutcome.length
+        : 0;
+
+      // Active clinics (distinct clinic IDs)
+      const uniqueClinics = new Set(allCases.map(c => c.clinicId));
+      const activeClinics = uniqueClinics.size;
+
+      // Cases by month
+      const monthCounts = new Map<string, number>();
+      allCases.forEach(c => {
+        const month = new Date(c.diagnosisDate).toISOString().slice(0, 7); // YYYY-MM
+        monthCounts.set(month, (monthCounts.get(month) || 0) + 1);
+      });
+      const casesByMonth = Array.from(monthCounts.entries())
+        .map(([month, count]) => ({ month, count }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+
+      // Top tumour types
+      const tumourCounts = new Map<string, number>();
+      allCases.forEach(c => {
+        const tumourName = c.tumourTypeCustom || 'Unknown';
+        tumourCounts.set(tumourName, (tumourCounts.get(tumourName) || 0) + 1);
+      });
+      
+      // Get tumour type names from database for cases with tumourTypeId
+      const casesWithTumourType = allCases.filter(c => c.tumourTypeId);
+      if (casesWithTumourType.length > 0) {
+        const tumourTypeIds = [...new Set(casesWithTumourType.map(c => c.tumourTypeId).filter(Boolean))];
+        const tumourTypesData = await db
+          .select()
+          .from(tumourTypes)
+          .where(inArray(tumourTypes.id, tumourTypeIds as string[]));
+        
+        const tumourTypeMap = new Map(tumourTypesData.map(t => [t.id, t.name]));
+        casesWithTumourType.forEach(c => {
+          const name = tumourTypeMap.get(c.tumourTypeId!) || 'Unknown';
+          tumourCounts.set(name, (tumourCounts.get(name) || 0) + 1);
+        });
+      }
+
+      const topTumourTypes = Array.from(tumourCounts.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      return {
+        totals: {
+          totalCases,
+          newThisMonth,
+          remissionRate,
+          activeClinics,
+        },
+        casesByMonth,
+        topTumourTypes,
+      };
+    } catch (error) {
+      console.error('[getSharedDashboardStats] Error:', error);
+      return {
+        totals: {
+          totalCases: 0,
+          newThisMonth: 0,
+          remissionRate: 0,
+          activeClinics: 0,
+        },
+        casesByMonth: [],
+        topTumourTypes: [],
+      };
+    }
+  }
+
+  async getSharedAnalyticsStats(filters: {
+    clinicIds?: string[];
+    geoZones?: string[];
+    states?: string[];
+    species?: string[];
+    tumourTypeIds?: string[];
+    from?: string;
+    to?: string;
+  } = {}): Promise<{
+    totals: {
+      totalCases: number;
+      newThisMonth: number;
+      remissionRate: number;
+      activeClinics: number;
+    };
+    casesOverTime: Array<{ date: string; count: number }>;
+    tumourDistribution: Array<{ name: string; count: number }>;
+  }> {
+    try {
+      // Reuse dashboard stats logic
+      const dashboardStats = await this.getSharedDashboardStats(filters);
+      
+      // Map to analytics format
+      return {
+        totals: dashboardStats.totals,
+        casesOverTime: dashboardStats.casesByMonth.map(item => ({
+          date: item.month, // YYYY-MM format
+          count: item.count
+        })),
+        tumourDistribution: dashboardStats.topTumourTypes
+      };
+    } catch (error) {
+      console.error('[getSharedAnalyticsStats] Error:', error);
+      return {
+        totals: {
+          totalCases: 0,
+          newThisMonth: 0,
+          remissionRate: 0,
+          activeClinics: 0,
+        },
+        casesOverTime: [],
+        tumourDistribution: [],
+      };
+    }
   }
 
   async createImportJob(job: Partial<ImportJob>): Promise<ImportJob> {

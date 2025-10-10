@@ -1,0 +1,186 @@
+Make Dashboard, Analytics, and Feeds show data from all users by default
+
+(Keep existing: authentication, safe writes, atomic case_number, and the shared-reads already enabled for the Cases list.)
+
+0) Prep & constraints
+
+Do not change env secrets or auth middleware.
+
+If any query/aggregation fails, return HTTP 200 with empty arrays/zeros plus { warning } — never 500.
+
+Owner/clinic scoping must be optional filters only (never forced server-side).
+
+Search these first to locate code:
+
+Server: server/storage.ts, server/routes.ts, any analytics, dashboard, feeds service/handlers.
+
+Client: client/src/pages/dashboard.tsx, client/src/pages/analytics.tsx, client/src/pages/feeds.tsx (or the containers/hooks they use).
+
+1) Server — centralize shared case reads (no owner filter)
+
+File: server/storage.ts (or your data layer). Add:
+
+// Get all cases visible to authenticated users, with optional filters.
+export async function getSharedCases(filters: {
+  from?: string;        // ISO date (inclusive)
+  to?: string;          // ISO date (inclusive)
+  clinicIds?: string[];
+  geoZones?: string[];  // if ng_states mapping exists
+  states?: string[];
+  species?: string[];
+  tumourTypeIds?: string[];
+}): Promise<CaseRow[]> {
+  // SELECT from cases c
+  //   LEFT JOIN clinics, ng_states, tumour_types (as available)
+  // WHERE 1=1
+  //   AND apply filters only if provided
+  //   AND (diagnosis_date BETWEEN from AND to when provided)
+  // IMPORTANT: do NOT add created_by = session.user.id anywhere (reads are shared).
+}
+
+
+Reuse zone/state mapping (e.g., ng_states) if present.
+
+Keep auth: reads still require a signed-in user.
+
+Commit message: feat(api): add shared getSharedCases() without owner filter
+
+2) Server — Dashboard endpoint uses shared reads
+
+File(s): dashboard handler (or create /api/dashboard).
+
+Return this shape (keep existing keys if present; otherwise use this):
+
+{
+  totals: {
+    totalCases: number,
+    newThisMonth: number,
+    remissionRate: number,   // 0–1; compute from your status/outcome if available; else 0
+    activeClinics: number    // COUNT(DISTINCT clinic_id)
+  },
+  casesByMonth: Array<{ month: string /* YYYY-MM */, count: number }>,
+  topTumourTypes: Array<{ name: string, count: number }>
+}
+
+
+Rules:
+
+Default = all data. Apply filters only if request provides them (clinicIds, geoZones, states, species, tumourTypeIds, from, to).
+
+newThisMonth = diagnosis_date >= date_trunc('month', now()).
+
+Wrap in try/catch. On error, return a zeroed result plus { warning: "…" } with 200.
+
+Commit message: feat(api): dashboard aggregations default to shared dataset; optional clinic/zone/state filters
+
+3) Server — Analytics endpoint uses shared reads
+
+File(s): analytics handler (or create /api/analytics).
+
+Return:
+
+{
+  totals: { totalCases: number, newThisMonth: number, remissionRate: number, activeClinics: number },
+  casesOverTime: Array<{ date: string /* YYYY-MM or YYYY-MM-DD */, count: number }>,
+  tumourDistribution: Array<{ name: string, count: number }>
+}
+
+
+Compute from all users’ cases by default; same optional filters as Section 2.
+
+No created_by constraints anywhere.
+
+Commit message: feat(api): analytics readers use shared dataset; filters optional
+
+4) Server — Feeds list shows global posts by default
+
+File(s): feeds handler(s). Update GET /api/feeds to:
+
+Default: return posts from all users/clinics, ordered by created_at DESC.
+
+Optional filters: clinicId, state, zone, from, to, limit, cursor.
+
+Implement cursor pagination.
+
+Keep write guards for POST, PUT, DELETE (creator or clinic_admin/super_admin).
+
+Response shape:
+
+{ items: FeedItem[], nextCursor?: string }
+
+
+Commit message: feat(api): global feeds by default; optional clinic/zone/state filters with pagination
+
+5) Client — default to shared dataset; “My clinic only” is optional
+
+Files: client/src/pages/dashboard.tsx, client/src/pages/analytics.tsx, client/src/pages/feeds.tsx (or their hooks).
+
+Remove any implicit owner/clinic scoping in fetch calls. Call the updated endpoints without owner/clinic by default.
+
+Provide/keep a compact filter bar:
+
+My clinic only toggle → when ON, pass clinicIds = [session.clinicId].
+
+Geo-political Zone, State, Clinic, Species, Tumour Type, Date range (reuse the shared filter utilities from Cases).
+
+Persist filters in URL query params.
+
+Feeds: load /api/feeds with no filters initially; show global feed. Keep composer/write actions unchanged.
+
+Commit message: feat(ui): dashboard/analytics/feeds default to shared data; add optional clinic/zone/state filters
+
+6) Safety & performance
+
+Do not change authentication. Reads require sign-in; writes remain creator/admin-restricted.
+
+New handlers must never 500 due to attachment/aggregation issues; return empty/zeroed payloads on error.
+
+Add indexes if missing:
+
+cases (diagnosis_date), cases (clinic_id), cases (state), cases (tumour_type_id)
+
+feeds (created_at), feeds (clinic_id)
+
+Keep any existing RLS policies that allow read for authenticated and write for creator/admin roles.
+
+Commit message: chore: harden endpoints; add index notes; keep write guards
+
+7) Acceptance checks
+
+Dashboard (User A vs User B): with no filters both see the same totals and charts. Toggle “My clinic only” → counts narrow to the user’s clinic.
+
+Analytics: with no filters, charts reflect all cases; zone/state/clinic/species/tumour/date filters work.
+
+Feeds: both users see the same feed; a post from A appears for B. Non-owners cannot edit/delete others’ posts.
+
+No regressions: Case Management remains shared; Bulk Upload & attachments unaffected; case_number stays atomic & unique.
+
+Commit message: test: verify shared reads across dashboard, analytics, and feeds
+
+8) README note (short)
+
+Add a “Data visibility” section:
+
+Reads: shared across all authenticated users; filters optional.
+
+Writes: restricted to creator/admin roles.
+
+Feeds: global by default.
+
+Commit message: docs: document shared-read model for dashboard, analytics, and feeds
+
+Implementation tips
+
+Grep and remove these from read paths only:
+
+created_by = session.user.id
+
+WHERE user_id = …
+
+implicit defaults like clinic_id = session.clinicId
+
+Reuse the Cases filter utilities (zone/state/clinic/species/tumour/date).
+
+Keep response shapes backward-compatible where possible; if you must change them, update the client in the same commit.
+
+Wrap every analytics aggregation in try/catch and default to empty results.
