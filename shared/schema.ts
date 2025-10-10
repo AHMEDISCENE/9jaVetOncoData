@@ -516,6 +516,8 @@ export type CaseWithDetails = Case & {
   anatomicalSite: AnatomicalSite | null;
   attachments: Attachment[];
   followUps: FollowUp[];
+  attachmentsCount?: number;
+  firstImageUrl?: string;
 };
 
 // Session table for express-session

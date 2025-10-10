@@ -430,10 +430,63 @@ export class DatabaseStorage implements IStorage {
         .from(followUps)
         .where(inArray(followUps.caseId, caseIds)) : [];
 
+      // Get attachment aggregates (count + first image) - resilient
+      let attachmentAggregates: Record<string, { count: number; firstImageUrl?: string }> = {};
+      try {
+        if (caseIds.length > 0) {
+          const fileCountsQuery = await db
+            .select({
+              caseId: caseFiles.caseId,
+              count: count(caseFiles.id).as('count'),
+            })
+            .from(caseFiles)
+            .where(and(
+              inArray(caseFiles.caseId, caseIds),
+              isNull(caseFiles.deletedAt)
+            ))
+            .groupBy(caseFiles.caseId);
+
+          const firstImages = await db
+            .select({
+              caseId: caseFiles.caseId,
+              publicUrl: caseFiles.publicUrl,
+            })
+            .from(caseFiles)
+            .where(and(
+              inArray(caseFiles.caseId, caseIds),
+              isNull(caseFiles.deletedAt),
+              eq(caseFiles.kind, 'image')
+            ))
+            .orderBy(desc(caseFiles.createdAt));
+
+          fileCountsQuery.forEach(fc => {
+            attachmentAggregates[fc.caseId] = { count: fc.count };
+          });
+
+          const imageMap = new Map<string, string>();
+          firstImages.forEach(img => {
+            if (!imageMap.has(img.caseId)) {
+              imageMap.set(img.caseId, img.publicUrl);
+            }
+          });
+
+          imageMap.forEach((url, caseId) => {
+            if (attachmentAggregates[caseId]) {
+              attachmentAggregates[caseId].firstImageUrl = url;
+            }
+          });
+        }
+      } catch (error) {
+        console.error('[getCases] Error fetching attachment aggregates:', error);
+        // Continue without aggregates - non-blocking
+      }
+
       return results.map(result => {
         const geoZone = useJoin && 'geo_zone' in result
           ? (result as any).geo_zone || computeZoneFromState(result.cases.state)
           : computeZoneFromState(result.cases.state);
+
+        const aggregates = attachmentAggregates[result.cases.id] || { count: 0 };
 
         return {
           ...result.cases,
@@ -444,6 +497,8 @@ export class DatabaseStorage implements IStorage {
           anatomicalSite: result.anatomical_sites,
           attachments: attachmentsData.filter(a => a.caseId === result.cases.id),
           followUps: followUpsData.filter(f => f.caseId === result.cases.id),
+          attachmentsCount: aggregates.count,
+          firstImageUrl: aggregates.firstImageUrl,
         };
       });
     } catch (error) {
@@ -498,16 +553,71 @@ export class DatabaseStorage implements IStorage {
         .from(followUps)
         .where(inArray(followUps.caseId, caseIds)) : [];
 
-      return results.map(result => ({
-        ...result.cases,
-        geoZone: computeZoneFromState(result.cases.state),
-        clinic: result.clinics!,
-        createdBy: result.creator!,
-        tumourType: result.tumour_types,
-        anatomicalSite: result.anatomical_sites,
-        attachments: attachmentsData.filter(a => a.caseId === result.cases.id),
-        followUps: followUpsData.filter(f => f.caseId === result.cases.id),
-      }));
+      // Get attachment aggregates (fallback path)
+      let attachmentAggregates: Record<string, { count: number; firstImageUrl?: string }> = {};
+      try {
+        if (caseIds.length > 0) {
+          const fileCountsQuery = await db
+            .select({
+              caseId: caseFiles.caseId,
+              count: count(caseFiles.id).as('count'),
+            })
+            .from(caseFiles)
+            .where(and(
+              inArray(caseFiles.caseId, caseIds),
+              isNull(caseFiles.deletedAt)
+            ))
+            .groupBy(caseFiles.caseId);
+
+          const firstImages = await db
+            .select({
+              caseId: caseFiles.caseId,
+              publicUrl: caseFiles.publicUrl,
+            })
+            .from(caseFiles)
+            .where(and(
+              inArray(caseFiles.caseId, caseIds),
+              isNull(caseFiles.deletedAt),
+              eq(caseFiles.kind, 'image')
+            ))
+            .orderBy(desc(caseFiles.createdAt));
+
+          fileCountsQuery.forEach(fc => {
+            attachmentAggregates[fc.caseId] = { count: fc.count };
+          });
+
+          const imageMap = new Map<string, string>();
+          firstImages.forEach(img => {
+            if (!imageMap.has(img.caseId)) {
+              imageMap.set(img.caseId, img.publicUrl);
+            }
+          });
+
+          imageMap.forEach((url, caseId) => {
+            if (attachmentAggregates[caseId]) {
+              attachmentAggregates[caseId].firstImageUrl = url;
+            }
+          });
+        }
+      } catch (error) {
+        console.error('[getCases fallback] Error fetching attachment aggregates:', error);
+      }
+
+      return results.map(result => {
+        const aggregates = attachmentAggregates[result.cases.id] || { count: 0 };
+        return {
+          ...result.cases,
+          geoZone: computeZoneFromState(result.cases.state),
+          clinic: result.clinics!,
+          createdBy: result.creator!,
+          tumourType: result.tumour_types,
+          anatomicalSite: result.anatomical_sites,
+          attachments: attachmentsData.filter(a => a.caseId === result.cases.id),
+          followUps: followUpsData.filter(f => f.caseId === result.cases.id),
+          attachmentsCount: aggregates.count,
+          firstImageUrl: aggregates.firstImageUrl,
+        };
+      });
     }
   }
 

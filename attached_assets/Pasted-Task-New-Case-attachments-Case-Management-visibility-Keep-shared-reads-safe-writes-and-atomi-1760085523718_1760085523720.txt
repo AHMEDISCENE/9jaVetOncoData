@@ -1,0 +1,195 @@
+Task — New Case attachments + Case Management visibility
+
+(Keep shared reads, safe writes, and atomic server case_number unchanged. Reuse existing case files API if present.)
+
+0) What exists already
+
+Case Detail shows an Attachments panel with an Upload File button (working).
+
+Files are stored in Replit App Storage and listed via /api/cases/:id/files.
+We will: (a) let users queue files in the New Case wizard and auto-upload right after the case is created, and (b) surface attachments in the Cases list (count + optional first image thumbnail).
+
+1) Server — light extensions (non-breaking)
+1.1 Add attachments aggregate to list endpoint
+
+In the cases list handler (e.g., getCases in server/storage.ts), extend the SELECT with:
+
+attachments_count = count of non-deleted files in case_files for each case.
+
+first_image_url (optional) = public_url of the most recent image (or first by created_at) for quick thumbnail.
+
+Use LEFT JOIN LATERAL or subqueries; example shape (Drizzle/SQL-ish, adapt to your query builder):
+
+SELECT
+  c.id, c.case_number, ...,
+  COALESCE(cf.count, 0) AS attachments_count,
+  fi.public_url AS first_image_url
+FROM cases c
+LEFT JOIN LATERAL (
+  SELECT COUNT(*) AS count
+  FROM case_files f
+  WHERE f.case_id = c.id AND f.deleted_at IS NULL
+) cf ON TRUE
+LEFT JOIN LATERAL (
+  SELECT f.public_url
+  FROM case_files f
+  WHERE f.case_id = c.id AND f.deleted_at IS NULL AND f.kind = 'image'
+  ORDER BY f.created_at DESC
+  LIMIT 1
+) fi ON TRUE
+...existing joins/filters...
+
+
+Never 500: wrap the aggregates in try/catch and default to attachments_count = 0 if storage table is missing in any environment.
+
+Commit: feat(api): cases list returns attachments_count and optional first_image_url
+
+2) Client — New Case wizard: queue & post-save upload
+
+Files likely: client/src/components/case-wizard.tsx (and step components).
+
+2.1 Create a small attachments queue hook
+
+Add client/src/hooks/use-attachment-queue.ts:
+
+Holds queuedFiles: File[]
+
+add(files: FileList|File[]), remove(index), clear()
+
+Validates client-side: max 10 files total, per-file max 20MB, allowed types:
+
+Images: image/*
+
+Docs: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/csv
+
+2.2 Wizard UI additions (Step 3 – Diagnosis & Treatment or Step 4 – Review)
+
+Add an Attachments (optional) panel with:
+
+“Add files” button (accept multiple), drag-and-drop.
+
+Preview list:
+
+Images → small thumbnail + name + size.
+
+Other docs → icon + name + size.
+
+Remove button per queued item.
+
+Soft errors for type/size/limit; do not block the form.
+
+2.3 Upload on submit (after case is created)
+
+Keep the current Create Case flow unchanged.
+
+After receiving case.id from the create API:
+
+For each queued file, POST multipart to /api/cases/:id/files (the existing endpoint):
+
+field name: file
+
+If the API returns metadata, ignore for now.
+
+Show inline progress (per file).
+
+If any upload fails, show a non-blocking toast: “Case saved, but 2 files failed to upload. Try again from Attachments.”
+
+After uploads complete (or fail), clear the queue and redirect to Case Detail as you already do.
+
+Commit: feat(case-wizard): add attachments queue and post-save auto-upload
+
+3) Client — Case Management: show attachments
+
+Files likely: client/src/pages/cases.tsx (list view components)
+
+3.1 Columns
+
+Add a Files column right before “Actions”.
+
+Render:
+
+A paperclip icon + attachments_count.
+
+If first_image_url exists, render a small rounded thumbnail (32–40px) on the left of the count.
+
+Tooltip: “Click to view attachments”.
+
+Clicking the cell navigates to Case Detail (anchor is fine).
+
+3.2 Empty & skeleton states
+
+If attachments_count === 0, show a muted “0” with icon; keep alignment consistent.
+
+Maintain skeletons for loading states.
+
+Commit: feat(cases-ui): add Files column with count and optional thumbnail
+
+4) Security & resilience (no crashes)
+
+Do not change write rules: only case creator or clinic_admin/super_admin can POST/DELETE case files. Reads remain available to any signed-in user (shared read model).
+
+Server limits (already in place for Case Detail uploader). If not present, enforce:
+
+Reject >20MB (413 or 400 with message).
+
+Reject unsupported MIME (415).
+
+Cap at 10 files per case (count existing + queued uploads).
+
+Error handling:
+
+The New Case flow must never fail because a file upload failed. Case creation success is primary; file uploads are best-effort.
+
+In list endpoint, if the aggregates error, return attachments_count = 0 and omit the thumbnail instead of throwing.
+
+Commit: chore(files): enforce limits and non-blocking uploads in wizard
+
+5) Acceptance tests
+
+Create + attach
+
+In New Case, add 2 images and 1 PDF in the Attachments panel.
+
+Click Create Case → case is created; files upload; redirect to Case Detail; the attachments appear.
+
+Error resilience
+
+Try a 25MB file → client warns; server rejects; case still gets created.
+
+Case Management
+
+The new Files column shows 3 and a small thumbnail for image cases.
+
+Clicking Files/row opens Case Detail.
+
+Permissions
+
+Log in as a different non-admin user → can view attachments but cannot upload/delete on this case.
+
+No regressions
+
+case_number still server-generated.
+
+Shared reads still show all cases.
+
+Filters (zone/state/clinic/tumour/species/date) continue to work.
+
+6) README update (short)
+
+Add a section:
+
+### Attachments
+- Upload images (image/*) and documents (PDF/DOC/DOCX/CSV).
+- Max 20MB per file, up to 10 files per case.
+- New Case: you can add files before saving; they upload automatically after the case is created.
+- Case Management shows an attachments count and a thumbnail preview when available.
+- Only the case creator or clinic_admin/super_admin can upload/delete; all signed-in users can view.
+
+
+Commit: docs: attachment limits and New Case flow
+
+Rollback plan
+
+Revert the three feature commits (api aggregates, wizard queue, cases-ui column) and the docs commit.
+
+The Case Detail uploader remains intact, so existing attachments still work.
