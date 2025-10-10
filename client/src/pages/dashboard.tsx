@@ -163,12 +163,12 @@ export default function Dashboard() {
               </div>
 
               {/* Zone Filter */}
-              <Select value={zone} onValueChange={setZone} disabled={myClinicOnly}>
+              <Select value={zone || "all"} onValueChange={(val) => setZone(val === "all" ? "" : val)} disabled={myClinicOnly}>
                 <SelectTrigger data-testid="select-zone">
                   <SelectValue placeholder="All zones" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All zones</SelectItem>
+                  <SelectItem value="all">All zones</SelectItem>
                   {ZONES.map(z => (
                     <SelectItem key={z.value} value={z.value}>{z.label}</SelectItem>
                   ))}
@@ -176,12 +176,12 @@ export default function Dashboard() {
               </Select>
 
               {/* Species Filter */}
-              <Select value={species} onValueChange={setSpecies}>
+              <Select value={species || "all"} onValueChange={(val) => setSpecies(val === "all" ? "" : val)}>
                 <SelectTrigger data-testid="select-species">
                   <SelectValue placeholder="All species" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All species</SelectItem>
+                  <SelectItem value="all">All species</SelectItem>
                   {SPECIES.map(s => (
                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                   ))}
