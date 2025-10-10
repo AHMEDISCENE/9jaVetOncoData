@@ -29,9 +29,11 @@ export default function Feeds() {
   });
   const [tagInput, setTagInput] = useState("");
 
-  const { data: posts, isLoading, error } = useQuery<FeedPost[]>({
+  const { data: feedResponse, isLoading, error } = useQuery<{ items: FeedPost[]; nextCursor?: string }>({
     queryKey: ["/api/feeds"],
   });
+
+  const posts = feedResponse?.items || [];
 
   const createPostMutation = useMutation({
     mutationFn: async (data: CreatePostData) => {
