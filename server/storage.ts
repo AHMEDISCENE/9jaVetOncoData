@@ -320,7 +320,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(creator, eq(cases.createdBy, creator.id))
       .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
       .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
-      .leftJoin(ngStates, sql`LOWER(TRIM(${cases.state})) = LOWER(TRIM(${ngStates.name}))`)
+      .leftJoin(ngStates, sql`LOWER(TRIM(${cases.state}::text)) = LOWER(TRIM(${ngStates.name}))`)
       .$dynamic();
 
     // Shared reads - filter by clinic(s) if explicitly requested
@@ -416,7 +416,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(creator, eq(cases.createdBy, creator.id))
       .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
       .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
-      .leftJoin(ngStates, sql`LOWER(TRIM(${cases.state})) = LOWER(TRIM(${ngStates.name}))`)
+      .leftJoin(ngStates, sql`LOWER(TRIM(${cases.state}::text)) = LOWER(TRIM(${ngStates.name}))`)
       .where(eq(cases.id, id));
 
     if (!result) return undefined;
