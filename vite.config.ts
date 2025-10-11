@@ -36,5 +36,12 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    // Proxy API calls to the Express server during local development so uploads hit the backend directly.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
   },
 });
