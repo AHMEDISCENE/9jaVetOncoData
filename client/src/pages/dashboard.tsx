@@ -1,4 +1,7 @@
+"use client";
+
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -59,6 +63,8 @@ export default function Dashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [zone, setZone] = useState<string>("");
   const [species, setSpecies] = useState<string>("");
+  const router = useRouter();
+  const { toast } = useToast();
 
   const buildQueryParams = () => {
     const params = new URLSearchParams();
@@ -91,6 +97,75 @@ export default function Dashboard() {
   };
 
   const hasActiveFilters = zone || species;
+
+  const handleExport = (): void => {
+    if (!stats) {
+      toast({
+        title: "No data available",
+        description: "There is no dashboard data to export right now.",
+        variant: "destructive",
+      });
+      console.warn("Export attempted without available dashboard stats");
+      return;
+    }
+
+    try {
+      console.log("Exporting dashboard analytics", stats);
+
+      const csvRows: string[][] = [
+        ["Metric", "Value"],
+        ["Total Cases", stats.totalCases.toString()],
+        ["New This Month", stats.newThisMonth.toString()],
+        ["Active Clinics", stats.activeClinics.toString()],
+        ["Remission Rate", `${stats.remissionRate}%`],
+        [],
+        ["Cases by Month"],
+        ["Month", "Cases"],
+        ...stats.casesByMonth.map((item) => [item.month, item.count.toString()]),
+        [],
+        ["Top Tumour Types"],
+        ["Tumour Type", "Cases"],
+        ...stats.topTumourTypes.map((tumour) => [tumour.name, tumour.count.toString()]),
+      ];
+
+      const csvContent = csvRows.map((row) => row.join(",")).join("\n");
+      const blob = new Blob([csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `vetonco_dashboard_${new Date().toISOString().split("T")[0]}.csv`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export complete",
+        description: "Dashboard analytics downloaded successfully.",
+      });
+    } catch (exportError) {
+      console.error("Failed to export dashboard analytics", exportError);
+      toast({
+        title: "Export failed",
+        description: "We couldn't export the dashboard data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewAll = (): void => {
+    console.log("Navigating to full analytics page");
+    router.push("/analytics");
+    toast({
+      title: "Opening analytics",
+      description: "Redirecting to the full analytics dashboard...",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -357,6 +432,7 @@ export default function Dashboard() {
               variant="outline"
               size="sm"
               data-testid="button-export-monthly-chart"
+              onClick={handleExport}
             >
               <i className="fas fa-download mr-2"></i>Export
             </Button>
@@ -395,6 +471,7 @@ export default function Dashboard() {
               variant="outline"
               size="sm"
               data-testid="button-view-all-tumours"
+              onClick={handleViewAll}
             >
               View All
             </Button>
