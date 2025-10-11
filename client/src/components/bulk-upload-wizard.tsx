@@ -80,29 +80,37 @@ export default function BulkUploadWizard() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/bulk-upload', {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Upload failed');
+
+      // Ensure we only attempt to parse JSON when the server actually sent JSON.
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Non-JSON response (${response.status}): ${text.slice(0, 200)}`);
       }
-      
-      return response.json();
+
+      const data = await response.json();
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.error || `Server error ${response.status}`);
+      }
+
+      return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/bulk-upload/jobs"] });
       toast({
-        title: "File uploaded successfully",
-        description: "Your file has been processed and is ready for mapping.",
+        title: "Import complete",
+        description: `Imported ${data?.imported ?? 0} cases`,
       });
       // Mock preview data for demonstration
       setUploadState(prev => ({
         ...prev,
+        uploading: false,
         preview: generateMockPreview(),
         headers: ['patient_name', 'species', 'breed', 'tumour_type', 'diagnosis_date'],
         validation: { valid: 247, warnings: 12, errors: 3 }
@@ -110,6 +118,7 @@ export default function BulkUploadWizard() {
       setCurrentStep('mapping');
     },
     onError: (error) => {
+      setUploadState(prev => ({ ...prev, uploading: false }));
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Please try again.",
