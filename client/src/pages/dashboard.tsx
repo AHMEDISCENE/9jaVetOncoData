@@ -1,7 +1,5 @@
-"use client";
-
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,7 +61,7 @@ export default function Dashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [zone, setZone] = useState<string>("");
   const [species, setSpecies] = useState<string>("");
-  const router = useRouter();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const buildQueryParams = () => {
@@ -160,7 +158,7 @@ export default function Dashboard() {
 
   const handleViewAll = (): void => {
     console.log("Navigating to full analytics page");
-    router.push("/analytics");
+    setLocation("/analytics");
     toast({
       title: "Opening analytics",
       description: "Redirecting to the full analytics dashboard...",
