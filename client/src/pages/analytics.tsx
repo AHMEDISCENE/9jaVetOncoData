@@ -2,25 +2,66 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/export";
 import type { DashboardStats } from "@/lib/types";
+import { DateRangeSwitcher } from "@/components/analytics/date-range-switcher";
+import { AnalyticsDateRangeProvider, useAnalyticsDateRange } from "@/contexts/analytics-date-range-context";
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--secondary))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+const COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--accent))',
+  'hsl(var(--secondary))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+];
 
-export default function Analytics() {
+const emptyStats: DashboardStats = {
+  totalCases: 0,
+  newThisMonth: 0,
+  activeClinics: 0,
+  remissionRate: 0,
+  casesByMonth: [],
+  topTumourTypes: [],
+  casesByState: [],
+  recentActivity: [],
+};
+
+async function fetchAnalyticsStats(from: string, to: string): Promise<DashboardStats> {
+  const params = new URLSearchParams();
+  params.set("from", from);
+  params.set("to", to);
+
+  const response = await fetch(`/api/dashboard/stats?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error("Failed to load analytics data");
+  }
+
+  return (await response.json()) as DashboardStats;
+}
+
+function AnalyticsContent() {
   const { toast } = useToast();
-  const { data: stats, isLoading, error } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"],
+  const { startISO, endISO, startDate, endDate, label } = useAnalyticsDateRange();
+  const sanitizedLabel = `${startDate}_${endDate}`;
+
+  const { data: stats, isLoading, error, isFetching } = useQuery<DashboardStats>({
+    queryKey: ["/api/dashboard/stats", startISO, endISO],
+    queryFn: () => fetchAnalyticsStats(startISO, endISO),
   });
 
-  if (isLoading) {
+  if (isLoading && !stats) {
     return (
       <div className="p-4 sm:p-6">
-        <div className="mb-8">
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-64" />
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="h-10 w-64">
+            <Skeleton className="h-10 w-full rounded-full" />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -39,12 +80,12 @@ export default function Analytics() {
     );
   }
 
-  if (error || !stats) {
+  if (error && !stats) {
     return (
       <div className="p-4 sm:p-6">
         <Card>
           <CardContent className="p-6 text-center">
-            <i className="fas fa-exclamation-triangle text-destructive text-4xl mb-4"></i>
+            <i className="fas fa-exclamation-triangle text-destructive text-4xl mb-4" aria-hidden="true"></i>
             <h3 className="text-lg font-semibold mb-2">Unable to load analytics</h3>
             <p className="text-muted-foreground mb-4">
               {error instanceof Error ? error.message : "Please check your connection and try again."}
@@ -58,45 +99,23 @@ export default function Analytics() {
     );
   }
 
-  const casesOverTimeRows = stats.casesByMonth.map((item) => ({
+  const safeStats: DashboardStats = stats ?? emptyStats;
+
+  const casesOverTimeRows = safeStats.casesByMonth.map((item) => ({
     period: item.month,
     cases: item.count,
   }));
   const hasCasesOverTimeData = casesOverTimeRows.length > 0;
 
-  const tumourDistributionTotal = stats.topTumourTypes.reduce((total, item) => total + item.count, 0);
-  const tumourDistributionRows = stats.topTumourTypes.map((item) => {
-    const candidatePercent =
-      (item as { percent?: number | string; percentage?: number | string; pct?: number | string }).percent ??
-      (item as { percent?: number | string; percentage?: number | string; pct?: number | string }).percentage ??
-      (item as { percent?: number | string; percentage?: number | string; pct?: number | string }).pct;
-
-    let percent = "";
-
-    if (candidatePercent !== undefined && candidatePercent !== null && candidatePercent !== "") {
-      if (typeof candidatePercent === "number") {
-        const normalizedValue = candidatePercent > 1 ? candidatePercent : candidatePercent * 100;
-        percent = `${Math.round(normalizedValue)}%`;
-      } else {
-        const trimmed = String(candidatePercent).trim();
-        percent = trimmed.endsWith("%") ? trimmed : `${trimmed}%`;
-      }
-    } else if (tumourDistributionTotal > 0) {
-      percent = `${Math.round((item.count / tumourDistributionTotal) * 100)}%`;
-    }
-
-    return {
-      tumour_type: item.name,
-      cases: item.count,
-      percent,
-    };
-  });
-  const tumourDistributionRows = stats.topTumourTypes.map((item) => ({
+  const tumourDistributionTotal = safeStats.topTumourTypes.reduce((total, item) => total + item.count, 0);
+  const tumourDistributionRows = safeStats.topTumourTypes.map((item) => ({
     tumour_type: item.name,
     cases: item.count,
     percent: tumourDistributionTotal > 0 ? `${Math.round((item.count / tumourDistributionTotal) * 100)}%` : "",
   }));
   const hasTumourDistributionData = tumourDistributionRows.length > 0;
+
+  const noDataMessage = `No analytics data for ${label}. Try a different date range.`;
 
   const handleCasesOverTimeExport = () => {
     if (!hasCasesOverTimeData) {
@@ -110,7 +129,7 @@ export default function Analytics() {
           { key: "period", label: "period" },
           { key: "cases", label: "cases" },
         ],
-        filename: "cases-over-time",
+        filename: `cases-over-time_${sanitizedLabel}`,
       });
     } catch (err) {
       console.error(err);
@@ -135,7 +154,7 @@ export default function Analytics() {
           { key: "cases", label: "cases" },
           { key: "percent", label: "percent" },
         ],
-        filename: "tumour-type-distribution",
+        filename: `tumour-type-distribution_${sanitizedLabel}`,
       });
     } catch (err) {
       console.error(err);
@@ -149,18 +168,20 @@ export default function Analytics() {
 
   return (
     <div className="p-4 sm:p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground">Analytics & Insights</h2>
-        <p className="text-muted-foreground">Comprehensive analysis of veterinary oncology data</p>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Analytics &amp; Insights</h2>
+          <p className="text-sm text-muted-foreground">Comprehensive analysis of veterinary oncology data</p>
+          <p className="text-xs text-muted-foreground/80">Data reflects {label} (Africa/Lagos).</p>
+        </div>
+        <DateRangeSwitcher />
       </div>
 
-      {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-3xl font-bold text-primary mb-2" data-testid="metric-total-cases">
-              {stats.totalCases.toLocaleString()}
+              {safeStats.totalCases.toLocaleString()}
             </div>
             <p className="text-sm text-muted-foreground">Total Cases</p>
           </CardContent>
@@ -169,16 +190,16 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-3xl font-bold text-accent mb-2" data-testid="metric-new-cases">
-              {stats.newThisMonth.toLocaleString()}
+              {safeStats.newThisMonth.toLocaleString()}
             </div>
-            <p className="text-sm text-muted-foreground">New This Month</p>
+            <p className="text-sm text-muted-foreground">New This Range</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-3xl font-bold text-green-600 mb-2" data-testid="metric-remission-rate">
-              {stats.remissionRate}%
+              {safeStats.remissionRate}%
             </div>
             <p className="text-sm text-muted-foreground">Remission Rate</p>
           </CardContent>
@@ -187,16 +208,14 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-3xl font-bold text-secondary-foreground mb-2" data-testid="metric-active-clinics">
-              {stats.activeClinics}
+              {safeStats.activeClinics}
             </div>
             <p className="text-sm text-muted-foreground">Active Clinics</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Cases Trend */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases Over Time</CardTitle>
@@ -209,43 +228,41 @@ export default function Analytics() {
               aria-label={
                 hasCasesOverTimeData
                   ? "Export Cases Over Time as CSV"
-                  : "No Cases Over Time data to export"
+                  : `No Cases Over Time data to export for ${label}`
               }
             >
-              <i className="fas fa-download mr-2"></i>Export
+              <i className="fas fa-download mr-2" aria-hidden="true"></i>Export
             </Button>
           </CardHeader>
           <CardContent>
             <div className="h-80">
-              {stats.casesByMonth.length > 0 ? (
+              {hasCasesOverTimeData ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={stats.casesByMonth}>
+                  <LineChart data={safeStats.casesByMonth}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="count" 
-                      stroke="hsl(var(--primary))" 
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       dot={{ fill: "hsl(var(--primary))" }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  <div className="text-center">
-                    <i className="fas fa-chart-line text-4xl mb-2"></i>
-                    <p>No trend data available</p>
-                  </div>
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center">
+                  <i className="fas fa-chart-line text-4xl mb-2" aria-hidden="true"></i>
+                  <p className="font-medium">No trend data available</p>
+                  <p className="text-xs">{noDataMessage}</p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Tumour Distribution */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Tumour Type Distribution</CardTitle>
@@ -258,19 +275,19 @@ export default function Analytics() {
               aria-label={
                 hasTumourDistributionData
                   ? "Export Tumour Type Distribution as CSV"
-                  : "No tumour type distribution data to export"
+                  : `No tumour type distribution data to export for ${label}`
               }
             >
-              <i className="fas fa-download mr-2"></i>Export
+              <i className="fas fa-download mr-2" aria-hidden="true"></i>Export
             </Button>
           </CardHeader>
           <CardContent>
             <div className="h-80">
-              {stats.topTumourTypes.length > 0 ? (
+              {hasTumourDistributionData ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={stats.topTumourTypes}
+                      data={safeStats.topTumourTypes}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
@@ -279,7 +296,7 @@ export default function Analytics() {
                       fill="#8884d8"
                       dataKey="count"
                     >
-                      {stats.topTumourTypes.map((entry, index) => (
+                      {safeStats.topTumourTypes.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -287,30 +304,28 @@ export default function Analytics() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  <div className="text-center">
-                    <i className="fas fa-chart-pie text-4xl mb-2"></i>
-                    <p>No distribution data available</p>
-                  </div>
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center">
+                  <i className="fas fa-chart-pie text-4xl mb-2" aria-hidden="true"></i>
+                  <p className="font-medium">No distribution data available</p>
+                  <p className="text-xs">{noDataMessage}</p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Species Breakdown */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases by Species</CardTitle>
-            <Button variant="outline" size="sm" data-testid="button-export-species-chart">
-              <i className="fas fa-download mr-2"></i>Export
+            <Button variant="outline" size="sm" data-testid="button-export-species-chart" disabled>
+              <i className="fas fa-download mr-2" aria-hidden="true"></i>Export
             </Button>
           </CardHeader>
           <CardContent>
             <div className="h-80">
               <div className="h-full flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
-                  <i className="fas fa-chart-bar text-4xl mb-2"></i>
+                  <i className="fas fa-chart-bar text-4xl mb-2" aria-hidden="true"></i>
                   <p>Species analysis coming soon</p>
                   <p className="text-sm">Data processing in progress</p>
                 </div>
@@ -319,19 +334,18 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        {/* Outcome Analysis */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Treatment Outcomes</CardTitle>
-            <Button variant="outline" size="sm" data-testid="button-export-outcomes-chart">
-              <i className="fas fa-download mr-2"></i>Export
+            <Button variant="outline" size="sm" data-testid="button-export-outcomes-chart" disabled>
+              <i className="fas fa-download mr-2" aria-hidden="true"></i>Export
             </Button>
           </CardHeader>
           <CardContent>
             <div className="h-80">
               <div className="h-full flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
-                  <i className="fas fa-heart text-4xl mb-2"></i>
+                  <i className="fas fa-heart text-4xl mb-2" aria-hidden="true"></i>
                   <p>Outcome analysis coming soon</p>
                   <p className="text-sm">Data processing in progress</p>
                 </div>
@@ -341,7 +355,6 @@ export default function Analytics() {
         </Card>
       </div>
 
-      {/* Summary Insights */}
       <Card>
         <CardHeader>
           <CardTitle>Key Insights</CardTitle>
@@ -368,6 +381,19 @@ export default function Analytics() {
           </div>
         </CardContent>
       </Card>
+
+      {isFetching ? (
+        <div className="mt-4 text-xs text-muted-foreground">Refreshing data&hellip;</div>
+      ) : null}
     </div>
   );
 }
+
+export default function Analytics() {
+  return (
+    <AnalyticsDateRangeProvider>
+      <AnalyticsContent />
+    </AnalyticsDateRangeProvider>
+  );
+}
+
