@@ -22,6 +22,7 @@ const escapeCsvValue = (value: unknown): string => {
   }
 
   const stringValue = String(value);
+  const shouldQuote = /[",\n\r]/.test(stringValue);
   const shouldQuote = /[",\n]/.test(stringValue);
   const escapedValue = stringValue.replace(/"/g, '""');
 
@@ -39,11 +40,42 @@ export const exportToCsv = ({ rows, headers, filename }: ExportToCsvOptions) => 
     throw new Error("CSV export requires at least one header");
   }
 
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    throw new Error("CSV export is only available in the browser");
+  }
+
   const headerLine = headers.map((header) => escapeCsvValue(header.label)).join(",");
   const dataLines = rows.map((row) =>
     headers.map((header) => escapeCsvValue(row[header.key])).join(",")
   );
 
+  const newline = "\r\n";
+  const csvContent = [headerLine, ...dataLines].join(newline);
+  const blobContent = `\ufeff${csvContent}`;
+  const blob = new Blob([blobContent], { type: "text/csv;charset=utf-8;" });
+  const dateSuffix = formatDateForLagos();
+  const filenameWithDate = `${filename}_${dateSuffix}.csv`;
+  const link = document.createElement("a");
+  link.setAttribute("download", filenameWithDate);
+
+  const navigatorWithSave = window.navigator as Navigator & {
+    msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => boolean;
+  };
+
+  if (typeof navigatorWithSave.msSaveOrOpenBlob === "function") {
+    navigatorWithSave.msSaveOrOpenBlob(blob, filenameWithDate);
+    return;
+  }
+
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  try {
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
   const csvContent = [headerLine, ...dataLines].join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);

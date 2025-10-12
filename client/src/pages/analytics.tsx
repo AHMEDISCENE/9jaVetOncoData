@@ -65,6 +65,32 @@ export default function Analytics() {
   const hasCasesOverTimeData = casesOverTimeRows.length > 0;
 
   const tumourDistributionTotal = stats.topTumourTypes.reduce((total, item) => total + item.count, 0);
+  const tumourDistributionRows = stats.topTumourTypes.map((item) => {
+    const candidatePercent =
+      (item as { percent?: number | string; percentage?: number | string; pct?: number | string }).percent ??
+      (item as { percent?: number | string; percentage?: number | string; pct?: number | string }).percentage ??
+      (item as { percent?: number | string; percentage?: number | string; pct?: number | string }).pct;
+
+    let percent = "";
+
+    if (candidatePercent !== undefined && candidatePercent !== null && candidatePercent !== "") {
+      if (typeof candidatePercent === "number") {
+        const normalizedValue = candidatePercent > 1 ? candidatePercent : candidatePercent * 100;
+        percent = `${Math.round(normalizedValue)}%`;
+      } else {
+        const trimmed = String(candidatePercent).trim();
+        percent = trimmed.endsWith("%") ? trimmed : `${trimmed}%`;
+      }
+    } else if (tumourDistributionTotal > 0) {
+      percent = `${Math.round((item.count / tumourDistributionTotal) * 100)}%`;
+    }
+
+    return {
+      tumour_type: item.name,
+      cases: item.count,
+      percent,
+    };
+  });
   const tumourDistributionRows = stats.topTumourTypes.map((item) => ({
     tumour_type: item.name,
     cases: item.count,
