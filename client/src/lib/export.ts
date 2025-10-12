@@ -23,7 +23,6 @@ const escapeCsvValue = (value: unknown): string => {
 
   const stringValue = String(value);
   const shouldQuote = /[",\n\r]/.test(stringValue);
-  const shouldQuote = /[",\n]/.test(stringValue);
   const escapedValue = stringValue.replace(/"/g, '""');
 
   return shouldQuote ? `"${escapedValue}"` : escapedValue;
@@ -76,17 +75,4 @@ export const exportToCsv = ({ rows, headers, filename }: ExportToCsvOptions) => 
   } finally {
     URL.revokeObjectURL(url);
   }
-  const csvContent = [headerLine, ...dataLines].join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-
-  const dateSuffix = formatDateForLagos();
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", `${filename}_${dateSuffix}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
 };

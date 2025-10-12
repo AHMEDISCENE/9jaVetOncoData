@@ -91,11 +91,6 @@ export default function Analytics() {
       percent,
     };
   });
-  const tumourDistributionRows = stats.topTumourTypes.map((item) => ({
-    tumour_type: item.name,
-    cases: item.count,
-    percent: tumourDistributionTotal > 0 ? `${Math.round((item.count / tumourDistributionTotal) * 100)}%` : "",
-  }));
   const hasTumourDistributionData = tumourDistributionRows.length > 0;
 
   const handleCasesOverTimeExport = () => {
