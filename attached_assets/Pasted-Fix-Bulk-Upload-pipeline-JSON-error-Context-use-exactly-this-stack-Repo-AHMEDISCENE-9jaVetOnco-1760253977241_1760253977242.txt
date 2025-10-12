@@ -1,0 +1,300 @@
+Fix Bulk Upload pipeline + JSON error
+Context (use exactly this stack)
+
+Repo: AHMEDISCENE/9jaVetOncoData
+
+Frontend: Vite + React + TypeScript, Wouter for routing, Tailwind + shadcn/ui components
+
+Relevant files likely:
+
+client/src/components/bulk-upload-wizard.tsx
+
+client/src/pages/imports.tsx or equivalent page
+
+client/src/components/ui/* (Button, Card, Toast)
+
+Backend: Node/Express in server/ (or equivalent), Replit-managed Postgres, Replit App Storage for temporary files
+
+Data rules:
+
+Shared reads: all signed-in users see all cases
+
+Safe writes: only creator or clinic_admin/super_admin may edit/delete
+
+Server-owned, atomic case_number (sequence), never from client
+
+Clinic & State required; State → Zone derived on server (Nigeria’s 36 states + FCT)
+
+UI symptoms now:
+
+Upload shows toast: “Import failed — Unexpected token ‘<’, ‘<!DOCTYPE …’ is not valid JSON.”
+
+Template download missing State and any guidance about Zone
+
+Recent Imports stays Pending with 0/00 records
+
+Goals (deliverables must meet all)
+
+Robust import that accepts CSV / XLSX / JSON (ZIP optional), validates, normalises, and inserts in batches with transactions.
+
+All import API endpoints respond with JSON on success and error (no HTML, no silent redirects).
+
+Import status transitions: PENDING → PROCESSING → COMPLETED/FAILED, with total/success/failed counts and per-row errors recorded.
+
+Server derives Geo-political Zone from State; server assigns case_number from a global sequence.
+
+“Download Template” returns a correct CSV/XLSX including State and clear instructions; Zone is not a user field.
+
+Frontend wizard shows preview, per-row validation messages, starts import, and polls status until done.
+
+Recent Imports shows accurate status and counts; rows are clickable for details.
+
+Guardrails
+
+Do not edit env/secrets or Replit runtime.
+
+Keep auth unchanged; only authenticated users can import (prefer clinic_admin/super_admin enforcement if present).
+
+Preserve shared reads, restricted writes, server-owned case_number.
+
+If types conflict, still commit the functional fix and annotate TODOs; do not stall.
+
+What to inspect (no edits yet)
+
+Frontend upload wizard: client/src/components/bulk-upload-wizard.tsx and any imports page.
+
+Buttons: Choose Files, Import, Download Template, and the Recent Imports list.
+
+Fetch URLs in the wizard (relative vs absolute).
+
+Express routes for imports/template and the order of routes vs SPA fallback.
+
+DB objects: cases, clinics, imports (create if missing), ng_states (State→Zone), case_number_seq (or equivalent).
+
+Implement
+1) Eliminate the “<!DOCTYPE … not valid JSON” error
+
+Ensure every import endpoint sets JSON content type on all paths:
+
+res.setHeader('Content-Type','application/json');
+
+
+Place SPA fallback after /api/* routes. Add JSON 404 for /api/*:
+
+app.use('/api', (req,res) => res.status(404).json({success:false,error:'API route not found'}));
+
+
+In Vite dev, confirm /api proxy or use the absolute Replit URL; otherwise the request hits index.html.
+
+Frontend: only call response.json() when content-type includes application/json. On mismatch, read text() and show a readable error.
+
+Frontend helper:
+
+async function postFormFile(url: string, file: File) {
+  const fd = new FormData(); fd.append('file', file);
+  const res = await fetch(url, { method: 'POST', body: fd, credentials: 'same-origin' });
+  const ct = res.headers.get('content-type') || '';
+  const raw = await res.text();
+  if (!ct.includes('application/json')) throw new Error(`Non-JSON response (${res.status})`);
+  const data = JSON.parse(raw);
+  if (!res.ok || data?.success === false) throw new Error(data?.error || `Server error ${res.status}`);
+  return data; // {success:true, import_id} or summary
+}
+
+2) Import API: upload → parse → validate → insert (batched) with tracking
+
+Create/complete these routes (Express):
+
+POST /api/imports/upload
+
+Accept multipart/form-data (multer memoryStorage).
+
+Enforce server size limit (e.g., 50 MB to match UI text).
+
+Persist raw file to App Storage optional; create imports row:
+
+{ "id": "<uuid>", "filename": "file.csv", "status": "PENDING",
+  "total_rows": 0, "success": 0, "failed": 0,
+  "errors": [], "created_by": "<userId>" }
+
+
+Return { success:true, import_id }.
+
+POST /api/imports/:id/start
+
+Move to PROCESSING. Detect file type: CSV (fast-csv), XLSX (xlsx), JSON.
+
+Normalisation & validation per row:
+
+clinic → map by case-insensitive name to clinics.id. If not found and policy allows, create; otherwise use Unassigned and log a warning.
+
+state → normalise and validate against server list.
+
+zone → derive from state using server constant (Nigeria mapping, see below).
+
+species → only Canine or Feline; reject others.
+
+breed → allow any string; empty allowed.
+
+tumour_type / anatomical_site → prefer lookup; accept custom text.
+
+diagnosis_date → ISO YYYY-MM-DD or null.
+
+Never accept case_number from input.
+
+Insert in batches (e.g., 500) within a transaction:
+
+Generate case_number from global sequence; retry on unique violation (code 23505) up to 3 times.
+
+Set clinic_id, state, geo_zone, and other fields.
+
+Update imports.total_rows, success, failed; add errors: [{row, message}] (cap payload to e.g., 100 errors in API response; store full in DB).
+
+Finalise status as COMPLETED or FAILED (partial success permitted).
+
+Return either a JSON summary or 202 Accepted and rely on status polling.
+
+GET /api/imports/:id/status
+Returns { status, total_rows, success, failed, errors, started_at, finished_at }.
+
+GET /api/imports/recent
+Returns an array of recent imports: { id, filename, status, total_rows, success, failed, created_at }.
+
+DB objects (create if missing):
+
+imports(
+  id uuid primary key,
+  filename text not null,
+  status text check (status in ('PENDING','PROCESSING','COMPLETED','FAILED')) not null,
+  total_rows int not null default 0,
+  success int not null default 0,
+  failed int not null default 0,
+  errors jsonb not null default '[]'::jsonb,
+  created_by uuid not null,
+  created_at timestamptz not null default now(),
+  started_at timestamptz,
+  finished_at timestamptz
+);
+create index on imports (created_at);
+create index on imports (created_by);
+
+3) Server-owned atomic case_number
+
+Ensure sequence case_number_seq exists (idempotent).
+
+Format: VC-YYYY-NNNNN where NNNNN = lpad(nextval('case_number_seq')::text, 5, '0').
+
+Generated at insert time within the same transaction; immutable post-insert.
+
+4) Template download with correct columns and guidance
+
+GET /api/imports/template.csv and /api/imports/template.xlsx
+
+Headers (no case_number):
+
+clinic,state,species,breed,tumour_type,anatomical_site,diagnosis_date,treatment_protocol,outcome,notes
+
+
+Add instruction sheet / header block:
+
+“Species must be Canine or Feline.”
+
+“State is required. Zone is server-derived; do not include a Zone column.”
+
+List 36 states + FCT.
+
+Date format: YYYY-MM-DD.
+
+Provide two sample rows (one dog, one cat).
+
+Proper headers:
+
+CSV: text/csv + Content-Disposition: attachment; filename="9ja-vetonco-bulk-template.csv"
+
+XLSX: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+Nigeria State → Zone (server constant; single source of truth):
+
+Abia:South-East, Adamawa:North-East, Akwa Ibom:South-South, Anambra:South-East,
+Bauchi:North-East, Bayelsa:South-South, Benue:North-Central, Borno:North-East,
+Cross River:South-South, Delta:South-South, Ebonyi:South-East, Edo:South-South,
+Ekiti:South-West, Enugu:South-East, FCT:North-Central, Gombe:North-East,
+Imo:South-East, Jigawa:North-West, Kaduna:North-West, Kano:North-West,
+Katsina:North-West, Kebbi:North-West, Kogi:North-Central, Kwara:North-Central,
+Lagos:South-West, Nasarawa:North-Central, Niger:North-Central, Ogun:South-West,
+Ondo:South-West, Osun:South-West, Oyo:South-West, Plateau:North-Central,
+Rivers:South-South, Sokoto:North-West, Taraba:North-East, Yobe:North-East,
+Zamfara:North-West
+
+5) Frontend wizard UX (Vite + React + Wouter)
+
+In bulk-upload-wizard.tsx:
+
+Choose Files → show preview (first 50 rows) and inline validation for required columns (clinic, state, species).
+
+Download Template button → GET /api/imports/template.xlsx.
+
+Import → call /api/imports/upload then /api/imports/:id/start.
+
+Show a status banner and poll /api/imports/:id/status every 2 s until terminal state.
+
+On failure, render first N errors with row numbers; provide a Download error log (JSON) link (from imports.errors).
+
+Recent Imports widget calls /api/imports/recent; each row navigates to a status page/view.
+
+6) Make Recent Imports correct and readable
+
+Fill total_rows/success/failed and timestamps from the import record.
+
+Colour code: PENDING (grey), PROCESSING (blue), COMPLETED (green), FAILED (red).
+
+Replace “0/00” with real counts; when unknown during PROCESSING, show success + failed / total and a spinner.
+
+Migrations (idempotent)
+
+imports table (schema above).
+
+ng_states seed if missing; enforce a unique name, and a zone column.
+
+case_number_seq ensure exists.
+
+Helpful indexes:
+
+cases (clinic_id), cases (state), cases (geo_zone), cases (tumour_type), cases (diagnosis_date).
+
+Acceptance tests (must pass)
+
+Uploading CSV/XLSX/JSON never produces the <!DOCTYPE … JSON parse error; APIs always return JSON with clear messages.
+
+Template download contains State and guidance that Zone is server-derived; no case_number column.
+
+Import flow works end-to-end: preview → start → status updates → completed with accurate success/failed counts.
+
+Unknown states rejected with row-level errors; valid states auto-derive Zone.
+
+Clinic mapping works; if strict policy forbids auto-create, unresolved clinics are flagged with errors; otherwise map to Unassigned and warn.
+
+Every inserted row gets a unique server-generated case_number; no duplicates under concurrent imports.
+
+Recent Imports shows correct status, counts, and timestamps; clicking opens live status.
+
+Dev notes & QA aids
+
+Cap API error payload to e.g., 100 entries; store full error array in DB to avoid huge responses.
+
+Enforce max upload size (50 MB) and allowed MIME types.
+
+Normalise CSV: trim headers, ignore blank rows, tolerate ;/, delimiters.
+
+Timezone: use Africa/Lagos for date parsing where relevant.
+
+Return 202 Accepted for long operations and rely on polling.
+
+Add server console.error with import_id prefixes for traceability.
+
+Commit
+
+Message:
+fix(bulk-import): JSON-safe endpoints, state→zone derivation, batching + status tracking, template with State, robust wizard + polling
+
+If branch protection blocks direct push, open a PR with the same title and enable auto-merge.

@@ -187,6 +187,7 @@ export interface IStorage {
   // Import jobs
   createImportJob(job: Partial<ImportJob>): Promise<ImportJob>;
   updateImportJob(id: string, updates: Partial<ImportJob>): Promise<ImportJob>;
+  getImportJobById(id: string): Promise<ImportJob | undefined>;
   getImportJobs(clinicId: string): Promise<ImportJob[]>;
   
   // Audit
@@ -1415,6 +1416,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(importJobs.id, id))
       .returning();
     return updatedJob;
+  }
+
+  async getImportJobById(id: string): Promise<ImportJob | undefined> {
+    const [job] = await db
+      .select()
+      .from(importJobs)
+      .where(eq(importJobs.id, id));
+    return job || undefined;
   }
 
   async getImportJobs(clinicId: string): Promise<ImportJob[]> {

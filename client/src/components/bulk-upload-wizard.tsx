@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,9 +70,25 @@ export default function BulkUploadWizard() {
   const [dragActive, setDragActive] = useState(false);
   const [currentStep, setCurrentStep] = useState<'upload' | 'mapping' | 'validation'>('upload');
 
+  const [importId, setImportId] = useState<string | null>(null);
+  const [pollingStatus, setPollingStatus] = useState(false);
+
   // Fetch import jobs history
   const { data: importJobs, isLoading: jobsLoading } = useQuery<ImportJob[]>({
-    queryKey: ["/api/bulk-upload/jobs"],
+    queryKey: ["/api/imports/recent"],
+  });
+
+  // Poll import status
+  const { data: importStatus } = useQuery({
+    queryKey: ["/api/imports/status", importId],
+    queryFn: async () => {
+      if (!importId) return null;
+      const response = await fetch(`/api/imports/${importId}/status`, { credentials: 'include' });
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: pollingStatus && !!importId,
+    refetchInterval: 2000,
   });
 
   // File upload mutation
@@ -81,13 +97,12 @@ export default function BulkUploadWizard() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/bulk-upload', {
+      const response = await fetch('/api/imports/upload', {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
 
-      // Ensure we only attempt to parse JSON when the server actually sent JSON.
       const contentType = response.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
         const text = await response.text();
@@ -101,21 +116,38 @@ export default function BulkUploadWizard() {
 
       return data;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bulk-upload/jobs"] });
-      toast({
-        title: "Import complete",
-        description: `Imported ${data?.imported ?? 0} cases`,
-      });
-      // Mock preview data for demonstration
-      setUploadState(prev => ({
-        ...prev,
-        uploading: false,
-        preview: generateMockPreview(),
-        headers: ['patient_name', 'species', 'breed', 'tumour_type', 'diagnosis_date'],
-        validation: { valid: 247, warnings: 12, errors: 3 }
-      }));
-      setCurrentStep('mapping');
+    onSuccess: async (data) => {
+      if (data.import_id) {
+        setImportId(data.import_id);
+        
+        // Start the import processing
+        try {
+          const startResponse = await fetch(`/api/imports/${data.import_id}/start`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (startResponse.ok) {
+            setPollingStatus(true);
+            toast({
+              title: "Import started",
+              description: "Processing your file...",
+            });
+          } else {
+            const errorData = await startResponse.json();
+            throw new Error(errorData.error || 'Failed to start import');
+          }
+        } catch (error) {
+          setUploadState(prev => ({ ...prev, uploading: false }));
+          setPollingStatus(false);
+          toast({
+            title: "Failed to start import",
+            description: error instanceof Error ? error.message : "Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
     },
     onError: (error) => {
       setUploadState(prev => ({ ...prev, uploading: false }));
@@ -127,32 +159,29 @@ export default function BulkUploadWizard() {
     },
   });
 
-  // Import data mutation
-  const importMutation = useMutation({
-    mutationFn: async (mapping: Record<string, string>) => {
-      const response = await apiRequest("POST", "/api/bulk-upload/import", {
-        fileId: "temp-id", // Would be real file ID
-        mapping,
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bulk-upload/jobs"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      toast({
-        title: "Import started",
-        description: "Your data import is processing in the background.",
-      });
-      resetUploadState();
-    },
-    onError: (error) => {
-      toast({
-        title: "Import failed",
-        description: error instanceof Error ? error.message : "Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
+  // Watch import status changes
+  useEffect(() => {
+    if (importStatus && pollingStatus) {
+      const status = importStatus.status;
+      if (status === 'COMPLETED' || status === 'FAILED') {
+        setPollingStatus(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/imports/recent"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+        
+        const successCount = importStatus.success || 0;
+        const failedCount = importStatus.failed || 0;
+        
+        toast({
+          title: status === 'COMPLETED' ? "Import complete" : "Import failed",
+          description: `Successfully imported ${successCount} cases. ${failedCount > 0 ? `${failedCount} failed.` : ''}`,
+          variant: status === 'FAILED' ? "destructive" : "default",
+        });
+        
+        setImportId(null);
+        setUploadState(prev => ({ ...prev, uploading: false }));
+      }
+    }
+  }, [importStatus, pollingStatus, queryClient, toast]);
 
   const generateMockPreview = () => [
     { patient_name: "Max", species: "Canine", breed: "Golden Retriever", tumour_type: "Mammary Gland Tumour", diagnosis_date: "2024-01-15" },
@@ -239,32 +268,8 @@ export default function BulkUploadWizard() {
     });
   };
 
-  const handleImport = () => {
-    const activeMappings = Object.values(uploadState.mapping).filter(Boolean);
-    if (activeMappings.length === 0) {
-      toast({
-        title: "No mapping defined",
-        description: "Please map at least one column before importing.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    importMutation.mutate(uploadState.mapping);
-  };
-
   const downloadTemplate = () => {
-    const csvContent = "patient_name,species,breed,sex,age_years,age_months,diagnosis_date,tumour_type,anatomical_site,laterality,stage,diagnosis_method,treatment_plan,treatment_start,notes\n";
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = '9ja-vetoncodata-template.csv';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    window.open('/api/imports/template.csv', '_blank');
   };
 
   return (

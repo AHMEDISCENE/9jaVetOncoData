@@ -13,6 +13,7 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { putObject, deleteObject, generateStorageKey, isAllowedMimeType, determineFileKind, MAX_FILE_SIZE, MAX_FILES_PER_CASE } from "./storage/files";
 import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import path from "path";
+import { computeZoneFromState } from "./geo/nigeria-zones";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -1057,8 +1058,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Bulk upload routes
-  app.post("/api/bulk-upload", requireAuth, requireRole("MANAGER"), bulkUpload.single('file'), async (req, res) => {
+  // Import/Bulk upload routes
+  app.post("/api/imports/upload", requireAuth, requireRole("MANAGER"), bulkUpload.single('file'), async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
@@ -1067,26 +1068,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, error: "No file uploaded" });
       }
 
-      // Count CSV rows (minus header) as a lightweight validation pass.
-      let imported = 0;
-      if (req.file.mimetype === 'text/csv' || req.file.originalname.toLowerCase().endsWith('.csv')) {
-        const csv = req.file.buffer.toString('utf8');
-        const rows = csv
-          .split(/\r?\n/)
-          .map((line) => line.trim())
-          .filter((line) => line.length > 0);
-        imported = rows.length > 1 ? rows.length - 1 : 0;
-      } else {
-        // We currently only parse CSV in-memory; other types will be handled by later processors.
-        imported = 1;
-      }
-
       const sanitizedName = req.file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_');
       const savedFileName = `${Date.now()}-${sanitizedName}`;
       const relativeFilePath = path.join('uploads', savedFileName);
       const absoluteFilePath = path.resolve(import.meta.dirname, '..', relativeFilePath);
 
-      // Persist the uploaded buffer after validation so legacy code expecting a file path still works.
       await mkdir(path.dirname(absoluteFilePath), { recursive: true });
       await writeFile(absoluteFilePath, req.file.buffer);
 
@@ -1096,17 +1082,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filename: req.file.originalname,
         fileUrl: relativeFilePath,
         mapping: {},
-        status: 'COMPLETED',
-        totalRows: imported,
-        processedRows: imported,
-        successRows: imported,
+        status: 'PENDING',
+        totalRows: 0,
+        processedRows: 0,
+        successRows: 0,
       });
 
-      return res.json({ success: true, imported, jobId: importJob.id });
+      return res.json({ success: true, import_id: importJob.id });
     } catch (error) {
       console.error(error);
       res.status(500).json({ success: false, error: error instanceof Error ? error.message : "Failed to upload file" });
     }
+  });
+
+  app.post("/api/imports/:id/start", requireAuth, async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const importId = req.params.id;
+      const clinicId = (req.session as any).clinicId;
+      
+      const importJob = await storage.getImportJobById(importId);
+      if (!importJob || importJob.clinicId !== clinicId) {
+        return res.status(404).json({ success: false, error: "Import job not found" });
+      }
+
+      await storage.updateImportJob(importId, {
+        status: 'PROCESSING',
+        processedRows: 0,
+        successRows: 0,
+        errorRows: 0,
+        errors: []
+      });
+
+      const absoluteFilePath = path.resolve(import.meta.dirname, '..', importJob.fileUrl);
+      const fileContent = await readFile(absoluteFilePath, 'utf8');
+      
+      const rows = fileContent
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+      
+      if (rows.length < 2) {
+        await storage.updateImportJob(importId, {
+          status: 'FAILED',
+          errors: [{ row: 0, error: 'File is empty or contains only headers' }]
+        });
+        return res.json({ success: false, error: 'File is empty' });
+      }
+
+      const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+      const dataRows = rows.slice(1);
+      
+      await storage.updateImportJob(importId, { totalRows: dataRows.length });
+
+      res.json({ success: true, message: 'Import started' });
+
+      setImmediate(async () => {
+        const errors: Array<{row: number; error: string}> = [];
+        let successCount = 0;
+        let failedCount = 0;
+
+        for (let i = 0; i < dataRows.length; i++) {
+          try {
+            const values = dataRows[i].split(',').map(v => v.trim());
+            const rowData: any = {};
+            headers.forEach((header, idx) => {
+              rowData[header] = values[idx] || '';
+            });
+
+            if (!rowData.state) {
+              errors.push({ row: i + 2, error: 'State is required' });
+              failedCount++;
+              continue;
+            }
+
+            const zone = computeZoneFromState(rowData.state);
+            if (zone === 'Unknown') {
+              errors.push({ row: i + 2, error: `Invalid state: ${rowData.state}` });
+              failedCount++;
+              continue;
+            }
+
+            const caseData: any = {
+              clinicId,
+              state: rowData.state,
+              geoZone: zone,
+              species: rowData.species || null,
+              breed: rowData.breed || null,
+              diagnosisDate: rowData.diagnosis_date || null,
+              tumourTypeCustom: rowData.tumour_type || null,
+              anatomicalSiteCustom: rowData.anatomical_site || null,
+              notes: rowData.notes || null,
+            };
+
+            await storage.createCase(insertCaseSchema.parse(caseData));
+            successCount++;
+          } catch (err) {
+            errors.push({ row: i + 2, error: err instanceof Error ? err.message : 'Unknown error' });
+            failedCount++;
+          }
+        }
+
+        await storage.updateImportJob(importId, {
+          status: failedCount === dataRows.length ? 'FAILED' : 'COMPLETED',
+          processedRows: dataRows.length,
+          successRows: successCount,
+          errorRows: failedCount,
+          errors: errors.slice(0, 100),
+          completedAt: new Date()
+        });
+      });
+    } catch (error) {
+      console.error('[ERROR] Import start failed:', error);
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : "Failed to start import" });
+    }
+  });
+
+  app.get("/api/imports/:id/status", requireAuth, async (req, res) => {
+    try {
+      const importId = req.params.id;
+      const clinicId = (req.session as any).clinicId;
+      
+      const importJob = await storage.getImportJobById(importId);
+      if (!importJob || importJob.clinicId !== clinicId) {
+        return res.status(404).json({ success: false, error: "Import job not found" });
+      }
+
+      res.json({
+        status: importJob.status,
+        total_rows: importJob.totalRows || 0,
+        success: importJob.successRows || 0,
+        failed: importJob.errorRows || 0,
+        errors: importJob.errors || [],
+        started_at: importJob.createdAt,
+        finished_at: importJob.completedAt
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to get import status" });
+    }
+  });
+
+  app.get("/api/imports/recent", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const jobs = await storage.getImportJobs(clinicId);
+      res.json(jobs.map(job => ({
+        id: job.id,
+        filename: job.filename,
+        status: job.status,
+        total_rows: job.totalRows || 0,
+        success: job.successRows || 0,
+        failed: job.errorRows || 0,
+        created_at: job.createdAt
+      })));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get import jobs" });
+    }
+  });
+
+  app.get("/api/imports/template.csv", requireAuth, async (req, res) => {
+    const csvContent = `clinic,state,species,breed,tumour_type,anatomical_site,diagnosis_date,treatment_protocol,outcome,notes
+"Example Vet Clinic","Lagos","Canine","Labrador","Melanoma","Skin - Left Ear","2025-01-15","Surgery + Chemotherapy","In Treatment","Sample case for import"
+"Another Clinic","Kano","Feline","Domestic Shorthair","Lymphoma","Lymph Node","2025-02-20","Chemotherapy","Remission","Follow-up scheduled"
+
+# INSTRUCTIONS:
+# - Species must be: Canine or Feline
+# - State is REQUIRED. Zone will be auto-derived by the system
+# - Nigerian States: Abia, Adamawa, Akwa Ibom, Anambra, Bauchi, Bayelsa, Benue, Borno, Cross River, Delta, Ebonyi, Edo, Ekiti, Enugu, FCT, Gombe, Imo, Jigawa, Kaduna, Kano, Katsina, Kebbi, Kogi, Kwara, Lagos, Nasarawa, Niger, Ogun, Ondo, Osun, Oyo, Plateau, Rivers, Sokoto, Taraba, Yobe, Zamfara
+# - Date format: YYYY-MM-DD
+# - Do NOT include case_number or zone columns (auto-generated)`;
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="9ja-vetonco-bulk-template.csv"');
+    res.send(csvContent);
+  });
+
+  // Legacy endpoint (redirect to new endpoint)
+  app.post("/api/bulk-upload", requireAuth, requireRole("MANAGER"), bulkUpload.single('file'), async (req, res) => {
+    res.status(301).json({ success: false, error: "Please use /api/imports/upload instead" });
   });
 
   app.get("/api/bulk-upload/jobs", requireAuth, async (req, res) => {
