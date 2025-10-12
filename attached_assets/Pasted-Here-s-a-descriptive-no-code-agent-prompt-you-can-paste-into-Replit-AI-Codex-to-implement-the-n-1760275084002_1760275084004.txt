@@ -1,0 +1,157 @@
+Here’s a **descriptive, no-code agent prompt** you can paste into Replit AI/Codex to implement the new Analytics features and fix the non-working buttons. It’s tuned to your stack and your product rules.
+
+---
+
+# Agent Task (Replit stack): Expand Analytics + fix non-working buttons
+
+## Context (use exactly this stack)
+
+* **Project:** 9ja VetOncoData (Replit)
+* **Frontend:** Vite + React + TypeScript, **Wouter** for routing (not Next.js), Tailwind + shadcn/ui, Recharts
+* **Backend:** Node/Express API in repo, Replit-managed Postgres (+ App Storage if needed)
+* **Data rules:** shared reads for all signed-in users; safe writes (creator/clinic_admin/super_admin only); **server-owned `case_number`**; **State is required** and **server maps State → one of Nigeria’s 6 zones**
+* **Current issues on Analytics:**
+
+  * Export buttons exist but some widgets don’t export
+  * “Cases by Species” is present but **not active** or linked to **Breeds distribution**
+  * **Treatment Outcomes** widget does not work
+  * No period comparisons (MoM/QoQ/YoY) and no date range switcher
+  * No geography visuals (zone/state view, drilldown)
+
+## Guardrails
+
+* Do **not** touch env/secrets or Replit runtime
+* Do **not** import from `next/navigation`; routing stays **Wouter**
+* Keep existing auth/role checks and shared-read defaults
+* Widgets must fail safe: **show zeros with a helpful message rather than 500s**
+
+## Where to look first
+
+* Analytics page & widgets (search for “Analytics”, “Cases Over Time”, “Species”, “Outcomes”, “Export”)
+* Global filter state/store (zone, state, clinic, species, tumour, date range, “My clinic only”)
+* Any analytics data hooks and existing server endpoints / SQL views feeding charts
+
+---
+
+## Features to implement
+
+### 1) Date range switcher + URL persistence (Quick win)
+
+* Add a compact control at the top of Analytics: **Last 30 / 90 days, YTD, Custom range**
+* Persist choice to **URL query params** (and restore on load).
+* All widgets must respect the active date window.
+
+### 2) KPI deltas (Quick win)
+
+* On each top KPI (Total Cases, New This Period, Remission Rate, Active Clinics), show ▲/▼ and **% change** vs selected comparison mode: **MoM / QoQ / YoY** (toggle next to the date range).
+* If previous period has zero data, display “—” gracefully.
+
+### 3) Species split + linked Breeds distribution (Fix + linkage)
+
+* **Species Split**: Dog vs Cat **pie** (or 2-bar). Clicking Dog or Cat **updates the global filter** (chip appears).
+* **Breeds Distribution**: responsive **horizontal bar** of top breeds; **driven by the Species filter**.
+* When no species is selected, show top breeds **stacked by species**; clicking a breed applies a **breed filter** chip.
+
+### 4) Treatment Outcomes (Fix)
+
+* Make widget render **stacked bars** for **Complete Remission / Partial / Relapse / Deceased / Active/Unknown** over time (current date range).
+* If outcome fields are missing, show zeros and an info hint (“No outcome data yet in this period”).
+* Export must include counts and rates.
+
+### 5) Geography: Zones with State drilldown (New)
+
+* **Nigeria choropleth** (zones or states) for **case density**.
+* Tooltip: show **top 1–2 tumour types** for the hovered region.
+* **Drilldown**: clicking a **Zone** sets the **zone filter** and reveals a **sub-widget** below:
+
+  * A small **state bar chart** within that zone (cases by state).
+  * Clicking a state applies the **state filter**.
+* Provide a “Reset geography” link to clear zone/state chips.
+
+### 6) Cases by Species (page-wide cross-filter)
+
+* Ensure it is **active** (wired to data) and **cross-filters** all other widgets via the global store.
+* The selected slice should highlight and be removable via filter chip.
+
+### 7) Age at diagnosis (New)
+
+* Simple **histogram** (bins: 0–1, 1–3, 3–6, 6–9, 9–12, 12+ years).
+* Display **median** and **IQR** on the chart; export includes bin counts + summary stats.
+
+### 8) Export everywhere (Fix + extend)
+
+* Every widget gets **CSV/PNG** export; the **page** gets an **“Export Analytics as PDF”** action.
+* Use a **shared exporter utility**; filenames must include the metric name and **Africa/Lagos** date.
+* Disable exports when there’s no data; show a friendly explanation.
+
+### 9) Cohorts: build + compare (New)
+
+* **Cohort Builder**: save current filters as a named cohort (title, optional note).
+* Store per-user in a small `cohorts` table (filter JSON + created_at).
+* **Compare cohorts**: allow selecting 2 cohorts and show **side-by-side** KPIs and key distributions (e.g., tumour types, species split).
+* Guard small-n samples with a label: “n<10—interpret cautiously.”
+
+---
+
+## Data & performance (back-end notes)
+
+* Add or update fast **SQL views/materialized views** to avoid heavy client aggregation:
+
+  * `mv_cases_by_month(date_range, filters)`
+  * `mv_cases_by_zone(date_range, filters)` and `mv_cases_by_state(date_range, filters)`
+  * `mv_species_split(date_range, filters)`; `mv_breeds_by_species(date_range, filters)`
+  * `mv_treatment_outcomes(date_range, filters)`
+  * `mv_age_histogram(date_range, filters)` returning bins + median + IQR
+* Keep **Nigeria State → Zone** mapping on the server as the single source of truth.
+* All endpoints must return **JSON** and tolerate empty results (return zeros).
+
+---
+
+## Interactivity contract (front-end)
+
+* Clicking any segment/slice/bar in a widget **applies a global filter chip**.
+* Filter chips render at top of the page and can be removed individually.
+* All widgets listen to the **same filter store** and update in sync.
+* The **URL** mirrors the active filter set (for shareable analytics links).
+
+---
+
+## Fix non-working buttons
+
+* **Export**: wire every Export button to the shared exporter; confirm downloads for **Species**, **Outcomes**, **Geography**, and **Age** widgets.
+* If any button has no data source, connect it to the chart’s **exact dataset** (not recomputed from UI labels).
+
+---
+
+## Testing the agent must perform
+
+1. Change date range and comparison mode; verify KPI deltas update correctly.
+2. Click **Dog** in Species split → all charts filter to Dog; Breeds updates; chip visible; clearable.
+3. Click a **Zone** on the map → zone chip appears; state sub-widget appears; click a state → state chip appears; both chips control all charts.
+4. Treatment Outcomes shows stacked bars and exports CSV/PNG; empty periods show zero-state copy.
+5. Age histogram renders; export includes bins + median + IQR.
+6. Every widget’s **Export** works; **Export page as PDF** produces a full page snapshot.
+7. Save a cohort; load it later; **Compare** two cohorts side-by-side.
+8. Refresh the page: filters and date range restore from URL.
+
+---
+
+## Acceptance criteria (must all pass)
+
+* Species split is functional and **cross-filters**; Breeds distribution is **linked** and accurate.
+* Treatment Outcomes **works** and exports correctly.
+* Zone map + **state drilldown** function, apply filters, and clear cleanly.
+* KPI **MoM/QoQ/YoY** deltas render and match the selected date window.
+* **Date range switcher** exists and persists via URL.
+* **Age histogram** shows bins + median + IQR.
+* **Export** present and working on every widget; **page PDF** export available.
+* Zero-state: widgets render helpful messages and **never 500**.
+* No Next.js APIs introduced; Wouter routing remains intact; no secrets changed.
+
+---
+
+## Commit message
+
+`feat(analytics): geo drilldown, species→breeds link, outcomes fix, period deltas, date switcher, age histogram, exports everywhere, cohorts`
+
+If branch protection blocks direct push, open a PR with the same title and enable auto-merge.
