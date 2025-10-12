@@ -1159,15 +1159,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             const zone = computeZoneFromState(rowData.state);
             if (zone === 'Unknown') {
-              errors.push({ row: i + 2, error: `Invalid state: ${rowData.state}` });
+              errors.push({ row: i + 2, error: `Invalid state: ${JSON.stringify(rowData.state)}` });
               failedCount++;
               continue;
             }
 
+            // Convert state to database enum format (e.g., "Lagos" -> "LAGOS")
+            const stateEnum = rowData.state.trim().toUpperCase().replace(/\s+/g, '_');
+            
+            // Convert zone to database enum format (e.g., "North East" -> "NORTH_EAST")
+            const zoneEnum = zone.toUpperCase().replace(/\s+/g, '_');
+
             const caseData: any = {
               clinicId,
-              state: rowData.state,
-              geoZone: zone,
+              createdBy: (req.session as any).userId,
+              state: stateEnum,
+              geoZone: zoneEnum,
               species: rowData.species || null,
               breed: rowData.breed || null,
               diagnosisDate: rowData.diagnosis_date || null,

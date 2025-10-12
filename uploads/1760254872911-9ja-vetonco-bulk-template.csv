@@ -1,0 +1,10 @@
+clinic,state,species,breed,tumour_type,anatomical_site,diagnosis_date,treatment_protocol,outcome,notes
+"Example Vet Clinic","Lagos","Canine","Labrador","Melanoma","Skin - Left Ear","2025-01-15","Surgery + Chemotherapy","In Treatment","Sample case for import"
+"Another Clinic","Kano","Feline","Domestic Shorthair","Lymphoma","Lymph Node","2025-02-20","Chemotherapy","Remission","Follow-up scheduled"
+
+# INSTRUCTIONS:
+# - Species must be: Canine or Feline
+# - State is REQUIRED. Zone will be auto-derived by the system
+# - Nigerian States: Abia, Adamawa, Akwa Ibom, Anambra, Bauchi, Bayelsa, Benue, Borno, Cross River, Delta, Ebonyi, Edo, Ekiti, Enugu, FCT, Gombe, Imo, Jigawa, Kaduna, Kano, Katsina, Kebbi, Kogi, Kwara, Lagos, Nasarawa, Niger, Ogun, Ondo, Osun, Oyo, Plateau, Rivers, Sokoto, Taraba, Yobe, Zamfara
+# - Date format: YYYY-MM-DD
+# - Do NOT include case_number or zone columns (auto-generated)
