@@ -1,0 +1,4 @@
+state,species,breed,tumour_type,anatomical_site,diagnosis_date,notes
+Lagos,Canine,Labrador Retriever,Melanoma,Skin,1/15/2025,Sample case from Lagos
+Kano,Feline,Persian,Lymphoma,Lymph Node,1/20/2025,Sample case from Kano
+Akwa Ibom,Canine,German Shepherd,Mammary Tumour,Mammary Gland,1/25/2025,Multi-word state example
