@@ -1249,16 +1249,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/imports/template.csv", requireAuth, async (req, res) => {
-    const csvContent = `clinic,state,species,breed,tumour_type,anatomical_site,diagnosis_date,treatment_protocol,outcome,notes
-"Example Vet Clinic","Lagos","Canine","Labrador","Melanoma","Skin - Left Ear","2025-01-15","Surgery + Chemotherapy","In Treatment","Sample case for import"
-"Another Clinic","Kano","Feline","Domestic Shorthair","Lymphoma","Lymph Node","2025-02-20","Chemotherapy","Remission","Follow-up scheduled"
+    const csvContent = `state,species,breed,tumour_type,anatomical_site,diagnosis_date,notes
+Lagos,Canine,Labrador Retriever,Melanoma,Skin,2025-01-15,Sample case from Lagos
+Kano,Feline,Persian,Lymphoma,Lymph Node,2025-01-20,Sample case from Kano
+Akwa Ibom,Canine,German Shepherd,Mammary Tumour,Mammary Gland,2025-01-25,Multi-word state example
 
-# INSTRUCTIONS:
-# - Species must be: Canine or Feline
-# - State is REQUIRED. Zone will be auto-derived by the system
-# - Nigerian States: Abia, Adamawa, Akwa Ibom, Anambra, Bauchi, Bayelsa, Benue, Borno, Cross River, Delta, Ebonyi, Edo, Ekiti, Enugu, FCT, Gombe, Imo, Jigawa, Kaduna, Kano, Katsina, Kebbi, Kogi, Kwara, Lagos, Nasarawa, Niger, Ogun, Ondo, Osun, Oyo, Plateau, Rivers, Sokoto, Taraba, Yobe, Zamfara
-# - Date format: YYYY-MM-DD
-# - Do NOT include case_number or zone columns (auto-generated)`;
+# INSTRUCTIONS FOR BULK UPLOAD:
+# 1. REQUIRED FIELDS:
+#    - state: Nigerian state name (e.g., Lagos, Kano, Akwa Ibom)
+#    - All other fields are optional but recommended
+#
+# 2. ACCEPTED NIGERIAN STATES (case-insensitive):
+#    Abia, Adamawa, Akwa Ibom, Anambra, Bauchi, Bayelsa, Benue, Borno,
+#    Cross River, Delta, Ebonyi, Edo, Ekiti, Enugu, FCT, Gombe, Imo,
+#    Jigawa, Kaduna, Kano, Katsina, Kebbi, Kogi, Kwara, Lagos, Nasarawa,
+#    Niger, Ogun, Ondo, Osun, Oyo, Plateau, Rivers, Sokoto, Taraba, Yobe, Zamfara
+#
+# 3. SPECIES: Must be either "Canine" or "Feline"
+#
+# 4. DATE FORMAT: YYYY-MM-DD (e.g., 2025-01-15)
+#
+# 5. DO NOT USE QUOTES around values unless absolutely necessary
+#
+# 6. The geopolitical zone will be automatically derived from the state
+#
+# 7. Remove these instruction lines before uploading`;
     
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="9ja-vetonco-bulk-template.csv"');
