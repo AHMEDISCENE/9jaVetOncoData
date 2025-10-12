@@ -3,11 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { useToast } from "@/hooks/use-toast";
+import { exportToCsv } from "@/lib/export";
 import type { DashboardStats } from "@/lib/types";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--secondary))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export default function Analytics() {
+  const { toast } = useToast();
   const { data: stats, isLoading, error } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -54,6 +57,69 @@ export default function Analytics() {
       </div>
     );
   }
+
+  const casesOverTimeRows = stats.casesByMonth.map((item) => ({
+    period: item.month,
+    cases: item.count,
+  }));
+  const hasCasesOverTimeData = casesOverTimeRows.length > 0;
+
+  const tumourDistributionTotal = stats.topTumourTypes.reduce((total, item) => total + item.count, 0);
+  const tumourDistributionRows = stats.topTumourTypes.map((item) => ({
+    tumour_type: item.name,
+    cases: item.count,
+    percent: tumourDistributionTotal > 0 ? `${Math.round((item.count / tumourDistributionTotal) * 100)}%` : "",
+  }));
+  const hasTumourDistributionData = tumourDistributionRows.length > 0;
+
+  const handleCasesOverTimeExport = () => {
+    if (!hasCasesOverTimeData) {
+      return;
+    }
+
+    try {
+      exportToCsv({
+        rows: casesOverTimeRows,
+        headers: [
+          { key: "period", label: "period" },
+          { key: "cases", label: "cases" },
+        ],
+        filename: "cases-over-time",
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: "We couldn't export the Cases Over Time data. Please try again.",
+      });
+    }
+  };
+
+  const handleTumourDistributionExport = () => {
+    if (!hasTumourDistributionData) {
+      return;
+    }
+
+    try {
+      exportToCsv({
+        rows: tumourDistributionRows,
+        headers: [
+          { key: "tumour_type", label: "tumour_type" },
+          { key: "cases", label: "cases" },
+          { key: "percent", label: "percent" },
+        ],
+        filename: "tumour-type-distribution",
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: "We couldn't export the Tumour Type Distribution data. Please try again.",
+      });
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6">
@@ -108,7 +174,18 @@ export default function Analytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases Over Time</CardTitle>
-            <Button variant="outline" size="sm" data-testid="button-export-trend-chart">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="button-export-trend-chart"
+              onClick={handleCasesOverTimeExport}
+              disabled={!hasCasesOverTimeData}
+              aria-label={
+                hasCasesOverTimeData
+                  ? "Export Cases Over Time as CSV"
+                  : "No Cases Over Time data to export"
+              }
+            >
               <i className="fas fa-download mr-2"></i>Export
             </Button>
           </CardHeader>
@@ -146,7 +223,18 @@ export default function Analytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Tumour Type Distribution</CardTitle>
-            <Button variant="outline" size="sm" data-testid="button-export-distribution-chart">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="button-export-distribution-chart"
+              onClick={handleTumourDistributionExport}
+              disabled={!hasTumourDistributionData}
+              aria-label={
+                hasTumourDistributionData
+                  ? "Export Tumour Type Distribution as CSV"
+                  : "No tumour type distribution data to export"
+              }
+            >
               <i className="fas fa-download mr-2"></i>Export
             </Button>
           </CardHeader>
