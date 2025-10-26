@@ -794,10 +794,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/cases/:id", requireAuth, requireRole("MANAGER"), async (req, res) => {
+  app.delete("/api/cases/:id", requireAuth, async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
+      
+      if (!clinicId || !userId) {
+        return res.status(401).json({ message: "Session invalid" });
+      }
+
+      // Get the case without clinic restriction to check ownership
+      const caseData = await storage.getCase(req.params.id);
+      
+      if (!caseData) {
+        return res.status(404).json({ message: "Case not found" });
+      }
+
+      // Verify case belongs to user's clinic
+      if (!caseData.clinic || caseData.clinic.id !== clinicId) {
+        return res.status(403).json({ message: "Cannot access cases from other clinics" });
+      }
+
+      // Check permission: creator or admin/manager from same clinic
+      const user = await storage.getUser(userId);
+      const isCreator = caseData.createdBy && caseData.createdBy.id === userId;
+      const isAdminOrManager = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+
+      if (!isCreator && !isAdminOrManager) {
+        return res.status(403).json({ message: "Only case creator or admins can delete cases" });
+      }
       
       await storage.deleteCase(req.params.id, clinicId);
       
@@ -813,6 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ message: "Case deleted successfully" });
     } catch (error) {
+      console.error("Delete case error:", error);
       res.status(500).json({ message: "Failed to delete case" });
     }
   });

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,23 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { CaseWithDetails } from "@shared/schema";
 import type { CaseFilters } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const outcomeColors = {
   REMISSION: "bg-green-100 text-green-800",
@@ -154,6 +167,8 @@ function MultiSelectFilter({
 }
 
 export default function Cases() {
+  const { user, clinic } = useAuth();
+  const { toast } = useToast();
   const [location, setLocation] = useLocation();
   const [filters, setFilters] = useState<CaseFilters>({
     groupBy: 'none',
@@ -162,6 +177,8 @@ export default function Cases() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [caseToDelete, setCaseToDelete] = useState<{ id: string; caseNumber: string } | null>(null);
 
   // Load filters from URL on mount
   useEffect(() => {
@@ -224,6 +241,60 @@ export default function Cases() {
   const { data: cases, isLoading, error } = useQuery<CaseWithDetails[]>({
     queryKey: ["/api/cases", filters, { limit: pageSize, offset: (currentPage - 1) * pageSize }],
   });
+
+  // Delete case mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (caseId: string) => {
+      const response = await fetch(`/api/cases/${caseId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete case");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      toast({
+        title: "Case deleted successfully",
+      });
+      setDeleteDialogOpen(false);
+      setCaseToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete case",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+      setDeleteDialogOpen(false);
+      setCaseToDelete(null);
+    },
+  });
+
+  const handleDeleteClick = (caseItem: CaseWithDetails) => {
+    setCaseToDelete({ id: caseItem.id, caseNumber: caseItem.caseNumber });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (caseToDelete) {
+      deleteMutation.mutate(caseToDelete.id);
+    }
+  };
+
+  const canDeleteCase = (caseItem: CaseWithDetails) => {
+    if (!user || !clinic) return false;
+    
+    const isAdminOrManager = user.role === 'ADMIN' || user.role === 'MANAGER';
+    const isCreator = caseItem.createdBy && caseItem.createdBy.id === user.id;
+    const isSameClinic = caseItem.clinic && caseItem.clinic.id === clinic.id;
+    
+    // Allow if user is the creator OR if user is admin/manager from the same clinic
+    return (isCreator && isSameClinic) || (isAdminOrManager && isSameClinic);
+  };
 
   // Extract unique zones with proper formatting
   const zones = useMemo(() => {
@@ -766,11 +837,24 @@ export default function Cases() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Button asChild variant="ghost" size="sm" data-testid={`view-case-${caseItem.id}`}>
-                              <Link href={`/cases/${caseItem.id}`}>
-                                <i className="fas fa-eye mr-2"></i>View
-                              </Link>
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button asChild variant="ghost" size="sm" data-testid={`view-case-${caseItem.id}`}>
+                                <Link href={`/cases/${caseItem.id}`}>
+                                  <i className="fas fa-eye mr-2"></i>View
+                                </Link>
+                              </Button>
+                              {canDeleteCase(caseItem) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(caseItem)}
+                                  data-testid={`delete-case-${caseItem.id}`}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -813,6 +897,29 @@ export default function Cases() {
           </Button>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent data-testid="delete-case-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Case</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete case <strong>{caseToDelete?.caseNumber}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="cancel-delete-case">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="confirm-delete-case"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
