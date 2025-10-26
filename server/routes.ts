@@ -11,7 +11,7 @@ import { z } from "zod";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { putObject, deleteObject, generateStorageKey, isAllowedMimeType, determineFileKind, MAX_FILE_SIZE, MAX_FILES_PER_CASE } from "./storage/files";
-import { readFile, writeFile, mkdir } from "fs/promises";
+import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import path from "path";
 
 const PgSession = ConnectPgSimple(session);
@@ -860,6 +860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Read file buffer
       const fileBuffer = await readFile(req.file.path);
+      await rm(req.file.path, { force: true });
 
       // Generate storage key and upload to object storage
       const storageKey = generateStorageKey(caseId, req.file.originalname);

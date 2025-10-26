@@ -1,5 +1,7 @@
-import { Storage, File } from "@google-cloud/storage";
+import { Storage } from "@google-cloud/storage";
 import { randomUUID } from "crypto";
+import { mkdir, writeFile, rm } from "fs/promises";
+import path from "path";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
@@ -20,6 +22,12 @@ const objectStorageClient = new Storage({
   },
   projectId: "",
 });
+
+const LOCAL_STORAGE_BASE_PATH = path.join(process.cwd(), "uploads", "case-files-storage");
+
+function isObjectStorageConfigured(): boolean {
+  return Boolean(process.env.PRIVATE_OBJECT_DIR);
+}
 
 interface PutObjectParams {
   key: string;
@@ -109,6 +117,19 @@ function generateStorageKey(caseId: string, originalFilename: string): string {
 }
 
 export async function putObject({ key, buffer, contentType }: PutObjectParams): Promise<PutObjectResult> {
+  if (!isObjectStorageConfigured()) {
+    const targetPath = path.join(LOCAL_STORAGE_BASE_PATH, key);
+    await mkdir(path.dirname(targetPath), { recursive: true });
+    await writeFile(targetPath, buffer);
+
+    const publicUrlPath = ["/uploads/case-files-storage", key]
+      .join("/")
+      .replace(/\\+/g, "/")
+      .replace(/\/+/g, "/");
+
+    return { publicUrl: publicUrlPath };
+  }
+
   const privateObjectDir = getPrivateObjectDir();
   const fullPath = `${privateObjectDir}/${key}`;
   const { bucketName, objectName } = parseObjectPath(fullPath);
@@ -134,6 +155,12 @@ export async function putObject({ key, buffer, contentType }: PutObjectParams): 
 }
 
 export async function deleteObject({ key }: DeleteObjectParams): Promise<void> {
+  if (!isObjectStorageConfigured()) {
+    const targetPath = path.join(LOCAL_STORAGE_BASE_PATH, key);
+    await rm(targetPath, { force: true });
+    return;
+  }
+
   const privateObjectDir = getPrivateObjectDir();
   const fullPath = `${privateObjectDir}/${key}`;
   const { bucketName, objectName } = parseObjectPath(fullPath);
