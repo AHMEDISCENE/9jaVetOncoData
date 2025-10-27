@@ -288,12 +288,20 @@ export default function Cases() {
   const canDeleteCase = (caseItem: CaseWithDetails) => {
     if (!user || !clinic) return false;
     
-    const isAdminOrManager = user.role === 'ADMIN' || user.role === 'MANAGER';
+    const isAdmin = user.role === 'ADMIN';
+    const isManager = user.role === 'MANAGER';
     const isCreator = caseItem.createdBy && caseItem.createdBy.id === user.id;
     const isSameClinic = caseItem.clinic && caseItem.clinic.id === clinic.id;
     
-    // Allow if user is the creator OR if user is admin/manager from the same clinic
-    return (isCreator && isSameClinic) || (isAdminOrManager && isSameClinic);
+    // Allow if:
+    // 1. User is ADMIN (can delete any case)
+    // 2. User is MANAGER from the same clinic
+    // 3. User is the creator from the same clinic
+    if (isAdmin) return true;
+    if (isManager && isSameClinic) return true;
+    if (isCreator && isSameClinic) return true;
+    
+    return false;
   };
 
   // Extract unique zones with proper formatting

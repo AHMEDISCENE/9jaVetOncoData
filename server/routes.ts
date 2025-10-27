@@ -810,17 +810,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Case not found" });
       }
 
-      // Verify case belongs to user's clinic
-      if (!caseData.clinic || caseData.clinic.id !== clinicId) {
+      // Check permission
+      const user = await storage.getUser(userId);
+      const isCreator = caseData.createdBy && caseData.createdBy.id === userId;
+      const isAdmin = user?.role === 'ADMIN';
+      const isManager = user?.role === 'MANAGER';
+      const isSameClinic = caseData.clinic && caseData.clinic.id === clinicId;
+
+      // Allow if:
+      // 1. User is ADMIN (can delete any case from any clinic)
+      // 2. User is MANAGER from the same clinic
+      // 3. User is the creator of the case from the same clinic
+      if (!isAdmin && !isSameClinic) {
         return res.status(403).json({ message: "Cannot access cases from other clinics" });
       }
 
-      // Check permission: creator or admin/manager from same clinic
-      const user = await storage.getUser(userId);
-      const isCreator = caseData.createdBy && caseData.createdBy.id === userId;
-      const isAdminOrManager = user?.role === 'ADMIN' || user?.role === 'MANAGER';
-
-      if (!isCreator && !isAdminOrManager) {
+      if (!isAdmin && !isManager && !isCreator) {
         return res.status(403).json({ message: "Only case creator or admins can delete cases" });
       }
       
