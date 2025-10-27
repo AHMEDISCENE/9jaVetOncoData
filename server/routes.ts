@@ -141,10 +141,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google OAuth Strategy
+  // Dynamically construct callback URL for Replit deployment
+  const getCallbackURL = () => {
+    const replitDomain = process.env.REPLIT_DOMAINS;
+    if (replitDomain) {
+      const domains = replitDomain.split(',');
+      const primaryDomain = domains[0];
+      return `https://${primaryDomain}/api/auth/google/callback`;
+    }
+    return process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback";
+  };
+
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: "/api/auth/google/callback",
+    callbackURL: getCallbackURL(),
     state: true // Enable CSRF protection
   }, async (accessToken, refreshToken, profile, done) => {
     try {
