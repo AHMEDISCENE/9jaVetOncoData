@@ -192,7 +192,7 @@ export default function Feeds() {
     deletePostMutation.mutate(postId);
   };
 
-  const canCreatePost = user?.role === "ADMIN" || user?.role === "MANAGER";
+  const canCreatePost = !!user;
   
   const canEditPost = (post: FeedPost) => {
     return user?.id === post.authorId;

@@ -1410,7 +1410,7 @@ Akwa Ibom,Canine,German Shepherd,Mammary Tumour,Mammary Gland,2025-01-25,Multi-w
     }
   });
 
-  app.post("/api/feeds", requireAuth, requireRole("MANAGER"), async (req, res) => {
+  app.post("/api/feeds", requireAuth, async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
