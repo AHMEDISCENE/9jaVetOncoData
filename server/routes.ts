@@ -105,6 +105,14 @@ const requireRole = (minRole: string) => (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Ensure SESSION_SECRET is set
+  if (!process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET environment variable is required');
+  }
+  
+  // Trust proxy for Replit deployment
+  app.set('trust proxy', 1);
+  
   // Session middleware
   app.use(session({
     store: new PgSession({
@@ -118,6 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
+      sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     },
   }));
