@@ -148,7 +148,7 @@ export async function putObject({ key, buffer, contentType }: PutObjectParams): 
   const [publicUrl] = await file.getSignedUrl({
     version: 'v4',
     action: 'read',
-    expires: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days (max allowed by GCS)
   });
 
   return { publicUrl };
