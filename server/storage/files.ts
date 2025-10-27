@@ -144,14 +144,44 @@ export async function putObject({ key, buffer, contentType }: PutObjectParams): 
     },
   });
 
-  // Generate public URL using Google Cloud Storage's signed URL
-  const [publicUrl] = await file.getSignedUrl({
-    version: 'v4',
-    action: 'read',
-    expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days (max allowed by GCS)
-  });
+  // Return the storage key (files remain private, access controlled by server endpoint)
+  return { publicUrl: key };
+}
 
-  return { publicUrl };
+export async function getObject({ key }: { key: string }): Promise<{ buffer: Buffer; contentType: string }> {
+  if (!isObjectStorageConfigured()) {
+    const targetPath = path.join(LOCAL_STORAGE_BASE_PATH, key);
+    const buffer = await import('fs/promises').then(fs => fs.readFile(targetPath));
+    // Determine content type from file extension
+    const ext = path.extname(key).toLowerCase();
+    const contentTypeMap: Record<string, string> = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.csv': 'text/csv',
+    };
+    const contentType = contentTypeMap[ext] || 'application/octet-stream';
+    return { buffer, contentType };
+  }
+
+  const privateObjectDir = getPrivateObjectDir();
+  const fullPath = `${privateObjectDir}/${key}`;
+  const { bucketName, objectName } = parseObjectPath(fullPath);
+
+  const bucket = objectStorageClient.bucket(bucketName);
+  const file = bucket.file(objectName);
+
+  const [buffer] = await file.download();
+  const [metadata] = await file.getMetadata();
+  const contentType = metadata.contentType || 'application/octet-stream';
+
+  return { buffer, contentType };
 }
 
 export async function deleteObject({ key }: DeleteObjectParams): Promise<void> {

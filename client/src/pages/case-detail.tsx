@@ -317,7 +317,7 @@ export default function CaseDetail() {
                     {imageFiles.map((file) => (
                       <div key={file.id} className="relative group" data-testid={`image-${file.id}`}>
                         <img
-                          src={file.publicUrl}
+                          src={`/api/cases/${caseData.id}/files/${file.id}/download`}
                           alt={file.originalName}
                           className="w-full h-32 object-cover rounded-lg border"
                         />
@@ -365,7 +365,7 @@ export default function CaseDetail() {
                             asChild
                             data-testid={`button-download-${file.id}`}
                           >
-                            <a href={file.publicUrl} target="_blank" rel="noopener noreferrer">
+                            <a href={`/api/cases/${caseData.id}/files/${file.id}/download`} target="_blank" rel="noopener noreferrer">
                               View
                             </a>
                           </Button>

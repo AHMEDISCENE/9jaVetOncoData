@@ -10,7 +10,7 @@ import multer from "multer";
 import { z } from "zod";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { putObject, deleteObject, generateStorageKey, isAllowedMimeType, determineFileKind, MAX_FILE_SIZE, MAX_FILES_PER_CASE } from "./storage/files";
+import { putObject, getObject, deleteObject, generateStorageKey, isAllowedMimeType, determineFileKind, MAX_FILE_SIZE, MAX_FILES_PER_CASE } from "./storage/files";
 import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import path from "path";
 import { computeZoneFromState } from "./geo/nigeria-zones";
@@ -962,6 +962,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(files);
     } catch (error) {
       res.status(500).json({ message: "Failed to get files" });
+    }
+  });
+
+  app.get("/api/cases/:caseId/files/:fileId/download", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const { caseId, fileId } = req.params;
+
+      // Verify case exists and user has access
+      const caseData = await storage.getCase(caseId, clinicId);
+      if (!caseData) {
+        return res.status(404).json({ message: "Case not found" });
+      }
+
+      // Get file metadata
+      const file = await storage.getCaseFileById(fileId);
+      if (!file || file.caseId !== caseId) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Retrieve file from storage
+      const { buffer, contentType } = await getObject({ key: file.storageKey });
+
+      // Set headers for download
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${file.originalName}"`);
+      res.setHeader('Content-Length', buffer.length);
+
+      // Stream file to client
+      res.send(buffer);
+    } catch (error) {
+      console.error('File download error:', error);
+      res.status(500).json({ message: "Failed to download file" });
     }
   });
 
