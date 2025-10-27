@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronDown, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Filter, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -179,6 +179,7 @@ export default function Cases() {
   const pageSize = 20;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [caseToDelete, setCaseToDelete] = useState<{ id: string; caseNumber: string } | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Load filters from URL on mount
   useEffect(() => {
@@ -527,10 +528,28 @@ export default function Cases() {
 
       {/* Filters */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
+        <CardHeader className="cursor-pointer" onClick={() => setShowFilters(!showFilters)}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-lg">Filters</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              data-testid="button-toggle-filters"
+            >
+              {showFilters ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="p-4 space-y-4">
+        {showFilters && (
+          <CardContent className="p-4 space-y-4">
           {/* Row 1: Basic Filters */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -673,7 +692,12 @@ export default function Cases() {
             </div>
 
             <div className="flex items-end">
-              <Button variant="outline" onClick={resetFilters} data-testid="button-clear-filters" className="w-full">
+              <Button 
+                variant="destructive" 
+                onClick={resetFilters} 
+                data-testid="button-clear-filters" 
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+              >
                 <i className="fas fa-times mr-2"></i>Clear All
               </Button>
             </div>
@@ -754,7 +778,8 @@ export default function Cases() {
               </Badge>
             )}
           </div>
-        </CardContent>
+          </CardContent>
+        )}
       </Card>
 
       {/* Cases Table with Grouping */}
