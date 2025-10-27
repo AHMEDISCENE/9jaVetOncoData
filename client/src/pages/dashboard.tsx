@@ -24,8 +24,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Filter, X } from "lucide-react";
+import { Filter, X, Rss } from "lucide-react";
 import type { DashboardStats } from "@/lib/types";
+import type { FeedPost } from "@shared/schema";
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -85,6 +86,15 @@ export default function Dashboard() {
       const url = `/api/dashboard/stats${queryString ? `?${queryString}` : ""}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch dashboard stats");
+      return response.json();
+    },
+  });
+
+  const { data: recentFeedPosts, isLoading: isLoadingFeedPosts } = useQuery<FeedPost[]>({
+    queryKey: ["/api/feeds/recent"],
+    queryFn: async () => {
+      const response = await fetch("/api/feeds/recent?limit=5");
+      if (!response.ok) throw new Error("Failed to fetch recent feed posts");
       return response.json();
     },
   });
@@ -586,23 +596,31 @@ export default function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {stats.recentActivity.length > 0 ? (
+          {isLoadingFeedPosts ? (
             <div className="space-y-4">
-              {stats.recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-start space-x-3">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-48 mb-2" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentFeedPosts && recentFeedPosts.length > 0 ? (
+            <div className="space-y-4">
+              {recentFeedPosts.map((post) => (
+                <div key={post.id} className="flex items-start space-x-3" data-testid={`activity-feed-${post.id}`}>
                   <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center mt-1">
-                    <i className="fas fa-plus text-primary text-xs"></i>
+                    <Rss className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-foreground">
-                      <span className="font-medium">{activity.user}</span>{" "}
-                      {activity.description}
+                      <span className="font-medium">{post.title}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {activity.clinic} •{" "}
-                      {activity.timestamp
-                        ? new Date(activity.timestamp).toLocaleString()
-                        : "N/A"}
+                      {new Date(post.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -610,7 +628,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              <i className="fas fa-clock text-4xl mb-4"></i>
+              <Rss className="h-10 w-10 mx-auto mb-4 opacity-50" />
               <p>No recent activity</p>
               <p className="text-sm">
                 Activity will appear here as you use the platform

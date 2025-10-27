@@ -993,64 +993,90 @@ export class DatabaseStorage implements IStorage {
     try {
       const limit = filters.limit || 20;
       
-      let query = db
-        .select({
-          post: feedPosts,
-          clinic: clinics,
-        })
-        .from(feedPosts)
-        .leftJoin(clinics, eq(feedPosts.clinicId, clinics.id))
-        .where(eq(feedPosts.status, 'PUBLISHED'))
-        .$dynamic();
+      let conditions: any[] = [eq(feedPosts.status, 'PUBLISHED')];
 
       // Apply cursor pagination
       if (filters.cursor) {
-        query = query.where(sql`${feedPosts.createdAt} < ${new Date(filters.cursor)}`);
+        conditions.push(sql`${feedPosts.createdAt} < ${new Date(filters.cursor)}`);
       }
 
-      // Apply optional filters
-      if (filters.clinicId) {
-        query = query.where(eq(feedPosts.clinicId, filters.clinicId));
-      }
-
-      if (filters.state) {
-        query = query.where(eq(clinics.state, filters.state));
-      }
-
-      if (filters.zone) {
-        // Zone filtering through clinic's state
-        const { statesForZones } = await import('./geo/nigeria-zones');
-        const allowedStates = statesForZones([filters.zone]);
-        if (allowedStates.length > 0) {
-          query = query.where(inArray(clinics.state, allowedStates));
-        }
-      }
-
+      // Apply date filters
       if (filters.from) {
-        query = query.where(gte(feedPosts.createdAt, new Date(filters.from)));
+        conditions.push(gte(feedPosts.createdAt, new Date(filters.from)));
       }
 
       if (filters.to) {
-        query = query.where(lte(feedPosts.createdAt, new Date(filters.to)));
+        conditions.push(lte(feedPosts.createdAt, new Date(filters.to)));
       }
 
-      // Fetch limit + 1 to determine if there's a next page
-      const results = await query
-        .orderBy(desc(feedPosts.createdAt))
-        .limit(limit + 1);
+      // If we have geographic filters, we need to join with clinics
+      if (filters.state || filters.zone || filters.clinicId) {
+        let query = db
+          .select({
+            post: feedPosts,
+            clinic: clinics,
+          })
+          .from(feedPosts)
+          .leftJoin(clinics, eq(feedPosts.clinicId, clinics.id))
+          .where(and(...conditions))
+          .$dynamic();
 
-      const hasMore = results.length > limit;
-      const items = hasMore ? results.slice(0, limit) : results;
-      
-      const feedItems = items.map(r => r.post);
-      const nextCursor = hasMore && feedItems.length > 0
-        ? feedItems[feedItems.length - 1].createdAt.toISOString()
-        : undefined;
+        // Apply optional filters
+        if (filters.clinicId) {
+          query = query.where(eq(feedPosts.clinicId, filters.clinicId));
+        }
 
-      return {
-        items: feedItems,
-        nextCursor,
-      };
+        if (filters.state) {
+          query = query.where(eq(clinics.state, filters.state));
+        }
+
+        if (filters.zone) {
+          // Zone filtering through clinic's state
+          const { statesForZones } = await import('./geo/nigeria-zones');
+          const allowedStates = statesForZones([filters.zone]);
+          if (allowedStates.length > 0) {
+            query = query.where(inArray(clinics.state, allowedStates));
+          }
+        }
+
+        // Fetch limit + 1 to determine if there's a next page
+        const results = await query
+          .orderBy(desc(feedPosts.createdAt))
+          .limit(limit + 1);
+
+        const hasMore = results.length > limit;
+        const items = hasMore ? results.slice(0, limit) : results;
+        
+        const feedItems = items.map(r => r.post);
+        const nextCursor = hasMore && feedItems.length > 0
+          ? feedItems[feedItems.length - 1].createdAt.toISOString()
+          : undefined;
+
+        return {
+          items: feedItems,
+          nextCursor,
+        };
+      } else {
+        // Simple query without clinic join when no geographic filters
+        const results = await db
+          .select()
+          .from(feedPosts)
+          .where(and(...conditions))
+          .orderBy(desc(feedPosts.createdAt))
+          .limit(limit + 1);
+
+        const hasMore = results.length > limit;
+        const items = hasMore ? results.slice(0, limit) : results;
+        
+        const nextCursor = hasMore && items.length > 0
+          ? items[items.length - 1].createdAt.toISOString()
+          : undefined;
+
+        return {
+          items,
+          nextCursor,
+        };
+      }
     } catch (error) {
       console.error('[getSharedFeedPosts] Error:', error);
       return {
@@ -1064,16 +1090,31 @@ export class DatabaseStorage implements IStorage {
     return newPost;
   }
 
-  async updateFeedPost(id: string, updates: Partial<InsertFeedPost>, clinicId: string): Promise<FeedPost> {
+  async getFeedPostById(id: string): Promise<FeedPost | undefined> {
+    const [post] = await db.select().from(feedPosts).where(eq(feedPosts.id, id));
+    return post || undefined;
+  }
+
+  async updateFeedPost(id: string, updates: Partial<InsertFeedPost>): Promise<FeedPost> {
     const [updatedPost] = await db
       .update(feedPosts)
       .set({ ...updates, updatedAt: new Date() })
-      .where(and(
-        eq(feedPosts.id, id),
-        eq(feedPosts.clinicId, clinicId)
-      ))
+      .where(eq(feedPosts.id, id))
       .returning();
     return updatedPost;
+  }
+
+  async deleteFeedPost(id: string): Promise<void> {
+    await db.delete(feedPosts).where(eq(feedPosts.id, id));
+  }
+
+  async getRecentFeedPosts(limit: number = 5): Promise<FeedPost[]> {
+    return await db
+      .select()
+      .from(feedPosts)
+      .where(eq(feedPosts.status, 'PUBLISHED'))
+      .orderBy(desc(feedPosts.createdAt))
+      .limit(limit);
   }
 
   async getFollowUps(caseId: string): Promise<FollowUp[]> {

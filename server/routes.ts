@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertClinicSchema, insertCaseSchema, insertTumourTypeSchema, insertAnatomicalSiteSchema, insertFeedPostSchema, insertFollowUpSchema, insertCaseFileSchema } from "@shared/schema";
+import { insertUserSchema, insertClinicSchema, insertCaseSchema, insertTumourTypeSchema, insertAnatomicalSiteSchema, insertFeedPostSchema, updateFeedPostSchema, insertFollowUpSchema, insertCaseFileSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
@@ -1416,6 +1416,68 @@ Akwa Ibom,Canine,German Shepherd,Mammary Tumour,Mammary Gland,2025-01-25,Multi-w
       res.json(newPost);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create feed post" });
+    }
+  });
+
+  app.put("/api/feeds/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const { id } = req.params;
+      
+      // Get the post to check author
+      const post = await storage.getFeedPostById(id);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      
+      // Only the author can edit
+      if (post.authorId !== userId) {
+        return res.status(403).json({ message: "Only the post author can edit this post" });
+      }
+      
+      // Validate and only allow updating safe fields (prevent changing authorId, clinicId, etc.)
+      const validatedUpdates = updateFeedPostSchema.parse(req.body);
+      const updatedPost = await storage.updateFeedPost(id, validatedUpdates);
+      res.json(updatedPost);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update feed post" });
+    }
+  });
+
+  app.delete("/api/feeds/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const user = await storage.getUser(userId);
+      const { id } = req.params;
+      
+      // Get the post to check author
+      const post = await storage.getFeedPostById(id);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      
+      // Author or ADMIN can delete
+      const isAuthor = post.authorId === userId;
+      const isAdmin = user?.role === 'ADMIN';
+      
+      if (!isAuthor && !isAdmin) {
+        return res.status(403).json({ message: "Only the post author or admin can delete this post" });
+      }
+      
+      await storage.deleteFeedPost(id);
+      res.json({ message: "Post deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete feed post" });
+    }
+  });
+
+  app.get("/api/feeds/recent", requireAuth, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      const posts = await storage.getRecentFeedPosts(limit);
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get recent feed posts" });
     }
   });
 

@@ -470,6 +470,13 @@ export const insertFeedPostSchema = createInsertSchema(feedPosts).omit({
   publishedAt: true,
 });
 
+export const updateFeedPostSchema = z.object({
+  title: z.string().min(1).optional(),
+  body: z.string().min(1).optional(),
+  tags: z.array(z.string()).optional(),
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
+});
+
 export const insertFollowUpSchema = createInsertSchema(followUps).omit({
   id: true,
   createdAt: true,

@@ -6,9 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Pencil, Trash2 } from "lucide-react";
 import type { FeedPost } from "@shared/schema";
 
 interface CreatePostData {
@@ -28,6 +31,14 @@ export default function Feeds() {
     tags: [],
   });
   const [tagInput, setTagInput] = useState("");
+  const [editingPost, setEditingPost] = useState<FeedPost | null>(null);
+  const [editedData, setEditedData] = useState<CreatePostData>({
+    title: "",
+    body: "",
+    tags: [],
+  });
+  const [editTagInput, setEditTagInput] = useState("");
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   const { data: feedResponse, isLoading, error } = useQuery<{ items: FeedPost[]; nextCursor?: string }>({
     queryKey: ["/api/feeds"],
@@ -89,7 +100,107 @@ export default function Feeds() {
     }));
   };
 
+  const removeEditTag = (tagToRemove: string) => {
+    setEditedData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const addEditTag = () => {
+    const tag = editTagInput.trim();
+    if (tag && !editedData.tags.includes(tag)) {
+      setEditedData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tag]
+      }));
+      setEditTagInput("");
+    }
+  };
+
+  const updatePostMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: CreatePostData }) => {
+      const response = await apiRequest("PUT", `/api/feeds/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/feeds"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feeds/recent"] });
+      setEditingPost(null);
+      toast({
+        title: "Post updated successfully",
+        description: "Your changes have been saved.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update post",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/feeds/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/feeds"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feeds/recent"] });
+      setDeletingPostId(null);
+      toast({
+        title: "Post deleted successfully",
+        description: "The post has been removed from the feed.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete post",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditPost = (post: FeedPost) => {
+    setEditingPost(post);
+    setEditedData({
+      title: post.title,
+      body: post.body,
+      tags: post.tags || [],
+    });
+  };
+
+  const handleUpdatePost = () => {
+    if (!editingPost) return;
+    
+    if (!editedData.title.trim() || !editedData.body.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide both a title and content for your post.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updatePostMutation.mutate({ id: editingPost.id, data: editedData });
+  };
+
+  const handleDeletePost = (postId: string) => {
+    deletePostMutation.mutate(postId);
+  };
+
   const canCreatePost = user?.role === "ADMIN" || user?.role === "MANAGER";
+  
+  const canEditPost = (post: FeedPost) => {
+    return user?.id === post.authorId;
+  };
+
+  const canDeletePost = (post: FeedPost) => {
+    return user?.id === post.authorId || user?.role === "ADMIN";
+  };
 
   if (isLoading) {
     return (
@@ -265,6 +376,30 @@ export default function Feeds() {
                       )}
                     </div>
                   </div>
+                  <div className="flex gap-2">
+                    {canEditPost(post) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditPost(post)}
+                        data-testid={`button-edit-post-${post.id}`}
+                      >
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                    {canDeletePost(post) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDeletingPostId(post.id)}
+                        data-testid={`button-delete-post-${post.id}`}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -303,6 +438,123 @@ export default function Feeds() {
           </Card>
         )}
       </div>
+
+      {/* Edit Post Dialog */}
+      <Dialog open={!!editingPost} onOpenChange={() => setEditingPost(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Post</DialogTitle>
+            <DialogDescription>
+              Make changes to your post. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Input
+                placeholder="Post title..."
+                value={editedData.title}
+                onChange={(e) => setEditedData(prev => ({ ...prev, title: e.target.value }))}
+                data-testid="input-edit-post-title"
+              />
+            </div>
+            
+            <div>
+              <Textarea
+                placeholder="Write your post content here... (Markdown supported)"
+                value={editedData.body}
+                onChange={(e) => setEditedData(prev => ({ ...prev, body: e.target.value }))}
+                className="min-h-32"
+                data-testid="textarea-edit-post-content"
+              />
+            </div>
+
+            <div>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  placeholder="Add tags..."
+                  value={editTagInput}
+                  onChange={(e) => setEditTagInput(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addEditTag())}
+                  data-testid="input-edit-post-tags"
+                />
+                <Button variant="outline" onClick={addEditTag} data-testid="button-add-edit-tag">
+                  Add
+                </Button>
+              </div>
+              
+              {editedData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {editedData.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                      {tag}
+                      <button 
+                        onClick={() => removeEditTag(tag)}
+                        className="ml-1 hover:text-destructive"
+                        data-testid={`button-remove-edit-tag-${tag}`}
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setEditingPost(null)}
+                data-testid="button-cancel-edit"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdatePost}
+                disabled={updatePostMutation.isPending}
+                data-testid="button-save-edit"
+              >
+                {updatePostMutation.isPending ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingPostId} onOpenChange={() => setDeletingPostId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the post from the feed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingPostId && handleDeletePost(deletingPostId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deletePostMutation.isPending ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  Deleting...
+                </>
+              ) : (
+                "Delete Post"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
