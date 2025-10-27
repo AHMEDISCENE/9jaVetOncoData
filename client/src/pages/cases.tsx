@@ -820,19 +820,9 @@ export default function Cases() {
                           </TableCell>
                           <TableCell>
                             {caseItem.attachmentsCount && caseItem.attachmentsCount > 0 ? (
-                              <div className="flex items-center gap-2">
-                                {caseItem.firstImageUrl && (
-                                  <img
-                                    src={caseItem.firstImageUrl}
-                                    alt="Thumbnail"
-                                    className="h-8 w-8 object-cover rounded border"
-                                    data-testid={`attachment-thumbnail-${caseItem.id}`}
-                                  />
-                                )}
-                                <Badge variant="secondary" data-testid={`attachment-count-${caseItem.id}`}>
-                                  {caseItem.attachmentsCount}
-                                </Badge>
-                              </div>
+                              <Badge variant="secondary" data-testid={`attachment-count-${caseItem.id}`}>
+                                {caseItem.attachmentsCount}
+                              </Badge>
                             ) : (
                               <span className="text-xs text-muted-foreground">None</span>
                             )}
