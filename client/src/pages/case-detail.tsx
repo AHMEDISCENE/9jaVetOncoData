@@ -322,24 +322,24 @@ export default function CaseDetail() {
                           className="w-full h-32 object-cover rounded-lg border cursor-pointer"
                           onClick={() => setSelectedImageId(file.id)}
                         />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                           <Button
-                            variant="ghost"
-                            size="sm"
                             onClick={() => setSelectedImageId(file.id)}
+                            className="bg-white/90 hover:bg-white text-black rounded-lg px-4 py-2 flex items-center gap-2 shadow-lg"
                             data-testid={`button-view-${file.id}`}
                           >
-                            <Eye className="h-5 w-5 text-white" />
+                            <Eye className="h-5 w-5" />
+                            <span className="text-sm font-medium">View</span>
                           </Button>
                         </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="absolute bottom-1 right-1 h-6 w-6 hover:bg-red-500/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute bottom-2 right-2 h-8 w-8 bg-red-500/70 hover:bg-red-500 text-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => deleteMutation.mutate(file.id)}
                           data-testid={`button-delete-${file.id}`}
                         >
-                          <X className="h-4 w-4 text-white" />
+                          <X className="h-4 w-4" />
                         </Button>
                         <p className="text-xs truncate mt-1">{file.originalName}</p>
                       </div>
@@ -412,7 +412,7 @@ export default function CaseDetail() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 text-white hover:bg-white/20"
+                className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full h-10 w-10 shadow-lg"
                 onClick={() => setSelectedImageId(null)}
                 data-testid="button-close-fullscreen"
               >
@@ -421,7 +421,7 @@ export default function CaseDetail() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute bottom-4 right-4 text-white hover:bg-red-500/80 transition-colors"
+                className="absolute bottom-6 right-6 bg-red-500/70 hover:bg-red-500 text-white rounded-full h-10 w-10 shadow-lg transition-colors"
                 onClick={() => {
                   deleteMutation.mutate(selectedImageId);
                   setSelectedImageId(null);
