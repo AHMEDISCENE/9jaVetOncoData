@@ -432,6 +432,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invalid or expired invitation" });
       }
       
+      // Prevent ADMIN role from being assigned via invitation
+      if (invitation.role === "ADMIN") {
+        return res.status(403).json({ message: "Invalid invitation: ADMIN role cannot be assigned through invitations" });
+      }
+      
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(invitation.email);
       if (existingUser) {
