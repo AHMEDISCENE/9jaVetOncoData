@@ -349,29 +349,30 @@ export default function CaseWizard() {
                     <FormField
                       control={form.control}
                       name="clinicId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Clinic *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                      render={({ field }) => {
+                        const selectedClinic = clinics?.find(c => c.id === field.value);
+                        return (
+                          <FormItem>
+                            <FormLabel>Clinic *</FormLabel>
                             <FormControl>
-                              <SelectTrigger data-testid="select-clinic">
-                                <SelectValue placeholder="Select Clinic" />
-                              </SelectTrigger>
+                              <Input 
+                                placeholder="Enter clinic name" 
+                                data-testid="input-clinic-name"
+                                value={selectedClinic?.name || field.value}
+                                onChange={(e) => {
+                                  // For now, just store the text value directly
+                                  // In a real app, you might want to sync this with the clinic record
+                                  field.onChange(e.target.value);
+                                }}
+                              />
                             </FormControl>
-                            <SelectContent>
-                              {clinics?.map((clinic) => (
-                                <SelectItem key={clinic.id} value={clinic.id}>
-                                  {clinic.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormDescription className="text-xs">
-                            Prefilled from your profile, can be changed
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                            <FormDescription className="text-xs">
+                              You can edit this to customize the clinic name for this case
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                   </div>
 
