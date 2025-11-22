@@ -16,7 +16,6 @@ const clinicSetupSchema = z.object({
   clinicName: z.string().min(1, "Clinic name is required"),
   clinicState: z.string().min(1, "State is required"),
   clinicCity: z.string().min(1, "City is required"),
-  role: z.enum(["MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]).default("CLINICIAN"),
 });
 
 const nigerianStates = [
@@ -39,7 +38,6 @@ export default function SetupClinic() {
       clinicName: "",
       clinicState: "",
       clinicCity: "",
-      role: "CLINICIAN",
     },
   });
 
@@ -157,29 +155,11 @@ export default function SetupClinic() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Your Role *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-user-role">
-                            <SelectValue placeholder="Select your role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="MANAGER">Manager</SelectItem>
-                          <SelectItem value="CLINICIAN">Clinician</SelectItem>
-                          <SelectItem value="RESEARCHER">Researcher</SelectItem>
-                          <SelectItem value="STUDENT">Student</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="rounded-lg bg-primary/10 p-4 border border-primary/20" data-testid="text-admin-role-info">
+                  <p className="text-sm text-foreground">
+                    <strong>Administrator Role:</strong> As the founder of this clinic, you will automatically be assigned the Administrator role with full access to manage your clinic, invite team members, and control all settings.
+                  </p>
+                </div>
 
                 <Button
                   type="submit"
