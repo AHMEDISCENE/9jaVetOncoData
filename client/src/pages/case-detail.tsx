@@ -4,7 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
 import { FileText, Image, Upload, X, ArrowLeft, Eye } from "lucide-react";
@@ -322,24 +322,25 @@ export default function CaseDetail() {
                           className="w-full h-32 object-cover rounded-lg border cursor-pointer"
                           onClick={() => setSelectedImageId(file.id)}
                         />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setSelectedImageId(file.id)}
                             data-testid={`button-view-${file.id}`}
                           >
-                            <Eye className="h-4 w-4 text-white" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteMutation.mutate(file.id)}
-                            data-testid={`button-delete-${file.id}`}
-                          >
-                            <X className="h-4 w-4" />
+                            <Eye className="h-5 w-5 text-white" />
                           </Button>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute bottom-1 right-1 h-6 w-6 hover:bg-red-500/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => deleteMutation.mutate(file.id)}
+                          data-testid={`button-delete-${file.id}`}
+                        >
+                          <X className="h-4 w-4 text-white" />
+                        </Button>
                         <p className="text-xs truncate mt-1">{file.originalName}</p>
                       </div>
                     ))}
@@ -400,6 +401,7 @@ export default function CaseDetail() {
       {/* Fullscreen Image Viewer */}
       <Dialog open={!!selectedImageId} onOpenChange={(open) => !open && setSelectedImageId(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-black border-0">
+          <DialogTitle className="sr-only">Image Viewer</DialogTitle>
           {selectedImageId && imageFiles.find(f => f.id === selectedImageId) && (
             <div className="relative w-full h-[80vh] flex items-center justify-center">
               <img
@@ -417,16 +419,16 @@ export default function CaseDetail() {
                 <X className="h-6 w-6" />
               </Button>
               <Button
-                variant="destructive"
-                className="absolute bottom-2 right-2"
+                variant="ghost"
+                size="icon"
+                className="absolute bottom-4 right-4 text-white hover:bg-red-500/80 transition-colors"
                 onClick={() => {
                   deleteMutation.mutate(selectedImageId);
                   setSelectedImageId(null);
                 }}
                 data-testid="button-delete-fullscreen"
               >
-                <X className="h-4 w-4 mr-2" />
-                Delete
+                <X className="h-5 w-5" />
               </Button>
             </div>
           )}
