@@ -1,0 +1,4 @@
+patient_name,species,breed,sex,age_years,age_months,state,diagnosis_date,tumour_type,tumour_type_custom,anatomical_site,anatomical_site_custom,laterality,stage,diagnosis_method,treatment_plan,treatment_start,outcome,last_follow_up,notes
+Fluffy,Canine,Labrador Retriever,MALE_NEUTERED,5,6,Lagos,1/15/2025,Melanoma,,Skin,,Left,,Histopathology,Chemotherapy,1/20/2025,TREATMENT_ONGOING,2/20/2025,Responding well to treatment
+Whiskers,Feline,Persian,FEMALE_SPAYED,8,3,Kano,1/20/2025,Lymphoma,,Lymph Node,,Bilateral,,Cytology,Palliative Care,1/22/2025,TREATMENT_ONGOING,2/10/2025,Limited response
+Rex,Canine,German Shepherd,MALE_INTACT,3,0,Akwa Ibom,1/25/2025,Mammary Tumour,,Mammary Gland,,Central,Stage 2,Fine Needle Aspirate,Surgery + Radiation,2/1/2025,REMISSION,,Post-surgical recovery progressing
