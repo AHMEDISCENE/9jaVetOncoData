@@ -40,7 +40,7 @@ const caseSchema = z.object({
   diagnosisMethod: z.string().optional(),
   treatmentPlan: z.string().optional(),
   treatmentStart: z.string().transform(val => val === "" ? undefined : val).optional(),
-  outcome: z.enum(["REMISSION", "MORTALITY", "EUTHANASIA", "TREATMENT_ONGOING", "MANAGEMENT"]).optional(),
+  outcome: z.enum(["REMISSION", "MORTALITY", "EUTHANASIA", "TREATMENT_ONGOING", "MANAGEMENT"]).transform(val => val === "" ? undefined : val).optional(),
   notes: z.string().optional(),
 });
 
