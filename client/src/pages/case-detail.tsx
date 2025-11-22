@@ -4,9 +4,10 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
-import { FileText, Image, Upload, X, ArrowLeft } from "lucide-react";
+import { FileText, Image, Upload, X, ArrowLeft, Eye } from "lucide-react";
 import type { CaseFile } from "@shared/schema";
 
 interface CaseWithDetails {
@@ -40,6 +41,7 @@ export default function CaseDetail() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
 
   const { data: caseData, isLoading: caseLoading } = useQuery<CaseWithDetails>({
     queryKey: [`/api/cases/${caseId}`],
@@ -317,9 +319,18 @@ export default function CaseDetail() {
                         <img
                           src={`/api/cases/${caseData.id}/files/${file.id}/download`}
                           alt={file.originalName}
-                          className="w-full h-32 object-cover rounded-lg border"
+                          className="w-full h-32 object-cover rounded-lg border cursor-pointer"
+                          onClick={() => setSelectedImageId(file.id)}
                         />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedImageId(file.id)}
+                            data-testid={`button-view-${file.id}`}
+                          >
+                            <Eye className="h-4 w-4 text-white" />
+                          </Button>
                           <Button
                             variant="destructive"
                             size="sm"
@@ -385,6 +396,42 @@ export default function CaseDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Fullscreen Image Viewer */}
+      <Dialog open={!!selectedImageId} onOpenChange={(open) => !open && setSelectedImageId(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-black border-0">
+          {selectedImageId && imageFiles.find(f => f.id === selectedImageId) && (
+            <div className="relative w-full h-[80vh] flex items-center justify-center">
+              <img
+                src={`/api/cases/${caseData?.id}/files/${selectedImageId}/download`}
+                alt="Full view"
+                className="max-w-full max-h-full object-contain"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 text-white hover:bg-white/20"
+                onClick={() => setSelectedImageId(null)}
+                data-testid="button-close-fullscreen"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+              <Button
+                variant="destructive"
+                className="absolute bottom-2 right-2"
+                onClick={() => {
+                  deleteMutation.mutate(selectedImageId);
+                  setSelectedImageId(null);
+                }}
+                data-testid="button-delete-fullscreen"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
