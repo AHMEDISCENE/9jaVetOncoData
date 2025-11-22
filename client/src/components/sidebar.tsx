@@ -7,11 +7,11 @@ import {
   ChevronRight, 
   LogOut,
   LayoutDashboard,
-  FolderOpen,
-  BarChart3,
-  FileText,
+  ClipboardList,
+  TrendingUp,
+  BarChart4,
   Upload,
-  Rss,
+  MessageSquare,
   Calendar,
   Settings,
   Stethoscope,
@@ -28,11 +28,11 @@ export default function Sidebar() {
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Cases", href: "/cases", icon: FolderOpen },
-    { name: "Analytics", href: "/analytics", icon: BarChart3 },
-    { name: "Reports", href: "/reports", icon: FileText },
+    { name: "Cases", href: "/cases", icon: ClipboardList },
+    { name: "Analytics", href: "/analytics", icon: TrendingUp },
+    { name: "Reports", href: "/reports", icon: BarChart4 },
     { name: "Bulk Upload", href: "/bulk-upload", icon: Upload },
-    { name: "Feeds", href: "/feeds", icon: Rss },
+    { name: "Feeds", href: "/feeds", icon: MessageSquare },
     { name: "Calendar", href: "/calendar", icon: Calendar },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
@@ -117,13 +117,13 @@ export default function Sidebar() {
                 <Link 
                   key={item.name} 
                   href={item.href}
-                  className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "justify-center" : ""}`}
+                  className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "justify-center" : "gap-3"}`}
                   data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
                   onClick={() => setIsMobileOpen(false)}
                   title={isCollapsed ? item.name : undefined}
                 >
-                  <Icon className="h-5 w-5" />
-                  {!isCollapsed && item.name}
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  {!isCollapsed && <span>{item.name}</span>}
                 </Link>
               );
             })}

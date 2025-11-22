@@ -111,7 +111,7 @@
   }
 
   .nav-item {
-    @apply flex items-center space-x-3 px-4 py-3 text-sm font-medium text-muted-foreground rounded-lg transition-all hover:bg-muted hover:text-foreground;
+    @apply flex items-center px-4 py-3 text-sm font-medium text-muted-foreground rounded-lg transition-all hover:bg-muted hover:text-foreground;
   }
   
   .nav-item.active {
