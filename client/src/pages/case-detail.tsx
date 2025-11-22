@@ -10,6 +10,22 @@ import { useState, useRef } from "react";
 import { FileText, Image, Upload, X, ArrowLeft, Eye } from "lucide-react";
 import type { CaseFile } from "@shared/schema";
 
+const outcomeColors: Record<string, string> = {
+  REMISSION: "bg-green-100 text-green-800",
+  TREATMENT_ONGOING: "bg-blue-100 text-blue-800",
+  MORTALITY: "bg-red-100 text-red-800",
+  EUTHANASIA: "bg-orange-100 text-orange-800",
+  MANAGEMENT: "bg-purple-100 text-purple-800",
+};
+
+const outcomeLabels: Record<string, string> = {
+  REMISSION: "Remission",
+  TREATMENT_ONGOING: "Ongoing Treatment",
+  MORTALITY: "Mortality",
+  EUTHANASIA: "Euthanasia",
+  MANAGEMENT: "Management",
+};
+
 interface CaseWithDetails {
   id: string;
   caseNumber: string;
@@ -259,6 +275,14 @@ export default function CaseDetail() {
             <div>
               <p className="text-sm text-muted-foreground">Treatment Start</p>
               <p className="font-medium">{new Date(caseData.treatmentStart).toLocaleDateString()}</p>
+            </div>
+          )}
+          {caseData.outcome && (
+            <div>
+              <p className="text-sm text-muted-foreground">Outcome / Animal Status</p>
+              <Badge className={outcomeColors[caseData.outcome] || "bg-gray-100 text-gray-800"}>
+                {outcomeLabels[caseData.outcome] || caseData.outcome}
+              </Badge>
             </div>
           )}
           {caseData.notes && (
