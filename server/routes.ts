@@ -498,6 +498,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's clinics
+  app.get("/api/clinics", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      if (!clinicId) {
+        return res.json([]);
+      }
+      const clinic = await storage.getClinic(clinicId);
+      res.json(clinic ? [clinic] : []);
+    } catch (error) {
+      console.error("[ERROR] Get clinics failed:", error);
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to get clinics" });
+    }
+  });
+
   // Clinic update route
   app.patch("/api/clinics/update", requireAuth, async (req, res) => {
     try {
