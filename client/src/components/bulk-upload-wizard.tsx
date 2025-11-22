@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { ImportJob } from "@shared/schema";
@@ -72,6 +73,7 @@ export default function BulkUploadWizard() {
 
   const [importId, setImportId] = useState<string | null>(null);
   const [pollingStatus, setPollingStatus] = useState(false);
+  const [selectedJobErrors, setSelectedJobErrors] = useState<Array<{row: number; error: string}> | null>(null);
 
   // Fetch import jobs history
   const { data: importJobs, isLoading: jobsLoading } = useQuery<ImportJob[]>({
@@ -165,20 +167,28 @@ export default function BulkUploadWizard() {
       const status = importStatus.status;
       if (status === 'COMPLETED' || status === 'FAILED') {
         setPollingStatus(false);
+        setUploadState(prev => ({ ...prev, uploading: false }));
         queryClient.invalidateQueries({ queryKey: ["/api/imports/recent"] });
         queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
         
         const successCount = importStatus.success || 0;
         const failedCount = importStatus.failed || 0;
         
-        toast({
-          title: status === 'COMPLETED' ? "Import complete" : "Import failed",
-          description: `Successfully imported ${successCount} cases. ${failedCount > 0 ? `${failedCount} failed.` : ''}`,
-          variant: status === 'FAILED' ? "destructive" : "default",
-        });
+        if (status === 'COMPLETED') {
+          toast({
+            title: "Import complete",
+            description: `Successfully imported ${successCount} cases.${failedCount > 0 ? ` ${failedCount} rows had errors.` : ''}`,
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Import failed",
+            description: failedCount > 0 ? `${failedCount} rows failed validation. Click "View Errors" to see details.` : "Import processing failed.",
+            variant: "destructive",
+          });
+        }
         
         setImportId(null);
-        setUploadState(prev => ({ ...prev, uploading: false }));
       }
     }
   }, [importStatus, pollingStatus, queryClient, toast]);
@@ -444,42 +454,6 @@ export default function BulkUploadWizard() {
               </div>
             )}
 
-            <div className="flex justify-between mt-6">
-              <Button
-                variant="outline"
-                onClick={resetUploadState}
-                data-testid="button-start-over"
-              >
-                Start Over
-              </Button>
-              
-              <div className="space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentStep('validation')}
-                  data-testid="button-preview-data"
-                >
-                  Preview Data
-                </Button>
-                <Button
-                  onClick={handleImport}
-                  disabled={importMutation.isPending || Object.keys(uploadState.mapping).length === 0}
-                  data-testid="button-import-data"
-                >
-                  {importMutation.isPending ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      Importing...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-upload mr-2"></i>
-                      Import Data
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
           </CardContent>
         </Card>
       )}
@@ -546,22 +520,38 @@ export default function BulkUploadWizard() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        {job.status === "COMPLETED" && (
+                        {(job.status === "COMPLETED" || job.status === "FAILED") && job.errorRows && job.errorRows > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            data-testid={`button-view-log-${job.id}`}
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`/api/imports/${job.id}/status`, { credentials: 'include' });
+                                if (!response.ok) {
+                                  const errorText = await response.text();
+                                  throw new Error(`Failed to fetch errors: ${errorText.slice(0, 100)}`);
+                                }
+                                const data = await response.json();
+                                if (data.errors && data.errors.length > 0) {
+                                  setSelectedJobErrors(data.errors);
+                                } else {
+                                  toast({
+                                    title: "No error details",
+                                    description: "Error details are not available for this import.",
+                                    variant: "default",
+                                  });
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Failed to load errors",
+                                  description: error instanceof Error ? error.message : "Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            data-testid={`button-view-errors-${job.id}`}
                           >
-                            <i className="fas fa-list mr-1"></i>View Log
-                          </Button>
-                        )}
-                        {job.errorFileUrl && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            data-testid={`button-download-errors-${job.id}`}
-                          >
-                            <i className="fas fa-download mr-1"></i>Download Errors
+                            <i className="fas fa-exclamation-triangle mr-1"></i>View Errors
                           </Button>
                         )}
                       </div>
@@ -581,6 +571,34 @@ export default function BulkUploadWizard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Error Details Dialog */}
+      <Dialog open={selectedJobErrors !== null} onOpenChange={() => setSelectedJobErrors(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Import Errors</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {selectedJobErrors && selectedJobErrors.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Showing {selectedJobErrors.length} error{selectedJobErrors.length !== 1 ? 's' : ''} (limited to first 100)
+                </p>
+                {selectedJobErrors.map((error, index) => (
+                  <div key={index} className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <div className="flex items-start gap-2">
+                      <Badge variant="destructive" className="mt-0.5">Row {error.row}</Badge>
+                      <p className="text-sm text-foreground flex-1">{error.error}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">No error details available</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

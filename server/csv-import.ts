@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import { z } from 'zod';
+import { readFile } from 'fs/promises';
 import type { InsertCase } from '@shared/schema';
 
 // State mapping from friendly names to database enum values
@@ -123,17 +124,21 @@ export interface CSVParseResult {
 }
 
 export async function parseCSVFile(filePath: string, clinicId: string, userId: string): Promise<CSVParseResult> {
-  return new Promise((resolve) => {
-    const rows: ParsedRow[] = [];
-    let totalRows = 0;
-    let validRows = 0;
+  try {
+    // Read the file contents first
+    const fileContent = await readFile(filePath, 'utf-8');
+    
+    return new Promise((resolve) => {
+      const rows: ParsedRow[] = [];
+      let totalRows = 0;
+      let validRows = 0;
 
-    Papa.parse(filePath, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: (header) => header.toLowerCase().trim(),
-      comments: '#',
-      step: (result, parser) => {
+      Papa.parse(fileContent, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.toLowerCase().trim(),
+        comments: '#',
+        step: (result, parser) => {
         totalRows++;
         const rowNum = totalRows;
 
@@ -201,6 +206,15 @@ export async function parseCSVFile(filePath: string, clinicId: string, userId: s
           error: error.message,
         });
       },
+      });
     });
-  });
+  } catch (error) {
+    return {
+      success: false,
+      rows: [],
+      totalRows: 0,
+      validRows: 0,
+      error: error instanceof Error ? error.message : 'Failed to read CSV file',
+    };
+  }
 }
