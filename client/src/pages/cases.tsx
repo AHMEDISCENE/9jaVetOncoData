@@ -33,13 +33,19 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 const outcomeColors = {
   REMISSION: "bg-green-100 text-green-800",
   TREATMENT_ONGOING: "bg-blue-100 text-blue-800",
+  MORTALITY: "bg-red-100 text-red-800",
+  EUTHANASIA: "bg-orange-100 text-orange-800",
+  MANAGEMENT: "bg-purple-100 text-purple-800",
   DECEASED: "bg-red-100 text-red-800",
   LOST_TO_FOLLOWUP: "bg-gray-100 text-gray-800",
 };
 
 const outcomeLabels = {
   REMISSION: "Remission",
-  TREATMENT_ONGOING: "Treatment Ongoing",
+  TREATMENT_ONGOING: "Ongoing Treatment",
+  MORTALITY: "Mortality",
+  EUTHANASIA: "Euthanasia",
+  MANAGEMENT: "Management",
   DECEASED: "Deceased",
   LOST_TO_FOLLOWUP: "Lost to Follow-up",
 };
@@ -575,9 +581,10 @@ export default function Cases() {
                 <SelectContent>
                   <SelectItem value="__all">All Outcomes</SelectItem>
                   <SelectItem value="REMISSION">Remission</SelectItem>
-                  <SelectItem value="TREATMENT_ONGOING">Treatment Ongoing</SelectItem>
-                  <SelectItem value="DECEASED">Deceased</SelectItem>
-                  <SelectItem value="LOST_TO_FOLLOWUP">Lost to Follow-up</SelectItem>
+                  <SelectItem value="TREATMENT_ONGOING">Ongoing Treatment</SelectItem>
+                  <SelectItem value="MORTALITY">Mortality</SelectItem>
+                  <SelectItem value="EUTHANASIA">Euthanasia</SelectItem>
+                  <SelectItem value="MANAGEMENT">Management</SelectItem>
                 </SelectContent>
               </Select>
             </div>
