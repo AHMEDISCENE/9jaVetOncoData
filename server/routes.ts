@@ -1344,56 +1344,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/imports/template.csv", requireAuth, async (req, res) => {
-    const csvContent = `patient_name,species,breed,sex,age_years,age_months,state,diagnosis_date,tumour_type,tumour_type_custom,anatomical_site,anatomical_site_custom,laterality,stage,diagnosis_method,treatment_plan,treatment_start,outcome,last_follow_up,notes
-Fluffy,Canine,Labrador Retriever,MALE_NEUTERED,5,6,Lagos,2025-01-15,Melanoma,,Skin,,Left,,Histopathology,Chemotherapy,2025-01-20,TREATMENT_ONGOING,2025-02-20,Responding well to treatment
-Whiskers,Feline,Persian,FEMALE_SPAYED,8,3,Kano,2025-01-20,Lymphoma,,Lymph Node,,Bilateral,,Cytology,Palliative Care,2025-01-22,TREATMENT_ONGOING,2025-02-10,Limited response
-Rex,Canine,German Shepherd,MALE_INTACT,3,0,Akwa Ibom,2025-01-25,Mammary Tumour,,Mammary Gland,,Central,Stage 2,Fine Needle Aspirate,Surgery + Radiation,2025-02-01,REMISSION,,Post-surgical recovery progressing
-
-# ======== INSTRUCTIONS FOR BULK UPLOAD ========
-#
-# REQUIRED FIELDS (must have values):
-#   - species: Either "Canine" or "Feline"
-#   - breed: Name of the breed
-#   - state: Nigerian state name (see list below)
-#   - diagnosis_date: Date of diagnosis (YYYY-MM-DD format)
-#
-# OPTIONAL BUT RECOMMENDED:
-#   - patient_name: Pet name or identifier
-#   - sex: MALE_NEUTERED, MALE_INTACT, FEMALE_SPAYED, or FEMALE_INTACT
-#   - age_years: Age in whole years (numeric)
-#   - age_months: Additional months of age (numeric, 0-11)
-#   - tumour_type: Type of cancer (e.g., Melanoma, Lymphoma, Mammary Tumour)
-#   - tumour_type_custom: Custom tumour type if not in standard list
-#   - anatomical_site: Location of tumour (e.g., Skin, Lymph Node, Mammary Gland)
-#   - anatomical_site_custom: Custom anatomical site if not in standard list
-#   - laterality: Left, Right, Bilateral, or Central
-#   - stage: Cancer stage (e.g., Stage 1, Stage 2, Stage 3)
-#   - diagnosis_method: How it was diagnosed (e.g., Histopathology, Cytology, Imaging)
-#   - treatment_plan: Planned treatment approach
-#   - treatment_start: When treatment began (YYYY-MM-DD)
-#   - outcome: REMISSION, TREATMENT_ONGOING, DECEASED, or LOST_TO_FOLLOWUP
-#   - last_follow_up: Date of most recent follow-up (YYYY-MM-DD)
-#   - notes: Any additional clinical notes or observations
-#
-# IMPORTANT NOTES:
-#   1. Leave cells BLANK for empty/unknown values - DO NOT use "N/A" or "null"
-#   2. DATE FORMAT: Always use YYYY-MM-DD (e.g., 2025-01-15)
-#   3. Keep text entries concise and clear
-#   4. Do NOT include quotes around values
-#   5. Do NOT include this instruction section in your upload file
-#   6. The geopolitical zone will be automatically determined from the state
-#
-# ACCEPTED NIGERIAN STATES:
-#   Abia, Adamawa, Akwa Ibom, Anambra, Bauchi, Bayelsa, Benue, Borno,
-#   Cross River, Delta, Ebonyi, Edo, Ekiti, Enugu, FCT, Gombe, Imo,
-#   Jigawa, Kaduna, Kano, Katsina, Kebbi, Kogi, Kwara, Lagos, Nasarawa,
-#   Niger, Ogun, Ondo, Osun, Oyo, Plateau, Rivers, Sokoto, Taraba, Yobe, Zamfara
-#
-# SEX VALUES: MALE_NEUTERED | MALE_INTACT | FEMALE_SPAYED | FEMALE_INTACT
-#
-# OUTCOME VALUES: REMISSION | TREATMENT_ONGOING | DECEASED | LOST_TO_FOLLOWUP
-#
-# ============================================`;
+    const csvContent = `species,breed,state,diagnosis_date,patient_name,sex,age_years,age_months,tumour_type,tumour_type_custom,anatomical_site,anatomical_site_custom,laterality,stage,diagnosis_method,treatment_plan,treatment_start,outcome,last_follow_up,notes
+Canine,Labrador Retriever,Lagos,2025-01-15,Fluffy,MALE_NEUTERED,5,6,Melanoma,,Skin,,Left,,Histopathology,Chemotherapy,2025-01-20,TREATMENT_ONGOING,2025-02-20,Responding well to treatment
+Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bilateral,,Cytology,Palliative Care,2025-01-22,TREATMENT_ONGOING,2025-02-10,Limited response`;
     
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="9ja-vetonco-bulk-template.csv"');
