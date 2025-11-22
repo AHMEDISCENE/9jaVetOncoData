@@ -60,7 +60,7 @@ export default function Settings() {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: (data: ProfileFormData) => apiRequest("/api/users/profile", "PATCH", data),
+    mutationFn: (data: ProfileFormData) => apiRequest("PATCH", "/api/users/profile", data),
     onSuccess: () => {
       toast({ description: "Profile updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -75,7 +75,7 @@ export default function Settings() {
 
   // Update clinic mutation
   const updateClinicMutation = useMutation({
-    mutationFn: (data: ClinicFormData) => apiRequest("/api/clinics/update", "PATCH", data),
+    mutationFn: (data: ClinicFormData) => apiRequest("PATCH", "/api/clinics/update", data),
     onSuccess: () => {
       toast({ description: "Clinic information updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });

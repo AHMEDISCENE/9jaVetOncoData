@@ -92,9 +92,7 @@ export default function CaseDetail() {
 
   const deleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      return await apiRequest(`/api/cases/${caseId}/files/${fileId}`, {
-        method: "DELETE",
-      });
+      return await apiRequest("DELETE", `/api/cases/${caseId}/files/${fileId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cases/${caseId}/files`] });
