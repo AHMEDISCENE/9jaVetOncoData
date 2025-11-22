@@ -93,7 +93,7 @@ const csvRowSchema = z.object({
   outcome: z.string().optional().transform((val) => {
     if (!val || val.trim() === '') return null;
     const normalized = val.toUpperCase().replace(/\s+/g, '_');
-    const valid = ['REMISSION', 'TREATMENT_ONGOING', 'DECEASED', 'LOST_TO_FOLLOWUP'];
+    const valid = ['REMISSION', 'MORTALITY', 'EUTHANASIA', 'TREATMENT_ONGOING', 'MANAGEMENT'];
     if (!valid.includes(normalized)) {
       throw new Error(`Invalid outcome: ${val}. Must be one of: ${valid.join(', ')}`);
     }
