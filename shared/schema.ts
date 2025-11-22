@@ -5,7 +5,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const roleEnum = pgEnum("role", ["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER"]);
+export const roleEnum = pgEnum("role", ["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]);
 export const sexEnum = pgEnum("sex", ["MALE_NEUTERED", "MALE_INTACT", "FEMALE_SPAYED", "FEMALE_INTACT"]);
 export const statusEnum = pgEnum("status", ["DRAFT", "ACTIVE", "COMPLETED", "ARCHIVED"]);
 export const outcomeEnum = pgEnum("outcome", ["REMISSION", "MORTALITY", "EUTHANASIA", "TREATMENT_ONGOING", "MANAGEMENT"]);

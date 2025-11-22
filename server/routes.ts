@@ -33,7 +33,7 @@ const registerSchema = z.object({
 
 const inviteSchema = z.object({
   email: z.string().email(),
-  role: z.enum(["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER"]),
+  role: z.enum(["MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]),
 });
 
 const filterSchema = z.object({
@@ -93,12 +93,20 @@ const requireAuth = (req: any, res: any, next: any) => {
 };
 
 const requireRole = (minRole: string) => (req: any, res: any, next: any) => {
-  const roleHierarchy = ["RESEARCHER", "CLINICIAN", "MANAGER", "ADMIN"];
+  const roleHierarchy = ["STUDENT", "RESEARCHER", "CLINICIAN", "MANAGER", "ADMIN"];
   const userRoleIndex = roleHierarchy.indexOf(req.session?.userRole || "");
   const minRoleIndex = roleHierarchy.indexOf(minRole);
   
   if (userRoleIndex < minRoleIndex) {
     return res.status(403).json({ message: "Insufficient permissions" });
+  }
+  next();
+};
+
+// Validation middleware to prevent ADMIN role in request body
+const preventAdminRoleInBody = (req: any, res: any, next: any) => {
+  if (req.body?.role === "ADMIN") {
+    return res.status(403).json({ message: "Cannot assign ADMIN role through this endpoint" });
   }
   next();
 };
@@ -226,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/setup-clinic", requireAuth, async (req, res) => {
     try {
       const userId = (req.session as any).userId;
-      const { clinicName, clinicState, clinicCity, role } = req.body;
+      const { clinicName, clinicState, clinicCity } = req.body;
 
       // Create clinic
       const clinic = await storage.createClinic({
@@ -235,10 +243,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         city: clinicCity,
       });
 
-      // Update user with clinic and role
+      // Update user with clinic and ADMIN role (first user of clinic is always admin)
       const updatedUser = await storage.updateUser(userId, {
         clinicId: clinic.id,
-        role: role || "CLINICIAN",
+        role: "ADMIN",
       });
 
       // Update session
@@ -391,7 +399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invitation routes
-  app.post("/api/invitations", requireAuth, requireRole("MANAGER"), async (req, res) => {
+  app.post("/api/invitations", requireAuth, requireRole("MANAGER"), preventAdminRoleInBody, async (req, res) => {
     try {
       const { email, role } = inviteSchema.parse(req.body);
       const clinicId = (req.session as any).clinicId;
