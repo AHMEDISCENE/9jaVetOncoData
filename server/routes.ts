@@ -1202,12 +1202,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const absoluteFilePath = path.resolve(import.meta.dirname, '..', importJob.fileUrl);
       const fileContent = await readFile(absoluteFilePath, 'utf8');
       
-      const rows = fileContent
+      const allLines = fileContent
         .split(/\r?\n/)
         .map(line => line.trim())
-        .filter(line => line.length > 0);
+        .filter(line => line.length > 0 && !line.startsWith('#'));
       
-      if (rows.length < 2) {
+      if (allLines.length < 2) {
         await storage.updateImportJob(importId, {
           status: 'FAILED',
           errors: [{ row: 0, error: 'File is empty or contains only headers' }]
@@ -1215,8 +1215,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ success: false, error: 'File is empty' });
       }
 
-      const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
-      const dataRows = rows.slice(1);
+      const headers = allLines[0].split(',').map(h => h.trim().toLowerCase());
+      const dataRows = allLines.slice(1);
       
       await storage.updateImportJob(importId, { totalRows: dataRows.length });
 
