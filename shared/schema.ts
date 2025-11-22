@@ -8,7 +8,7 @@ import { z } from "zod";
 export const roleEnum = pgEnum("role", ["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER"]);
 export const sexEnum = pgEnum("sex", ["MALE_NEUTERED", "MALE_INTACT", "FEMALE_SPAYED", "FEMALE_INTACT"]);
 export const statusEnum = pgEnum("status", ["DRAFT", "ACTIVE", "COMPLETED", "ARCHIVED"]);
-export const outcomeEnum = pgEnum("outcome", ["REMISSION", "TREATMENT_ONGOING", "DECEASED", "LOST_TO_FOLLOWUP"]);
+export const outcomeEnum = pgEnum("outcome", ["REMISSION", "MORTALITY", "EUTHANASIA", "TREATMENT_ONGOING", "MANAGEMENT"]);
 export const attachmentKindEnum = pgEnum("attachment_kind", ["IMAGE", "PDF", "LAB"]);
 export const reportStatusEnum = pgEnum("report_status", ["PENDING", "RUNNING", "COMPLETED", "FAILED"]);
 export const feedStatusEnum = pgEnum("feed_status", ["DRAFT", "PUBLISHED", "MODERATION"]);

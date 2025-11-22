@@ -40,6 +40,7 @@ const caseSchema = z.object({
   diagnosisMethod: z.string().optional(),
   treatmentPlan: z.string().optional(),
   treatmentStart: z.string().transform(val => val === "" ? undefined : val).optional(),
+  outcome: z.enum(["REMISSION", "MORTALITY", "EUTHANASIA", "TREATMENT_ONGOING", "MANAGEMENT"]).optional(),
   notes: z.string().optional(),
 });
 
@@ -82,6 +83,7 @@ export default function CaseWizard() {
       diagnosisMethod: "",
       treatmentPlan: "",
       treatmentStart: "",
+      outcome: "",
       notes: "",
     },
   });
@@ -736,6 +738,31 @@ export default function CaseWizard() {
                         <FormControl>
                           <Input type="date" data-testid="input-treatment-start" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="outcome"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Outcome / Animal Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-outcome">
+                              <SelectValue placeholder="Select outcome status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="REMISSION">Remission</SelectItem>
+                            <SelectItem value="MORTALITY">Mortality</SelectItem>
+                            <SelectItem value="EUTHANASIA">Euthanasia</SelectItem>
+                            <SelectItem value="TREATMENT_ONGOING">Ongoing Treatment</SelectItem>
+                            <SelectItem value="MANAGEMENT">Management</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
