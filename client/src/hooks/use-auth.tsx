@@ -26,6 +26,7 @@ interface RegisterData {
   clinicName: string;
   clinicState: string;
   clinicCity: string;
+  role: string;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);

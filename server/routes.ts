@@ -29,6 +29,7 @@ const registerSchema = z.object({
   clinicName: z.string().min(1),
   clinicState: z.string().min(1),
   clinicCity: z.string().min(1),
+  role: z.enum(["MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]).default("CLINICIAN"),
 });
 
 const inviteSchema = z.object({
@@ -231,10 +232,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Clinic setup route for Google OAuth users
-  app.post("/api/auth/setup-clinic", requireAuth, async (req, res) => {
+  app.post("/api/auth/setup-clinic", requireAuth, preventAdminRoleInBody, async (req, res) => {
     try {
       const userId = (req.session as any).userId;
-      const { clinicName, clinicState, clinicCity } = req.body;
+      const { clinicName, clinicState, clinicCity, role } = req.body;
 
       // Create clinic
       const clinic = await storage.createClinic({
@@ -243,10 +244,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         city: clinicCity,
       });
 
-      // Update user with clinic and ADMIN role (first user of clinic is always admin)
+      // Update user with clinic and selected role
       const updatedUser = await storage.updateUser(userId, {
         clinicId: clinic.id,
-        role: "ADMIN",
+        role: role || "CLINICIAN",
       });
 
       // Update session
@@ -280,9 +281,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auth routes
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", preventAdminRoleInBody, async (req, res) => {
     try {
-      const { email, name, password, clinicName, clinicState, clinicCity } = registerSchema.parse(req.body);
+      const { email, name, password, clinicName, clinicState, clinicCity, role } = registerSchema.parse(req.body);
       
       // Check if user exists
       const existingUser = await storage.getUserByEmail(email);
@@ -300,12 +301,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         city: clinicCity,
       });
       
-      // Create user as admin of the clinic
+      // Create user with selected role
       const user = await storage.createUser({
         email,
         name,
         password: hashedPassword,
-        role: "ADMIN",
+        role: role as any,
         clinicId: clinic.id,
       });
       

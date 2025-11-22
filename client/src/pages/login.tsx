@@ -27,6 +27,7 @@ const registerSchema = z.object({
   clinicName: z.string().min(1, "Clinic name is required"),
   clinicState: z.string().min(1, "State is required"),
   clinicCity: z.string().min(1, "City is required"),
+  role: z.enum(["MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]).default("CLINICIAN"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -64,6 +65,7 @@ export default function Login() {
       clinicName: "",
       clinicState: "",
       clinicCity: "",
+      role: "CLINICIAN",
     },
   });
 
@@ -93,6 +95,7 @@ export default function Login() {
         clinicName: values.clinicName,
         clinicState: values.clinicState,
         clinicCity: values.clinicCity,
+        role: values.role,
       });
       setLocation("/dashboard");
       toast({
@@ -381,6 +384,30 @@ export default function Login() {
                                 {...field}
                               />
                             </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={registerForm.control}
+                        name="role"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Your Role</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-user-role">
+                                  <SelectValue placeholder="Select your role" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="MANAGER">Manager</SelectItem>
+                                <SelectItem value="CLINICIAN">Clinician</SelectItem>
+                                <SelectItem value="RESEARCHER">Researcher</SelectItem>
+                                <SelectItem value="STUDENT">Student</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
