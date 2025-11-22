@@ -13,7 +13,6 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { putObject, getObject, deleteObject, generateStorageKey, isAllowedMimeType, determineFileKind, MAX_FILE_SIZE, MAX_FILES_PER_CASE } from "./storage/files";
 import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import path from "path";
-import { computeZoneFromState } from "./geo/nigeria-zones";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -1185,6 +1184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const importId = req.params.id;
       const clinicId = (req.session as any).clinicId;
+      const userId = (req.session as any).userId;
       
       const importJob = await storage.getImportJobById(importId);
       if (!importJob || importJob.clinicId !== clinicId) {
@@ -1199,101 +1199,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors: []
       });
 
-      const absoluteFilePath = path.resolve(import.meta.dirname, '..', importJob.fileUrl);
-      const fileContent = await readFile(absoluteFilePath, 'utf8');
-      
-      const allLines = fileContent
-        .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(line => line.length > 0 && !line.startsWith('#'));
-      
-      if (allLines.length < 2) {
-        await storage.updateImportJob(importId, {
-          status: 'FAILED',
-          errors: [{ row: 0, error: 'File is empty or contains only headers' }]
-        });
-        return res.json({ success: false, error: 'File is empty' });
-      }
-
-      const headers = allLines[0].split(',').map(h => h.trim().toLowerCase());
-      const dataRows = allLines.slice(1);
-      
-      await storage.updateImportJob(importId, { totalRows: dataRows.length });
-
       res.json({ success: true, message: 'Import started' });
 
+      // Process import asynchronously
       setImmediate(async () => {
-        const errors: Array<{row: number; error: string}> = [];
-        let successCount = 0;
-        let failedCount = 0;
+        try {
+          const absoluteFilePath = path.resolve(import.meta.dirname, '..', importJob.fileUrl);
+          
+          // Parse CSV file
+          const { parseCSVFile } = await import('./csv-import.js');
+          const parseResult = await parseCSVFile(absoluteFilePath, clinicId, userId);
 
-        for (let i = 0; i < dataRows.length; i++) {
-          try {
-            const values = dataRows[i].split(',').map(v => v.trim());
-            const rowData: any = {};
-            headers.forEach((header, idx) => {
-              rowData[header] = values[idx] || '';
+          if (!parseResult.success) {
+            await storage.updateImportJob(importId, {
+              status: 'FAILED',
+              errors: [{ row: 0, error: parseResult.error || 'CSV parsing failed' }],
+              completedAt: new Date()
             });
-
-            if (!rowData.state) {
-              errors.push({ row: i + 2, error: 'State is required' });
-              failedCount++;
-              continue;
-            }
-
-            const zone = computeZoneFromState(rowData.state);
-            if (zone === 'Unknown') {
-              errors.push({ row: i + 2, error: `Invalid state: ${JSON.stringify(rowData.state)}` });
-              failedCount++;
-              continue;
-            }
-
-            // Convert state to database enum format (e.g., "Lagos" -> "LAGOS")
-            const stateEnum = rowData.state.trim().toUpperCase().replace(/\s+/g, '_');
-            
-            // Convert zone to database enum format (e.g., "North East" -> "NORTH_EAST")
-            const zoneEnum = zone.toUpperCase().replace(/\s+/g, '_');
-
-            const caseData: any = {
-              clinicId,
-              createdBy: (req.session as any).userId,
-              state: stateEnum,
-              geoZone: zoneEnum,
-              patientName: rowData.patient_name || null,
-              species: rowData.species || null,
-              breed: rowData.breed || null,
-              sex: rowData.sex || null,
-              ageYears: rowData.age_years ? parseInt(rowData.age_years) : null,
-              ageMonths: rowData.age_months ? parseInt(rowData.age_months) : null,
-              diagnosisDate: rowData.diagnosis_date || null,
-              diagnosisMethod: rowData.diagnosis_method || null,
-              tumourTypeCustom: rowData.tumour_type_custom || rowData.tumour_type || null,
-              anatomicalSiteCustom: rowData.anatomical_site_custom || rowData.anatomical_site || null,
-              laterality: rowData.laterality || null,
-              stage: rowData.stage || null,
-              treatmentPlan: rowData.treatment_plan || null,
-              treatmentStart: rowData.treatment_start || null,
-              outcome: rowData.outcome || null,
-              lastFollowUp: rowData.last_follow_up || null,
-              notes: rowData.notes || null,
-            };
-
-            await storage.createCase(insertCaseSchema.parse(caseData));
-            successCount++;
-          } catch (err) {
-            errors.push({ row: i + 2, error: err instanceof Error ? err.message : 'Unknown error' });
-            failedCount++;
+            return;
           }
-        }
 
-        await storage.updateImportJob(importId, {
-          status: failedCount === dataRows.length ? 'FAILED' : 'COMPLETED',
-          processedRows: dataRows.length,
-          successRows: successCount,
-          errorRows: failedCount,
-          errors: errors.slice(0, 100),
-          completedAt: new Date()
-        });
+          if (parseResult.totalRows === 0) {
+            await storage.updateImportJob(importId, {
+              status: 'FAILED',
+              errors: [{ row: 0, error: 'File is empty or contains no valid data rows' }],
+              completedAt: new Date()
+            });
+            return;
+          }
+
+          // Update total rows count
+          await storage.updateImportJob(importId, { 
+            totalRows: parseResult.totalRows 
+          });
+
+          const errors: Array<{row: number; error: string}> = [];
+          let successCount = 0;
+          let failedCount = 0;
+          const BATCH_SIZE = 10;
+
+          // Process rows in batches with progress updates
+          for (let i = 0; i < parseResult.rows.length; i++) {
+            const parsedRow = parseResult.rows[i];
+            
+            if (parsedRow.error) {
+              errors.push({ row: i + 2, error: parsedRow.error });
+              failedCount++;
+            } else {
+              try {
+                await storage.createCase(parsedRow.data as any);
+                successCount++;
+              } catch (err) {
+                const errorMsg = err instanceof Error ? err.message : 'Unknown error creating case';
+                errors.push({ row: i + 2, error: errorMsg });
+                failedCount++;
+              }
+            }
+
+            // Update progress every BATCH_SIZE rows
+            if ((i + 1) % BATCH_SIZE === 0 || i === parseResult.rows.length - 1) {
+              await storage.updateImportJob(importId, {
+                processedRows: i + 1,
+                successRows: successCount,
+                errorRows: failedCount,
+                errors: errors.slice(0, 100), // Keep first 100 errors
+              });
+            }
+          }
+
+          // Final update
+          await storage.updateImportJob(importId, {
+            status: successCount === 0 ? 'FAILED' : 'COMPLETED',
+            processedRows: parseResult.totalRows,
+            successRows: successCount,
+            errorRows: failedCount,
+            errors: errors.slice(0, 100),
+            completedAt: new Date()
+          });
+        } catch (error) {
+          console.error('[ERROR] Import processing failed:', error);
+          await storage.updateImportJob(importId, {
+            status: 'FAILED',
+            errors: [{ row: 0, error: error instanceof Error ? error.message : 'Import processing failed' }],
+            completedAt: new Date()
+          });
+        }
       });
     } catch (error) {
       console.error('[ERROR] Import start failed:', error);
