@@ -44,7 +44,7 @@ export interface CaseFilters {
   tumourTypeId?: string[];
   sort?: 'clinic' | 'zone' | 'state' | 'date' | 'case_number';
   order?: 'asc' | 'desc';
-  groupBy?: 'none' | 'zone' | 'state' | 'clinic';
+  groupBy?: 'none' | 'zone' | 'state' | 'clinic' | 'tumourType' | 'species' | 'breed' | 'sex';
 }
 
 export interface PaginationParams {

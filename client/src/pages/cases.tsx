@@ -461,6 +461,22 @@ export default function Cases() {
           groupKey = caseItem.clinic?.id || 'Unspecified';
           groupLabel = caseItem.clinic?.name || 'Unspecified';
           break;
+        case 'tumourType':
+          groupKey = caseItem.tumourTypeCustom || 'Unspecified';
+          groupLabel = groupKey;
+          break;
+        case 'species':
+          groupKey = caseItem.species || 'Unspecified';
+          groupLabel = groupKey;
+          break;
+        case 'breed':
+          groupKey = caseItem.breed || 'Unspecified';
+          groupLabel = groupKey;
+          break;
+        case 'sex':
+          groupKey = caseItem.sex || 'Unspecified';
+          groupLabel = groupKey;
+          break;
       }
       
       if (!groups.has(groupKey)) {
@@ -744,6 +760,10 @@ export default function Cases() {
                   <SelectItem value="zone">Geo-Political Zone</SelectItem>
                   <SelectItem value="state">State</SelectItem>
                   <SelectItem value="clinic">Clinic</SelectItem>
+                  <SelectItem value="tumourType">Tumour Type</SelectItem>
+                  <SelectItem value="species">Species</SelectItem>
+                  <SelectItem value="breed">Breed</SelectItem>
+                  <SelectItem value="sex">Sex</SelectItem>
                 </SelectContent>
               </Select>
             </div>
