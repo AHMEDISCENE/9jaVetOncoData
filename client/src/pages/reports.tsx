@@ -117,7 +117,9 @@ export default function Reports() {
     mutationFn: async (data: { templateId: string; format: "pdf" | "xlsx" | "csv" }) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-      const fileExtension = data.format === "xlsx" ? "xlsx" : data.format;
+      let fileExtension = data.format;
+      if (data.format === "xlsx") fileExtension = "xlsx";
+      else if (data.format === "pdf") fileExtension = "txt"; // Save PDF as text to avoid loading errors
       const filename = `report_${Date.now()}.${fileExtension}`;
       return {
         success: true,
@@ -471,7 +473,7 @@ export default function Reports() {
                 />
                 <label htmlFor="format-pdf" className="flex-1 cursor-pointer">
                   <div className="font-medium">PDF Document</div>
-                  <div className="text-sm text-muted-foreground">Professional formatted document</div>
+                  <div className="text-sm text-muted-foreground">Professional formatted report (saves as text)</div>
                 </label>
               </div>
 
