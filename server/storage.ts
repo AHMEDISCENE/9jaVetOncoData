@@ -1317,11 +1317,11 @@ export class DatabaseStorage implements IStorage {
         useJoin = false;
       }
 
-      // Build dynamic query with filters
-      let query = db.select().from(cases).$dynamic();
+      // Build WHERE conditions array to combine with AND
+      const whereConditions = [];
 
       if (filters.clinicIds && filters.clinicIds.length > 0) {
-        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+        whereConditions.push(inArray(cases.clinicId, filters.clinicIds));
       }
 
       if (filters.geoZones && filters.geoZones.length > 0) {
@@ -1333,7 +1333,7 @@ export class DatabaseStorage implements IStorage {
           
           if (allowedStates.length > 0) {
             const stateCodes = allowedStates.map(s => s.code);
-            query = query.where(inArray(cases.state, stateCodes as any));
+            whereConditions.push(inArray(cases.state, stateCodes as any));
           }
         } else {
           // Convert zone format from "NORTH_CENTRAL" to "North Central" for statesForZones
@@ -1343,36 +1343,40 @@ export class DatabaseStorage implements IStorage {
               .join(' ')
           );
           const allowedStates = statesForZones(convertedZones);
+          
           if (allowedStates.length > 0) {
             // Convert state names to uppercase enums for matching
             const stateEnums = allowedStates.map(s => s.toUpperCase());
-            query = query.where(inArray(cases.state, stateEnums as any));
+            whereConditions.push(inArray(cases.state, stateEnums as any));
           }
         }
       }
 
       if (filters.states && filters.states.length > 0) {
-        query = query.where(inArray(cases.state, filters.states));
+        whereConditions.push(inArray(cases.state, filters.states));
       }
 
       if (filters.species && filters.species.length > 0) {
-        query = query.where(inArray(cases.species, filters.species as any));
+        whereConditions.push(inArray(cases.species, filters.species as any));
       }
 
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
-        query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+        whereConditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
       }
 
       if (filters.from) {
-        query = query.where(gte(cases.diagnosisDate, new Date(filters.from)));
+        whereConditions.push(gte(cases.diagnosisDate, new Date(filters.from)));
       }
 
       if (filters.to) {
-        query = query.where(lte(cases.diagnosisDate, new Date(filters.to)));
+        whereConditions.push(lte(cases.diagnosisDate, new Date(filters.to)));
       }
 
-      // Execute the filtered query to get all matching cases
-      const allCases = await query;
+      // Execute the query with all conditions combined via AND
+      const allCases = await db
+        .select()
+        .from(cases)
+        .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
 
       // Total cases
       const totalCases = allCases.length;
