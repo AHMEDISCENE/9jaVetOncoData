@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useClinicStats } from "@/hooks/useClinicStats";
 import type { DashboardStats } from "@/lib/types";
 
 type MetricType = "totalCases" | "newThisMonth" | "remissionRate" | "activeClinics" | null;
@@ -42,7 +43,7 @@ export function MetricDrilldown({ metric, isOpen, onClose, stats }: MetricDrilld
       case "remissionRate":
         return <RemissionRateContent stats={stats} />;
       case "activeClinics":
-        return <ActiveClinicsContent stats={stats} />;
+        return <ActiveClinicsContentWithStats stats={stats} />;
       default:
         return null;
     }
@@ -342,13 +343,36 @@ function RemissionRateContent({ stats }: { stats: DashboardStats }) {
   );
 }
 
-function ActiveClinicsContent({ stats }: { stats: DashboardStats }) {
+function ActiveClinicsContentWithStats({ stats }: { stats: DashboardStats }) {
+  const { data: clinicStats, isLoading, error } = useClinicStats();
+
+  return (
+    <ActiveClinicsContent stats={stats} clinicStats={clinicStats} isLoading={isLoading} error={error} />
+  );
+}
+
+function ActiveClinicsContent({ 
+  stats, 
+  clinicStats, 
+  isLoading, 
+  error 
+}: { 
+  stats: DashboardStats;
+  clinicStats?: Array<{ clinicId: string; clinicName: string; totalCases: number }>;
+  isLoading?: boolean;
+  error?: Error | null;
+}) {
   const averageCasesPerClinic = stats.activeClinics > 0 
     ? Math.round(stats.totalCases / stats.activeClinics) 
     : 0;
 
+  const sortedClinics = clinicStats ? [...clinicStats].sort((a, b) => b.totalCases - a.totalCases) : [];
+  const mostActivClinic = sortedClinics[0];
+  const leastActiveClinic = sortedClinics[sortedClinics.length - 1];
+
   return (
     <div className="space-y-6">
+      {/* Main Clinic Count Card */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Clinic Participation Overview</CardTitle>
@@ -378,27 +402,85 @@ function ActiveClinicsContent({ stats }: { stats: DashboardStats }) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Clinic-Level Insights</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <i className="fas fa-building text-4xl mb-3 opacity-50"></i>
-            <p className="font-medium">Per-clinic statistics not available in summary analytics</p>
-            <p className="text-sm mt-2 max-w-md mx-auto">
-              Individual clinic performance data, case distributions, and activity metrics require administrative access 
-              to protect clinic privacy and data security.
-            </p>
-            <div className="mt-6 p-4 bg-muted/30 rounded-lg max-w-md mx-auto">
-              <p className="text-xs">
-                <strong>For administrators:</strong> Contact your system administrator for detailed clinic-level reports 
-                and performance analytics.
-              </p>
-            </div>
+      {/* Clinic Rankings */}
+      {isLoading && (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            <p>Loading clinic statistics…</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {error && (
+        <Card>
+          <CardContent className="py-8 text-center text-destructive">
+            <p>Failed to load clinic statistics</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !error && clinicStats && (
+        <>
+          {/* Most and Least Active Clinics */}
+          <div className="grid grid-cols-2 gap-4">
+            {mostActivClinic && (
+              <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                <CardContent className="pt-6">
+                  <p className="text-xs text-muted-foreground mb-2">Most Active Clinic</p>
+                  <p className="font-semibold text-foreground text-sm">{mostActivClinic.clinicName}</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-2">
+                    {mostActivClinic.totalCases} case{mostActivClinic.totalCases !== 1 ? 's' : ''}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {leastActiveClinic && leastActiveClinic.clinicId !== mostActivClinic?.clinicId && (
+              <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+                <CardContent className="pt-6">
+                  <p className="text-xs text-muted-foreground mb-2">Least Active Clinic</p>
+                  <p className="font-semibold text-foreground text-sm">{leastActiveClinic.clinicName}</p>
+                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-2">
+                    {leastActiveClinic.totalCases} case{leastActiveClinic.totalCases !== 1 ? 's' : ''}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Clinic List */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Clinic Rankings by Case Contribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {sortedClinics.map((clinic, index) => (
+                  <div
+                    key={clinic.clinicId}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-semibold text-primary">#{index + 1}</span>
+                      </div>
+                      <span className="font-medium text-foreground truncate">{clinic.clinicName}</span>
+                    </div>
+                    <span className="text-sm font-bold text-primary ml-3 flex-shrink-0">
+                      {clinic.totalCases} case{clinic.totalCases !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {sortedClinics.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  No clinics available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

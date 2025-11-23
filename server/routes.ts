@@ -775,6 +775,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get clinic stats for the Active Clinics drawer
+  app.get("/api/dashboard/clinic-stats", requireAuth, async (req, res) => {
+    try {
+      const clinicStats = await storage.getClinicStats();
+      res.json(clinicStats);
+    } catch (error) {
+      console.error("[ERROR] Clinic stats failed:", error);
+      res.status(500).json({ message: "Failed to load clinic statistics" });
+    }
+  });
+
   // Analytics routes
   app.get("/api/analytics/stats", requireAuth, async (req, res) => {
     try {

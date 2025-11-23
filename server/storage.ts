@@ -118,6 +118,7 @@ export interface IStorage {
   getNigerianStates(): Promise<Array<{ code: string; name: string; zone: string }>>;
   getClinicsList(): Promise<Array<{ id: string; name: string }>>;
   getAllClinics(): Promise<Array<{ id: string; name: string; state: string; city: string }>>;
+  getClinicStats(): Promise<Array<{ clinicId: string; clinicName: string; totalCases: number }>>;
   getTumourTypesList(): Promise<Array<{ id: string; name: string }>>;
   getCasesByLocation(filters: {
     clinicIds?: string[];
@@ -953,6 +954,20 @@ export class DatabaseStorage implements IStorage {
       state: clinics.state,
       city: clinics.city,
     }).from(clinics).orderBy(asc(clinics.name));
+  }
+
+  async getClinicStats(): Promise<Array<{ clinicId: string; clinicName: string; totalCases: number }>> {
+    const result = await db.select({
+      clinicId: clinics.id,
+      clinicName: clinics.name,
+      totalCases: sql<number>`count(${cases.id})`,
+    })
+      .from(clinics)
+      .leftJoin(cases, eq(cases.clinicId, clinics.id))
+      .groupBy(clinics.id, clinics.name)
+      .orderBy(desc(sql<number>`count(${cases.id})`), asc(clinics.name));
+
+    return result;
   }
 
   async getTumourTypesList(): Promise<Array<{ id: string; name: string }>> {
