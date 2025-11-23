@@ -248,7 +248,6 @@ export default function Dashboard() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
             <p className="text-sm text-muted-foreground">
               {myClinicOnly
                 ? "Viewing your clinic's data"
