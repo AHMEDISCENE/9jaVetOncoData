@@ -474,12 +474,12 @@ export class DatabaseStorage implements IStorage {
       // Zone filtering - resilient approach
       if (filters.zones && filters.zones.length > 0) {
         if (useJoin) {
-          query = query.where(sql`ng_states.zone = ANY(ARRAY[${sql.join(filters.zones.map(z => sql`${z}`), sql`, `)}])`);
+          query = query.where(sql`UPPER(TRIM(ng_states.zone)) = ANY(ARRAY[${sql.join(filters.zones.map(z => sql`UPPER(TRIM(${z}))`), sql`, `)}])`);
         } else {
           const allowedStates = statesForZones(filters.zones);
           if (allowedStates.length > 0) {
             query = query.where(
-              sql`LOWER(TRIM(${cases.state})) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`${s}`), sql`, `)}])`
+              sql`LOWER(TRIM(${cases.state})) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`LOWER(TRIM(${s}))`), sql`, `)}])`
             );
           }
         }
