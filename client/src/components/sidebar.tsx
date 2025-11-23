@@ -72,7 +72,7 @@ export default function Sidebar() {
           className="fixed inset-0 z-40 lg:hidden" 
           onClick={() => setIsMobileOpen(false)}
         >
-          <div className="absolute inset-0 bg-foreground/50"></div>
+          <div className="absolute inset-0 bg-foreground bg-opacity-50"></div>
         </div>
       )}
 
@@ -103,7 +103,7 @@ export default function Sidebar() {
           {/* Desktop Collapse Toggle */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex items-center justify-center h-10 mx-2 mt-2 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className="hidden lg:flex items-center justify-center h-10 mx-2 mt-2 rounded-md bg-muted bg-opacity-50 hover:bg-muted hover:bg-opacity-100 text-muted-foreground hover:text-foreground transition-colors"
             data-testid="button-toggle-sidebar"
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -138,10 +138,10 @@ export default function Sidebar() {
           </nav>
 
           {/* User Profile */}
-          <div className="border-t border-border p-4 bg-muted/30">
+          <div className="border-t border-border p-4 bg-muted bg-opacity-30">
             {isCollapsed ? (
               <div className="flex flex-col items-center space-y-3">
-                <div className="h-9 w-9 bg-primary/10 border-2 border-primary rounded-full flex items-center justify-center" title={user?.name || "Unknown User"}>
+                <div className="h-9 w-9 bg-primary bg-opacity-10 border-2 border-primary rounded-full flex items-center justify-center" title={user?.name || "Unknown User"}>
                   <span className="text-sm font-semibold text-primary" data-testid="text-user-initials">
                     {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                   </span>
@@ -160,7 +160,7 @@ export default function Sidebar() {
             ) : (
               <>
                 <div className="flex items-center space-x-3 mb-4 px-1">
-                  <div className="h-10 w-10 bg-primary/10 border-2 border-primary rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="h-10 w-10 bg-primary bg-opacity-10 border-2 border-primary rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-sm font-semibold text-primary" data-testid="text-user-initials">
                       {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                     </span>
