@@ -28,7 +28,7 @@ interface FileUploadState {
 }
 
 const caseFields = [
-  { value: "patientName", label: "Patient Name" },
+  { value: "patientName", label: "Name" },
   { value: "species", label: "Species" },
   { value: "breed", label: "Breed" },
   { value: "sex", label: "Sex" },
@@ -195,9 +195,9 @@ export default function BulkUploadWizard() {
   }, [importStatus, pollingStatus, queryClient, toast]);
 
   const generateMockPreview = () => [
-    { patient_name: "Max", species: "Canine", breed: "Golden Retriever", tumour_type: "Mammary Gland Tumour", diagnosis_date: "2024-01-15" },
-    { patient_name: "Bella", species: "Feline", breed: "Persian", tumour_type: "Lymphoma", diagnosis_date: "2024-01-20" },
-    { patient_name: "Charlie", species: "Canine", breed: "German Shepherd", tumour_type: "Skin Tumour", diagnosis_date: "2024-01-25" },
+    { name: "Max", species: "Canine", breed: "Golden Retriever", tumour_type: "Mammary Gland Tumour", diagnosis_date: "2024-01-15" },
+    { name: "Bella", species: "Feline", breed: "Persian", tumour_type: "Lymphoma", diagnosis_date: "2024-01-20" },
+    { name: "Charlie", species: "Canine", breed: "German Shepherd", tumour_type: "Skin Tumour", diagnosis_date: "2024-01-25" },
   ];
 
   const resetUploadState = () => {
