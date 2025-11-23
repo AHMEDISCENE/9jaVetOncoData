@@ -1329,7 +1329,7 @@ export class DatabaseStorage implements IStorage {
           const allowedStates = await db
             .select({ code: sql<string>`name` })
             .from(sql`ng_states`)
-            .where(sql`zone = ANY(ARRAY[${sql.join(filters.geoZones.map(z => sql`${z}`), sql`, `)}])`);
+            .where(sql`zone::text = ANY(ARRAY[${sql.join(filters.geoZones.map(z => sql`${z}`), sql`, `)}])`);
           
           if (allowedStates.length > 0) {
             query = query.where(
