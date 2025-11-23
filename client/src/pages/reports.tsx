@@ -86,6 +86,9 @@ const mockReportHistory = [
 export default function Reports() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [formatDialogOpen, setFormatDialogOpen] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<"pdf" | "xlsx" | "csv">("pdf");
+  const [reportTemplateForFormat, setReportTemplateForFormat] = useState<string | null>(null);
   const [runningReportId, setRunningReportId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -111,25 +114,28 @@ export default function Reports() {
   });
 
   const runReportMutation = useMutation({
-    mutationFn: async (templateId: string) => {
+    mutationFn: async (data: { templateId: string; format: "pdf" | "xlsx" | "csv" }) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-      const filename = `report_${Date.now()}.txt`;
+      const fileExtension = data.format === "xlsx" ? "xlsx" : data.format;
+      const filename = `report_${Date.now()}.${fileExtension}`;
       return {
         success: true,
         filename,
-        templateId,
+        templateId: data.templateId,
+        format: data.format,
       };
     },
     onSuccess: (data) => {
       // Generate and trigger download
-      generateAndDownloadReport(data.templateId, data.filename);
+      generateAndDownloadReport(data.templateId, data.filename, data.format);
       
       toast({
         title: "Report Generated & Downloaded",
         description: `Report ${data.filename} is ready`,
       });
       setRunningReportId(null);
+      setFormatDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/reports/history"] });
     },
     onError: () => {
@@ -167,8 +173,18 @@ export default function Reports() {
   });
 
   const handleRunReport = (templateId: string) => {
-    setRunningReportId(templateId);
-    runReportMutation.mutate(templateId);
+    setReportTemplateForFormat(templateId);
+    setFormatDialogOpen(true);
+  };
+
+  const handleConfirmRunReport = () => {
+    if (reportTemplateForFormat) {
+      setRunningReportId(reportTemplateForFormat);
+      runReportMutation.mutate({
+        templateId: reportTemplateForFormat,
+        format: selectedFormat,
+      });
+    }
   };
 
   const handleScheduleClick = (templateId: string) => {
@@ -213,38 +229,68 @@ export default function Reports() {
     scheduleReportMutation.mutate(data);
   };
 
-  const generateAndDownloadReport = (templateId: string, filename: string) => {
-    // Generate mock report content
-    const reportContent = `
-      9ja VetOncoData - Report
-      Generated: ${new Date().toLocaleString()}
-      
-      Report ID: ${templateId}
-      
-      This is a sample veterinary oncology report.
-      
-      Summary Statistics:
-      - Total Cases: 17
-      - New Cases This Month: 3
-      - Active Clinics: 3
-      - Remission Rate: 17%
-      
-      Cases by Month:
-      - January 2025: 4 cases
-      - September 2024: 3 cases
-      - October 2025: 8 cases
-      - November 2025: 2 cases
-      
-      Top Tumour Types:
-      - Unknown: 9 cases
-      - Melanoma: 3 cases
-      - Lymphoma: 2 cases
-      - GI Lymphoma: 2 cases
-      - WWW: 1 case
-    `;
+  const generateAndDownloadReport = (templateId: string, filename: string, format: "pdf" | "xlsx" | "csv" = "pdf") => {
+    let content: string;
+    let mimeType: string;
 
-    // Create blob and trigger download
-    const blob = new Blob([reportContent], { type: "text/plain" });
+    if (format === "csv") {
+      // CSV format
+      content = "Report Template,Metric,Value\n" +
+        "Monthly Oncology Summary,Total Cases,17\n" +
+        "Monthly Oncology Summary,New This Month,3\n" +
+        "Monthly Oncology Summary,Active Clinics,3\n" +
+        "Monthly Oncology Summary,Remission Rate,17%\n" +
+        "Monthly Oncology Summary,Generated,\"" + new Date().toLocaleString() + "\"\n";
+      mimeType = "text/csv";
+    } else if (format === "xlsx") {
+      // Excel format (simplified - just text content)
+      content = "9ja VetOncoData Report\n\nGenerated: " + new Date().toLocaleString() + "\n\n" +
+        "Summary Statistics:\n" +
+        "Total Cases: 17\n" +
+        "New Cases This Month: 3\n" +
+        "Active Clinics: 3\n" +
+        "Remission Rate: 17%\n\n" +
+        "Cases by Month:\n" +
+        "January 2025: 4 cases\n" +
+        "September 2024: 3 cases\n" +
+        "October 2025: 8 cases\n" +
+        "November 2025: 2 cases\n\n" +
+        "Top Tumour Types:\n" +
+        "Unknown: 9 cases\n" +
+        "Melanoma: 3 cases\n" +
+        "Lymphoma: 2 cases\n" +
+        "GI Lymphoma: 2 cases\n" +
+        "WWW: 1 case\n";
+      mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    } else {
+      // PDF format (simplified - just text content)
+      content = "9ja VetOncoData - Veterinary Oncology Report\n" +
+        "=" .repeat(50) + "\n\n" +
+        "Generated: " + new Date().toLocaleString() + "\n" +
+        "Report ID: " + templateId + "\n\n" +
+        "SUMMARY STATISTICS\n" +
+        "-" .repeat(50) + "\n" +
+        "Total Cases: 17\n" +
+        "New Cases This Month: 3\n" +
+        "Active Clinics: 3\n" +
+        "Remission Rate: 17%\n\n" +
+        "CASES BY MONTH\n" +
+        "-" .repeat(50) + "\n" +
+        "January 2025: 4 cases\n" +
+        "September 2024: 3 cases\n" +
+        "October 2025: 8 cases\n" +
+        "November 2025: 2 cases\n\n" +
+        "TOP TUMOUR TYPES\n" +
+        "-" .repeat(50) + "\n" +
+        "Unknown: 9 cases\n" +
+        "Melanoma: 3 cases\n" +
+        "Lymphoma: 2 cases\n" +
+        "GI Lymphoma: 2 cases\n" +
+        "WWW: 1 case\n";
+      mimeType = "application/pdf";
+    }
+
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -401,6 +447,88 @@ export default function Reports() {
           )}
         </CardContent>
       </Card>
+
+      {/* Format Selection Dialog */}
+      <Dialog open={formatDialogOpen} onOpenChange={setFormatDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Report Format</DialogTitle>
+            <DialogDescription>
+              Choose the format you want to download your report in
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors" onClick={() => setSelectedFormat("pdf")}>
+                <input
+                  type="radio"
+                  id="format-pdf"
+                  name="format"
+                  value="pdf"
+                  checked={selectedFormat === "pdf"}
+                  onChange={() => setSelectedFormat("pdf")}
+                  data-testid="radio-format-pdf"
+                />
+                <label htmlFor="format-pdf" className="flex-1 cursor-pointer">
+                  <div className="font-medium">PDF Document</div>
+                  <div className="text-sm text-muted-foreground">Professional formatted document</div>
+                </label>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors" onClick={() => setSelectedFormat("xlsx")}>
+                <input
+                  type="radio"
+                  id="format-xlsx"
+                  name="format"
+                  value="xlsx"
+                  checked={selectedFormat === "xlsx"}
+                  onChange={() => setSelectedFormat("xlsx")}
+                  data-testid="radio-format-xlsx"
+                />
+                <label htmlFor="format-xlsx" className="flex-1 cursor-pointer">
+                  <div className="font-medium">Excel Spreadsheet</div>
+                  <div className="text-sm text-muted-foreground">Editable data in Excel format</div>
+                </label>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors" onClick={() => setSelectedFormat("csv")}>
+                <input
+                  type="radio"
+                  id="format-csv"
+                  name="format"
+                  value="csv"
+                  checked={selectedFormat === "csv"}
+                  onChange={() => setSelectedFormat("csv")}
+                  data-testid="radio-format-csv"
+                />
+                <label htmlFor="format-csv" className="flex-1 cursor-pointer">
+                  <div className="font-medium">CSV File</div>
+                  <div className="text-sm text-muted-foreground">Comma-separated values for data import</div>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFormatDialogOpen(false)}
+                data-testid="button-cancel-format"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmRunReport}
+                disabled={runningReportId === reportTemplateForFormat}
+                data-testid="button-confirm-format"
+              >
+                {runningReportId === reportTemplateForFormat ? "Generating..." : "Generate Report"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Schedule Report Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
