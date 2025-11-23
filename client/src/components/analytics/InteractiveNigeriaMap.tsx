@@ -295,6 +295,79 @@ export function InteractiveNigeriaMap({
                   </div>
                 </div>
 
+                {/* Comparison Chart */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Top 10 States by Case Count</h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={data
+                        .sort((a, b) => b.caseCount - a.caseCount)
+                        .slice(0, 10)}
+                      margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="state"
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(value) => value.substring(0, 4)}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="caseCount" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+                        {data
+                          .sort((a, b) => b.caseCount - a.caseCount)
+                          .slice(0, 10)
+                          .map((entry, idx) => (
+                            <Cell
+                              key={`cell-${idx}`}
+                              fill={
+                                entry.state === selectedState.state ? "#ef4444" : "#3b82f6"
+                              }
+                            />
+                          ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Zone Statistics */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">
+                    {ZONE_COLORS[selectedState.zone]?.name || selectedState.zone.replace(/_/g, " ")} Zone Statistics
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    {(() => {
+                      const zoneStates = data.filter((s) => s.zone === selectedState.zone);
+                      const zoneTotal = zoneStates.reduce((sum, s) => sum + s.caseCount, 0);
+                      const statePercentOfZone =
+                        zoneTotal > 0 ? (selectedState.caseCount / zoneTotal) * 100 : 0;
+
+                      return (
+                        <>
+                          <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                            <p className="text-xs text-muted-foreground mb-1">Zone Total Cases</p>
+                            <p className="text-2xl font-bold">{zoneTotal.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                            <p className="text-xs text-muted-foreground mb-1">% of Zone</p>
+                            <p className="text-2xl font-bold">{Math.round(statePercentOfZone)}%</p>
+                          </div>
+                          <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                            <p className="text-xs text-muted-foreground mb-1">States in Zone</p>
+                            <p className="text-2xl font-bold">{zoneStates.length}</p>
+                          </div>
+                          <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                            <p className="text-xs text-muted-foreground mb-1">Zone Avg</p>
+                            <p className="text-2xl font-bold">
+                              {Math.round(zoneTotal / zoneStates.length)}
+                            </p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
                 {/* Zone Tumour Types */}
                 {zoneLoading ? (
                   <Skeleton className="h-40 w-full" />
@@ -379,79 +452,6 @@ export function InteractiveNigeriaMap({
                     </div>
                   </div>
                 ) : null}
-
-                {/* Comparison Chart */}
-                <div>
-                  <h4 className="text-sm font-semibold mb-3">Top 10 States by Case Count</h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart
-                      data={data
-                        .sort((a, b) => b.caseCount - a.caseCount)
-                        .slice(0, 10)}
-                      margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="state"
-                        tick={{ fontSize: 11 }}
-                        tickFormatter={(value) => value.substring(0, 4)}
-                      />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="caseCount" fill="#3b82f6" radius={[4, 4, 0, 0]}>
-                        {data
-                          .sort((a, b) => b.caseCount - a.caseCount)
-                          .slice(0, 10)
-                          .map((entry, idx) => (
-                            <Cell
-                              key={`cell-${idx}`}
-                              fill={
-                                entry.state === selectedState.state ? "#ef4444" : "#3b82f6"
-                              }
-                            />
-                          ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Zone Statistics */}
-                <div>
-                  <h4 className="text-sm font-semibold mb-3">
-                    {ZONE_COLORS[selectedState.zone]?.name || selectedState.zone.replace(/_/g, " ")} Zone Statistics
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    {(() => {
-                      const zoneStates = data.filter((s) => s.zone === selectedState.zone);
-                      const zoneTotal = zoneStates.reduce((sum, s) => sum + s.caseCount, 0);
-                      const statePercentOfZone =
-                        zoneTotal > 0 ? (selectedState.caseCount / zoneTotal) * 100 : 0;
-
-                      return (
-                        <>
-                          <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
-                            <p className="text-xs text-muted-foreground mb-1">Zone Total Cases</p>
-                            <p className="text-2xl font-bold">{zoneTotal.toLocaleString()}</p>
-                          </div>
-                          <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
-                            <p className="text-xs text-muted-foreground mb-1">% of Zone</p>
-                            <p className="text-2xl font-bold">{Math.round(statePercentOfZone)}%</p>
-                          </div>
-                          <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
-                            <p className="text-xs text-muted-foreground mb-1">States in Zone</p>
-                            <p className="text-2xl font-bold">{zoneStates.length}</p>
-                          </div>
-                          <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
-                            <p className="text-xs text-muted-foreground mb-1">Zone Avg</p>
-                            <p className="text-2xl font-bold">
-                              {Math.round(zoneTotal / zoneStates.length)}
-                            </p>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
               </div>
             </>
           )}
