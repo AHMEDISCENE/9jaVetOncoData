@@ -125,7 +125,7 @@ export default function Sidebar() {
                 <Link 
                   key={item.name} 
                   href={item.href}
-                  className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "lg:justify-center" : "gap-3"}`}
+                  className={`nav-item gap-3 ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "lg:justify-center" : ""}`}
                   data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
                   onClick={() => setIsMobileOpen(false)}
                   title={isCollapsed ? item.name : undefined}
