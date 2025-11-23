@@ -100,7 +100,9 @@ export default function Header() {
           <Popover>
             <PopoverTrigger asChild>
               <button 
-                className="relative text-muted-foreground hover:text-foreground p-2"
+                className={`relative text-muted-foreground hover:text-foreground p-2 ${
+                  unreadCount > 0 ? "animate-[jitter_0.5s_ease-in-out_infinite]" : ""
+                }`}
                 data-testid="button-notifications"
               >
                 <i className="fas fa-bell"></i>

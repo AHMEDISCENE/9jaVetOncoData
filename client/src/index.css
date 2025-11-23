@@ -136,6 +136,19 @@
     100% { background-position: 0% 50%; }
   }
 
+  @keyframes jitter {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    10% { transform: translate(-1px, -1px) rotate(-1deg); }
+    20% { transform: translate(1px, 1px) rotate(1deg); }
+    30% { transform: translate(-1px, 1px) rotate(-1deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-2px, 0) rotate(-1deg); }
+    60% { transform: translate(2px, 0) rotate(1deg); }
+    70% { transform: translate(-1px, -1px) rotate(-1deg); }
+    80% { transform: translate(1px, 1px) rotate(1deg); }
+    90% { transform: translate(-1px, 1px) rotate(-1deg); }
+  }
+
   .nav-item {
     @apply flex items-center px-4 py-3 text-sm font-medium text-muted-foreground rounded-lg transition-all hover:bg-muted hover:text-foreground;
   }
