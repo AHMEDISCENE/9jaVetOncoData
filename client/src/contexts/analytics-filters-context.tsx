@@ -68,13 +68,9 @@ export function useAnalyticsFilters() {
 export function buildFilterParams(filters: AnalyticsFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.species) params.append("species", filters.species);
-  if (filters.breed) params.append("breed", filters.breed);
-  if (filters.tumourType) params.append("tumourType", filters.tumourType);
-  if (filters.ageGroup) params.append("ageGroup", filters.ageGroup);
-  if (filters.sex) params.append("sex", filters.sex);
-  if (filters.zone) params.append("zone", filters.zone);
-  if (filters.state) params.append("state", filters.state);
-  if (filters.clinic) params.append("clinic", filters.clinic);
-  if (filters.status) params.append("status", filters.status);
+  if (filters.zone) params.append("geoZones", filters.zone);
+  if (filters.state) params.append("states", filters.state);
+  if (filters.tumourType) params.append("tumourTypeIds", filters.tumourType);
+  // Note: ageGroup, sex, status, breed, and clinic filters need backend support to be functional
   return params;
 }
