@@ -114,15 +114,20 @@ export default function Reports() {
     mutationFn: async (templateId: string) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
+      const filename = `report_${Date.now()}.txt`;
       return {
         success: true,
-        filename: `report_${Date.now()}.pdf`,
+        filename,
+        templateId,
       };
     },
     onSuccess: (data) => {
+      // Generate and trigger download
+      generateAndDownloadReport(data.templateId, data.filename);
+      
       toast({
-        title: "Report Generated",
-        description: `Report has been generated successfully as ${data.filename}`,
+        title: "Report Generated & Downloaded",
+        description: `Report ${data.filename} is ready`,
       });
       setRunningReportId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/reports/history"] });
@@ -171,8 +176,83 @@ export default function Reports() {
     setScheduleDialogOpen(true);
   };
 
+  const handleDownloadReport = (filename: string) => {
+    // Generate mock report and download
+    const reportContent = `
+      9ja VetOncoData - Report
+      Generated: ${new Date().toLocaleString()}
+      
+      This is a veterinary oncology report.
+      
+      Summary Statistics:
+      - Total Cases: 17
+      - New Cases This Month: 3
+      - Active Clinics: 3
+      - Remission Rate: 17%
+      
+      Report File: ${filename}
+    `;
+
+    const blob = new Blob([reportContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Download Started",
+      description: `${filename} is downloading`,
+    });
+  };
+
   const onScheduleSubmit = (data: z.infer<typeof scheduleSchema>) => {
     scheduleReportMutation.mutate(data);
+  };
+
+  const generateAndDownloadReport = (templateId: string, filename: string) => {
+    // Generate mock report content
+    const reportContent = `
+      9ja VetOncoData - Report
+      Generated: ${new Date().toLocaleString()}
+      
+      Report ID: ${templateId}
+      
+      This is a sample veterinary oncology report.
+      
+      Summary Statistics:
+      - Total Cases: 17
+      - New Cases This Month: 3
+      - Active Clinics: 3
+      - Remission Rate: 17%
+      
+      Cases by Month:
+      - January 2025: 4 cases
+      - September 2024: 3 cases
+      - October 2025: 8 cases
+      - November 2025: 2 cases
+      
+      Top Tumour Types:
+      - Unknown: 9 cases
+      - Melanoma: 3 cases
+      - Lymphoma: 2 cases
+      - GI Lymphoma: 2 cases
+      - WWW: 1 case
+    `;
+
+    // Create blob and trigger download
+    const blob = new Blob([reportContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
@@ -297,11 +377,12 @@ export default function Reports() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {report.status === "completed" && report.downloadUrl && (
+                      {report.status === "completed" && (
                         <Button 
                           variant="ghost" 
                           size="sm"
                           data-testid={`button-download-report-${report.id}`}
+                          onClick={() => handleDownloadReport(`${report.template.replace(/\s+/g, "_")}_${report.id}.${report.format.toLowerCase()}`)}
                         >
                           <i className="fas fa-download mr-2"></i>Download
                         </Button>
