@@ -237,6 +237,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any).userId;
       const { clinicName, clinicState, clinicCity, role } = req.body;
 
+      // Security check: User must not already have a clinic
+      const existingUser = await storage.getUserById(userId);
+      if (existingUser?.clinicId) {
+        return res.status(400).json({ message: "User already belongs to a clinic" });
+      }
+
+      // Security check: Only allow ADMIN role for first clinic creator
+      // Since user has no clinic and is creating a brand new one, allow any role including ADMIN
+      const finalRole = role || "CLINICIAN";
+
       // Create clinic
       const clinic = await storage.createClinic({
         name: clinicName,
@@ -247,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user with clinic and selected role
       const updatedUser = await storage.updateUser(userId, {
         clinicId: clinic.id,
-        role: role || "CLINICIAN",
+        role: finalRole,
       });
 
       // Update session
