@@ -444,6 +444,7 @@ export class DatabaseStorage implements IStorage {
       // Zone filtering - convert zones to states and filter
       if (filters.zones && filters.zones.length > 0) {
         const allowedStates = statesForZones(filters.zones);
+        console.log('[getCases] Main query - zones:', filters.zones, 'allowedStates:', allowedStates);
         if (allowedStates.length > 0) {
           query = query.where(inArray(cases.state, allowedStates as any));
         }
@@ -586,6 +587,7 @@ export class DatabaseStorage implements IStorage {
       }
       if (filters.zones && filters.zones.length > 0) {
         const allowedStates = statesForZones(filters.zones);
+        console.log('[getCases] Fallback query - zones:', filters.zones, 'allowedStates:', allowedStates);
         if (allowedStates.length > 0) {
           query = query.where(inArray(cases.state, allowedStates as any));
         }

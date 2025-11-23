@@ -887,6 +887,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return Array.isArray(val) ? val : [val];
       };
       
+      const zones = normalizeToArray(filters.zone);
+      console.log('[getCases] Request - zones param:', zones);
+      
       // Shared reads - all authenticated users see all cases
       const cases = await storage.getCases(undefined, {
         ...filters,
@@ -894,7 +897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: filters.endDate ? new Date(filters.endDate) : undefined,
         // Multi-clinic filter support
         clinicIds: normalizeToArray(filters.clinicId),
-        zones: normalizeToArray(filters.zone),
+        zones: zones,
         states: normalizeToArray(filters.state),
         tumourTypeIds: normalizeToArray(filters.tumourTypeId),
         sort: filters.sort || 'date',
