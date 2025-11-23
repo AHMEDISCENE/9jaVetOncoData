@@ -957,6 +957,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const newCase = await storage.createCase(caseData);
       
+      // Create notification for all clinic users
+      const clinicUsers = await storage.getUsersByClinic(clinicId);
+      for (const user of clinicUsers) {
+        if (user.id !== userId) { // Don't notify the creator
+          await storage.createNotification({
+            userId: user.id,
+            type: 'CASE_UPDATED',
+            title: 'New Case Created',
+            message: `A new case "${newCase.patientName || 'Case ' + newCase.caseNumber}" has been created`,
+            linkUrl: `/cases/${newCase.id}`,
+            metadata: { caseId: newCase.id },
+          });
+        }
+      }
+      
       await storage.createAuditLog({
         actorId: userId,
         clinicId,
@@ -1006,6 +1021,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = insertCaseSchema.partial().parse(transformedUpdates);
       
       const updatedCase = await storage.updateCase(req.params.id, updates, clinicId);
+      
+      // Create notification for all clinic users
+      const clinicUsers = await storage.getUsersByClinic(clinicId);
+      for (const user of clinicUsers) {
+        if (user.id !== userId) { // Don't notify the updater
+          await storage.createNotification({
+            userId: user.id,
+            type: 'CASE_UPDATED',
+            title: 'Case Updated',
+            message: `Case "${updatedCase.patientName || 'Case ' + updatedCase.caseNumber}" has been updated`,
+            linkUrl: `/cases/${updatedCase.id}`,
+            metadata: { caseId: updatedCase.id },
+          });
+        }
+      }
       
       await storage.createAuditLog({
         actorId: userId,
