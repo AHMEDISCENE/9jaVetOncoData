@@ -111,7 +111,7 @@
   }
 
   .nav-item {
-    @apply flex items-center py-3.5 text-sm font-medium text-muted-foreground rounded-xl transition-all duration-200 hover:bg-muted hover:text-foreground;
+    @apply flex items-center py-2.5 lg:py-3.5 text-xs lg:text-sm font-medium text-muted-foreground rounded-lg lg:rounded-xl transition-all duration-200 hover:bg-muted hover:text-foreground;
   }
   
   .nav-item.active {
@@ -120,11 +120,5 @@
   
   .nav-item i {
     @apply w-5 h-5 flex-shrink-0;
-  }
-  
-  @media (max-width: 1024px) {
-    .nav-item {
-      @apply py-4 text-base rounded-lg;
-    }
   }
 }
