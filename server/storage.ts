@@ -1701,7 +1701,9 @@ export class DatabaseStorage implements IStorage {
       }
 
       if (filters.species && filters.species.length > 0) {
-        query = query.where(inArray(cases.species, filters.species));
+        // Capitalize species names to match database format (Cat, Dog, etc)
+        const capitalizedSpecies = filters.species.map(s => s.charAt(0).toUpperCase() + s.slice(1));
+        query = query.where(inArray(cases.species, capitalizedSpecies));
       }
 
       const zoneCases = await query;
@@ -1801,7 +1803,9 @@ export class DatabaseStorage implements IStorage {
       }
 
       if (filters.species && filters.species.length > 0) {
-        query = query.where(inArray(cases.species, filters.species));
+        // Capitalize species names to match database format (Cat, Dog, etc)
+        const capitalizedSpecies = filters.species.map(s => s.charAt(0).toUpperCase() + s.slice(1));
+        query = query.where(inArray(cases.species, capitalizedSpecies));
       }
 
       const stateCases = await query;
