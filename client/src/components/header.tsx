@@ -95,7 +95,7 @@ export default function Header() {
             <Menu className="h-5 w-5" />
           </button>
           
-          <h1 className="sm:text-base md:text-xl text-foreground truncate font-extrabold text-[18px] ml-[15px] mr-[15px]" data-testid="text-page-title">
+          <h1 className="flex-1 text-center sm:text-left sm:flex-none sm:text-base md:text-xl text-foreground text-[18px] font-extrabold" data-testid="text-page-title">
             {pageTitle}
           </h1>
         </div>
@@ -111,7 +111,7 @@ export default function Header() {
               data-testid="button-new-case"
               onClick={handleNewCaseClick}
             >
-              <a href="/cases/new" className="pl-[10px] pr-[10px] pt-[0px] pb-[0px] ml-[0px] mr-[0px] text-left font-semibold">
+              <a href="/cases/new" className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 pl-[10px] pr-[10px] pt-[0px] pb-[0px] ml-[0px] mr-[0px] text-left font-semibold">
                 <i className="fas fa-plus mr-1.5 sm:mr-2"></i>
                 <span className="text-sm sm:text-base">New Case</span>
               </a>
