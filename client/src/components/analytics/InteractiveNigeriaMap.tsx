@@ -60,6 +60,8 @@ export function InteractiveNigeriaMap({
   const [hoveredState, setHoveredState] = useState<string | null>(null);
   const [zoneStats, setZoneStats] = useState<any>(null);
   const [zoneLoading, setZoneLoading] = useState(false);
+  const [stateStats, setStateStats] = useState<any>(null);
+  const [stateLoading, setStateLoading] = useState(false);
 
   useEffect(() => {
     if (selectedState?.zone) {
@@ -71,6 +73,17 @@ export function InteractiveNigeriaMap({
         .finally(() => setZoneLoading(false));
     }
   }, [selectedState?.zone]);
+
+  useEffect(() => {
+    if (selectedState?.state) {
+      setStateLoading(true);
+      fetch(`/api/analytics/state-stats?state=${selectedState.state}`)
+        .then(res => res.json())
+        .then(data => setStateStats(data))
+        .catch(err => console.error('Failed to fetch state stats:', err))
+        .finally(() => setStateLoading(false));
+    }
+  }, [selectedState?.state]);
 
   if (isLoading) {
     return (
@@ -444,6 +457,70 @@ export function InteractiveNigeriaMap({
                     <h4 className="text-sm font-semibold mb-3">Top Breeds Affected in Zone</h4>
                     <div className="space-y-2">
                       {zoneStats.breeds.slice(0, 5).map((b: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2 rounded text-sm">
+                          <span className="font-medium capitalize">{b.name}</span>
+                          <span className="text-muted-foreground">{b.count} cases ({b.percentage}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* State Statistics */}
+                <div className="border-t pt-6">
+                  <h4 className="text-sm font-semibold mb-3">
+                    {selectedState.state.replace(/_/g, " ")} State Statistics
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Total Cases in State</p>
+                      <p className="text-2xl font-bold">{selectedState.caseCount}</p>
+                    </div>
+                    <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                      <p className="text-xs text-muted-foreground mb-1">% of Platform Total</p>
+                      <p className="text-2xl font-bold">{totalCases > 0 ? Math.round((selectedState.caseCount / totalCases) * 100) : 0}%</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* State Tumour Types */}
+                {stateLoading ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : stateStats?.tumours?.length > 0 ? (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Tumour Types Found in State</h4>
+                    <div className="space-y-2">
+                      {stateStats.tumours.slice(0, 5).map((t: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2 rounded text-sm">
+                          <span className="font-medium">{t.name}</span>
+                          <span className="text-muted-foreground">{t.count} cases ({t.percentage}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* State Species */}
+                {!stateLoading && stateStats?.species?.length > 0 ? (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Species Affected in State</h4>
+                    <div className="space-y-2">
+                      {stateStats.species.map((s: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2 rounded text-sm">
+                          <span className="font-medium capitalize">{s.name}</span>
+                          <span className="text-muted-foreground">{s.count} cases ({s.percentage}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* State Top Breeds */}
+                {!stateLoading && stateStats?.breeds?.length > 0 ? (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Top Breeds Affected in State</h4>
+                    <div className="space-y-2">
+                      {stateStats.breeds.slice(0, 5).map((b: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2 rounded text-sm">
                           <span className="font-medium capitalize">{b.name}</span>
                           <span className="text-muted-foreground">{b.count} cases ({b.percentage}%)</span>

@@ -1773,6 +1773,91 @@ export class DatabaseStorage implements IStorage {
       };
     }
   }
+
+  async getStateStats(filters: {
+    clinicIds?: string[];
+    states?: string[];
+  } = {}): Promise<{
+    tumours: Array<{ name: string; count: number; percentage: number }>;
+    species: Array<{ name: string; count: number; percentage: number }>;
+    breeds: Array<{ name: string; count: number; percentage: number }>;
+    totalCases: number;
+  }> {
+    try {
+      let query = db.select().from(cases).$dynamic();
+
+      if (filters.clinicIds && filters.clinicIds.length > 0) {
+        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+      }
+
+      if (filters.states && filters.states.length > 0) {
+        query = query.where(inArray(cases.state, filters.states));
+      }
+
+      const stateCases = await query;
+      const totalCases = stateCases.length;
+
+      // Get tumour type names
+      const allTumourTypes = await db.select().from(tumourTypes);
+      const tumourNameMap = new Map(allTumourTypes.map(t => [t.id, t.name]));
+
+      // Aggregate tumours by ID, then map to names
+      const tumourIdMap = new Map<string, number>();
+      stateCases.forEach(c => {
+        if (c.tumourTypeId) {
+          tumourIdMap.set(c.tumourTypeId, (tumourIdMap.get(c.tumourTypeId) || 0) + 1);
+        }
+      });
+
+      // Convert tumour IDs to names with counts
+      const tumourNameCounts = new Map<string, number>();
+      tumourIdMap.forEach((count, id) => {
+        const name = tumourNameMap.get(id) || 'Unknown Tumour';
+        const current = tumourNameCounts.get(name) || 0;
+        tumourNameCounts.set(name, current + count);
+      });
+
+      // Aggregate species
+      const speciesMap = new Map<string, number>();
+      stateCases.forEach(c => {
+        if (c.species) {
+          speciesMap.set(c.species, (speciesMap.get(c.species) || 0) + 1);
+        }
+      });
+
+      // Aggregate breeds
+      const breedMap = new Map<string, number>();
+      stateCases.forEach(c => {
+        if (c.breed) {
+          breedMap.set(c.breed, (breedMap.get(c.breed) || 0) + 1);
+        }
+      });
+
+      const formatData = (map: Map<string, number>, key: string) =>
+        Array.from(map.entries())
+          .map(([name, count]) => ({
+            [key]: name,
+            count,
+            percentage: totalCases > 0 ? Math.round((count / totalCases) * 100) : 0,
+          }))
+          .sort((a, b) => b.count - a.count);
+
+      return {
+        tumours: formatData(tumourNameCounts, 'name').map(t => ({ name: t.name, count: t.count, percentage: t.percentage })),
+        species: formatData(speciesMap, 'name').map(s => ({ name: s.name, count: s.count, percentage: s.percentage })),
+        breeds: formatData(breedMap, 'name').map(b => ({ name: b.name, count: b.count, percentage: b.percentage })),
+        totalCases,
+      };
+    } catch (error) {
+      console.error("[ERROR] getStateStats failed:", error);
+      return {
+        tumours: [],
+        species: [],
+        breeds: [],
+        totalCases: 0,
+      };
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

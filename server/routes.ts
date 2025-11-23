@@ -1419,6 +1419,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics - State detailed statistics
+  app.get("/api/analytics/state-stats", requireAuth, async (req, res) => {
+    try {
+      const state = req.query.state as string;
+      if (!state) {
+        return res.status(400).json({ error: "State parameter required" });
+      }
+
+      const clinicId = (req.session as any).clinicId;
+      const userId = (req.session as any).userId;
+      const user = await storage.getUser(userId);
+      
+      const filters: any = { states: [state] };
+      
+      // For non-SUPER_ADMIN users, restrict to their clinic
+      if (user?.role !== "SUPER_ADMIN") {
+        filters.clinicIds = [clinicId];
+      }
+      
+      const stateStats = await storage.getStateStats(filters);
+      
+      res.json(stateStats);
+    } catch (error) {
+      console.error("[ERROR] state-stats failed:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch state stats",
+        tumours: [],
+        species: [],
+        breeds: []
+      });
+    }
+  });
+
   // Import/Bulk upload routes
   app.post("/api/imports/upload", requireAuth, requireRole("MANAGER"), bulkUpload.single('file'), async (req, res) => {
     try {
