@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
 import type { LocationCaseStat } from "@/lib/types";
 
 // State to zone mapping
@@ -58,6 +58,19 @@ export function InteractiveNigeriaMap({
 }: InteractiveNigeriaMapProps) {
   const [selectedState, setSelectedState] = useState<LocationCaseStat | null>(null);
   const [hoveredState, setHoveredState] = useState<string | null>(null);
+  const [zoneStats, setZoneStats] = useState<any>(null);
+  const [zoneLoading, setZoneLoading] = useState(false);
+
+  useEffect(() => {
+    if (selectedState?.zone) {
+      setZoneLoading(true);
+      fetch(`/api/analytics/zone-stats?zone=${selectedState.zone}`)
+        .then(res => res.json())
+        .then(data => setZoneStats(data))
+        .catch(err => console.error('Failed to fetch zone stats:', err))
+        .finally(() => setZoneLoading(false));
+    }
+  }, [selectedState?.zone]);
 
   if (isLoading) {
     return (
@@ -106,13 +119,13 @@ export function InteractiveNigeriaMap({
     return `rgba(${r}, ${g}, ${b}, ${0.4 + intensity * 0.6})`;
   };
 
-  const zoneStats: Record<string, { total: number; states: number }> = {};
+  const zoneAggregates: Record<string, { total: number; states: number }> = {};
   data.forEach((item) => {
-    if (!zoneStats[item.zone]) {
-      zoneStats[item.zone] = { total: 0, states: 0 };
+    if (!zoneAggregates[item.zone]) {
+      zoneAggregates[item.zone] = { total: 0, states: 0 };
     }
-    zoneStats[item.zone].total += item.caseCount;
-    zoneStats[item.zone].states += 1;
+    zoneAggregates[item.zone].total += item.caseCount;
+    zoneAggregates[item.zone].states += 1;
   });
 
   return (
@@ -194,7 +207,7 @@ export function InteractiveNigeriaMap({
         <h4 className="text-sm font-semibold mb-3 text-foreground">Geopolitical Zones</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {Object.entries(ZONE_COLORS).map(([zone, colors]) => {
-            const stats = zoneStats[zone];
+            const stats = zoneAggregates[zone];
             return (
               <div
                 key={zone}
@@ -239,7 +252,7 @@ export function InteractiveNigeriaMap({
         </div>
         <div className="bg-amber-500/10 rounded-lg p-4 text-center border border-amber-500/20">
           <p className="text-2xl font-bold text-amber-600">
-            {Object.keys(zoneStats).length}
+            {Object.keys(zoneAggregates).length}
           </p>
           <p className="text-xs text-muted-foreground mt-1">Active zones</p>
         </div>
@@ -281,6 +294,91 @@ export function InteractiveNigeriaMap({
                     </p>
                   </div>
                 </div>
+
+                {/* Zone Tumour Types */}
+                {zoneLoading ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : zoneStats?.tumours?.length > 0 ? (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Tumour Types Found in Zone</h4>
+                    <div className="space-y-2">
+                      {zoneStats.tumours.slice(0, 5).map((t: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2 rounded text-sm">
+                          <span className="font-medium">{t.name}</span>
+                          <span className="text-muted-foreground">{t.count} cases ({t.percentage}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Zone Species */}
+                {!zoneLoading && zoneStats?.species?.length > 0 ? (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Species Affected in Zone</h4>
+                    <div className="space-y-2">
+                      {zoneStats.species.map((s: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2 rounded text-sm">
+                          <span className="font-medium capitalize">{s.name}</span>
+                          <span className="text-muted-foreground">{s.count} cases ({s.percentage}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Zone Case Status */}
+                {!zoneLoading && zoneStats?.statuses?.length > 0 ? (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Case Status Distribution in Zone</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={zoneStats.statuses}
+                              dataKey="count"
+                              nameKey="status"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={60}
+                            >
+                              {zoneStats.statuses.map((entry: any, idx: number) => (
+                                <Cell key={`cell-${idx}`} fill={['#3b82f6', '#ef4444', '#10b981', '#f59e0b'][idx % 4]} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-2 flex flex-col justify-center">
+                        {zoneStats.statuses.map((s: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded" style={{ backgroundColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'][idx % 4] }} />
+                              <span className="capitalize">{s.status?.replace(/_/g, ' ').toLowerCase() || 'Unknown'}</span>
+                            </div>
+                            <span className="text-muted-foreground font-medium">{s.percentage}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Top Breeds */}
+                {!zoneLoading && zoneStats?.breeds?.length > 0 ? (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Top Breeds Affected in Zone</h4>
+                    <div className="space-y-2">
+                      {zoneStats.breeds.slice(0, 5).map((b: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2 rounded text-sm">
+                          <span className="font-medium capitalize">{b.name}</span>
+                          <span className="text-muted-foreground">{b.count} cases ({b.percentage}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Comparison Chart */}
                 <div>

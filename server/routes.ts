@@ -1385,6 +1385,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics - Zone detailed statistics
+  app.get("/api/analytics/zone-stats", requireAuth, async (req, res) => {
+    try {
+      const zone = req.query.zone as string;
+      if (!zone) {
+        return res.status(400).json({ error: "Zone parameter required" });
+      }
+
+      const clinicId = (req.session as any).clinicId;
+      const userId = (req.session as any).userId;
+      const user = await storage.getUser(userId);
+      
+      const filters: any = { geoZones: [zone] };
+      
+      // For non-SUPER_ADMIN users, restrict to their clinic
+      if (user?.role !== "SUPER_ADMIN") {
+        filters.clinicIds = [clinicId];
+      }
+      
+      const zoneStats = await storage.getZoneStats(filters);
+      
+      res.json(zoneStats);
+    } catch (error) {
+      console.error("[ERROR] zone-stats failed:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch zone stats",
+        tumours: [],
+        species: [],
+        statuses: [],
+        breeds: []
+      });
+    }
+  });
+
   // Import/Bulk upload routes
   app.post("/api/imports/upload", requireAuth, requireRole("MANAGER"), bulkUpload.single('file'), async (req, res) => {
     try {
