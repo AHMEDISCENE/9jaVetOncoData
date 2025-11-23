@@ -1,14 +1,17 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   ComposableMap,
   Geographies,
   Geography,
+  ZoomableGroup,
 } from "react-simple-maps";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import type { LocationCaseStat } from "@/lib/types";
+
+const nigeriaGeoJSON = "/nigeria-states.geojson";
 
 // Map GeoJSON state names to our state enum format
 const STATE_NAME_MAP: Record<string, string> = {
@@ -119,21 +122,6 @@ export function InteractiveNigeriaMap({
   const [selectedState, setSelectedState] = useState<LocationCaseStat | null>(null);
   const [hoveredState, setHoveredState] = useState<string | null>(null);
   const [tooltipContent, setTooltipContent] = useState<{ name: string; cases: number; x: number; y: number } | null>(null);
-  const [geoData, setGeoData] = useState<any>(null);
-  const [geoLoading, setGeoLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/nigeria-states.geojson")
-      .then((res) => res.json())
-      .then((data) => {
-        setGeoData(data);
-        setGeoLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load GeoJSON:", err);
-        setGeoLoading(false);
-      });
-  }, []);
 
   const stateDataMap = useMemo(
     () => new Map(data.map((d) => [d.state, d])),
@@ -191,7 +179,7 @@ export function InteractiveNigeriaMap({
     }
   };
 
-  const handleGeographyMouseEnter = (geo: { properties: { shapeName: string } }, event: any) => {
+  const handleGeographyMouseEnter = (geo: { properties: { shapeName: string } }, event: React.MouseEvent) => {
     const stateName = geo.properties.shapeName;
     const stateCode = STATE_NAME_MAP[stateName];
     setHoveredState(stateCode || null);
@@ -214,7 +202,7 @@ export function InteractiveNigeriaMap({
     setTooltipContent(null);
   };
 
-  if (isLoading || geoLoading || !geoData) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-96 w-full rounded-lg" />
@@ -268,51 +256,64 @@ export function InteractiveNigeriaMap({
         </div>
 
         {/* Interactive Map */}
-        <div className="bg-white dark:bg-slate-950 rounded-lg p-4 shadow-inner w-full" data-testid="nigeria-map-container" style={{ minHeight: "600px" }}>
-          <ComposableMap projection="geoMercator" projectionConfig={{ scale: 3800, center: [8.6, 9.5] }} width={900} height={600} style={{ width: "100%", height: "auto" }}>
-            <Geographies geography={geoData}>
-              {({ geographies }: { geographies: any[] }) =>
-                geographies.map((geo: any) => {
-                  const stateName = geo.properties.shapeName;
-                  const stateCode = STATE_NAME_MAP[stateName];
-                  const isHovered = hoveredState === stateCode;
-                  const isSelected = selectedState?.state === stateCode;
+        <div className="bg-white dark:bg-slate-950 rounded-lg p-4 shadow-inner" data-testid="nigeria-map-container">
+          <ComposableMap
+            projection="geoMercator"
+            projectionConfig={{
+              scale: 2400,
+              center: [8, 9.5],
+            }}
+            style={{
+              width: "100%",
+              height: "auto",
+            }}
+            className="w-full"
+          >
+            <ZoomableGroup center={[8, 9.5]} zoom={1}>
+              <Geographies geography={nigeriaGeoJSON}>
+                {({ geographies }: { geographies: any[] }) =>
+                  geographies.map((geo: any) => {
+                    const stateName = geo.properties.shapeName;
+                    const stateCode = STATE_NAME_MAP[stateName];
+                    const isHovered = hoveredState === stateCode;
+                    const isSelected = selectedState?.state === stateCode;
 
-                  return (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      fill={getStateFill(stateName)}
-                      stroke={
-                        isSelected
-                          ? "#3b82f6"
-                          : isHovered
-                          ? "#1f2937"
-                          : "#cbd5e1"
-                      }
-                      strokeWidth={isSelected ? 1.5 : isHovered ? 1 : 0.5}
-                      style={{
-                        default: {
-                          outline: "none",
-                        },
-                        hover: {
-                          outline: "none",
-                          cursor: "pointer",
-                          filter: "brightness(0.9)",
-                        },
-                        pressed: {
-                          outline: "none",
-                        },
-                      }}
-                      onClick={() => handleGeographyClick(geo)}
-                      onMouseEnter={(event: any) => handleGeographyMouseEnter(geo, event)}
-                      onMouseLeave={handleGeographyMouseLeave}
-                      data-testid={`state-${stateCode}`}
-                    />
-                  );
-                })
-              }
-            </Geographies>
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill={getStateFill(stateName)}
+                        stroke={
+                          isSelected
+                            ? "#3b82f6"
+                            : isHovered
+                            ? "#1f2937"
+                            : "#94a3b8"
+                        }
+                        strokeWidth={isSelected ? 1.5 : isHovered ? 1 : 0.5}
+                        style={{
+                          default: {
+                            outline: "none",
+                          },
+                          hover: {
+                            outline: "none",
+                            cursor: "pointer",
+                            filter: "brightness(0.9)",
+                          },
+                          pressed: {
+                            outline: "none",
+                          },
+                        }}
+                        onClick={() => handleGeographyClick(geo)}
+                        onMouseEnter={(event) => handleGeographyMouseEnter(geo, event)}
+                        onMouseLeave={handleGeographyMouseLeave}
+                        data-testid={`state-${stateCode}`}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+            </ZoomableGroup>
           </ComposableMap>
         </div>
 
