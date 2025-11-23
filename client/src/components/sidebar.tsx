@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -68,19 +69,26 @@ export default function Sidebar() {
     <>
       {/* Mobile sidebar overlay */}
       {isMobileOpen && (
-        <div 
+        <motion.div 
           className="fixed inset-0 z-40 lg:hidden" 
           onClick={() => setIsMobileOpen(false)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
         >
           <div className="absolute inset-0 bg-foreground/50"></div>
-        </div>
+        </motion.div>
       )}
       {/* Sidebar */}
-      <div 
-        className={`fixed inset-y-0 left-0 z-50 border-r transform transition-all duration-200 ease-in-out lg:translate-x-0 ${
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64`}
+      <motion.div 
+        className={`fixed inset-y-0 left-0 z-50 border-r lg:translate-x-0 ${
+          isCollapsed ? "lg:w-20" : "lg:w-64"
+        } w-64`}
         style={{ backgroundImage: `url(${doodleImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}
+        initial={{ x: -300 }}
+        animate={{ x: isMobileOpen || typeof window === 'undefined' || window.innerWidth >= 1024 ? 0 : -300 }}
+        transition={{ type: "spring", damping: 20, stiffness: 100, duration: 0.4 }}
       >
         {/* Background overlay for text readability - subtle like header */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white/90 to-white/85 dark:from-gray-950/95 dark:via-gray-950/90 dark:to-gray-950/85 pointer-events-none" />
@@ -124,26 +132,37 @@ export default function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-2">
-            {allNavigation.map((item) => {
+            {allNavigation.map((item, index) => {
               const Icon = item.icon;
               return (
-                <Link 
-                  key={item.name} 
-                  href={item.href}
-                  className={`nav-item gap-3 font-semibold ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "lg:justify-center" : ""}`}
-                  data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
-                  onClick={() => setIsMobileOpen(false)}
-                  title={isCollapsed ? item.name : undefined}
+                <motion.div
+                  key={item.name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.3, ease: "easeOut" }}
                 >
-                  <Icon className="h-5 w-5 flex-shrink-0" />
-                  <span className={`font-bold ${isCollapsed ? "lg:hidden" : ""}`}>{item.name}</span>
-                </Link>
+                  <Link 
+                    href={item.href}
+                    className={`nav-item gap-3 font-semibold ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "lg:justify-center" : ""}`}
+                    data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
+                    onClick={() => setIsMobileOpen(false)}
+                    title={isCollapsed ? item.name : undefined}
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <span className={`font-bold ${isCollapsed ? "lg:hidden" : ""}`}>{item.name}</span>
+                  </Link>
+                </motion.div>
               );
             })}
           </nav>
 
           {/* User Profile */}
-          <div className="border-t border-border p-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-t-lg">
+          <motion.div 
+            className="border-t border-border p-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-t-lg"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
+          >
             {isCollapsed ? (
               <div className="flex flex-col items-center space-y-3">
                 <div className="h-10 w-10 bg-primary/80 rounded-full flex items-center justify-center shadow-md" title={user?.name || "Unknown User"}>
@@ -191,9 +210,9 @@ export default function Sidebar() {
                 </Button>
               </>
             )}
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
       {/* Mobile menu button */}
       <button
         className="lg:hidden fixed top-4 left-4 z-30 p-2 rounded-md glass hover:text-foreground ml-[0px] mr-[0px] text-[#91bfb4]"
