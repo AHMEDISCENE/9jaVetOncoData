@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import jsPDF from "jspdf";
+import * as XLSX from "xlsx";
 
 interface ReportTemplate {
   id: string;
@@ -233,75 +235,103 @@ export default function Reports() {
   };
 
   const generateAndDownloadReport = (templateId: string, filename: string, format: "pdf" | "xlsx" | "csv" = "pdf") => {
-    let content: string;
-    let mimeType: string;
-
     if (format === "csv") {
-      // CSV format
-      content = "Report Template,Metric,Value\n" +
+      // CSV format - plain text
+      const content = "Report Template,Metric,Value\n" +
         "Monthly Oncology Summary,Total Cases,17\n" +
         "Monthly Oncology Summary,New This Month,3\n" +
         "Monthly Oncology Summary,Active Clinics,3\n" +
         "Monthly Oncology Summary,Remission Rate,17%\n" +
         "Monthly Oncology Summary,Generated,\"" + new Date().toLocaleString() + "\"\n";
-      mimeType = "text/csv";
+      
+      const blob = new Blob([content], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
     } else if (format === "xlsx") {
-      // Excel format
-      content = "9ja VetOncoData Report\n\nGenerated: " + new Date().toLocaleString() + "\n\n" +
-        "Summary Statistics:\n" +
-        "Total Cases: 17\n" +
-        "New Cases This Month: 3\n" +
-        "Active Clinics: 3\n" +
-        "Remission Rate: 17%\n\n" +
-        "Cases by Month:\n" +
-        "January 2025: 4 cases\n" +
-        "September 2024: 3 cases\n" +
-        "October 2025: 8 cases\n" +
-        "November 2025: 2 cases\n\n" +
-        "Top Tumour Types:\n" +
-        "Unknown: 9 cases\n" +
-        "Melanoma: 3 cases\n" +
-        "Lymphoma: 2 cases\n" +
-        "GI Lymphoma: 2 cases\n" +
-        "WWW: 1 case\n";
-      mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      // Excel format using XLSX library
+      const workbook = XLSX.utils.book_new();
+      
+      // Summary sheet
+      const summaryData = [
+        ["9ja VetOncoData Report"],
+        ["Generated: " + new Date().toLocaleString()],
+        [],
+        ["Summary Statistics"],
+        ["Metric", "Value"],
+        ["Total Cases", 17],
+        ["New Cases This Month", 3],
+        ["Active Clinics", 3],
+        ["Remission Rate", "17%"],
+        [],
+        ["Cases by Month"],
+        ["Month", "Cases"],
+        ["January 2025", 4],
+        ["September 2024", 3],
+        ["October 2025", 8],
+        ["November 2025", 2],
+        [],
+        ["Top Tumour Types"],
+        ["Type", "Cases"],
+        ["Unknown", 9],
+        ["Melanoma", 3],
+        ["Lymphoma", 2],
+        ["GI Lymphoma", 2],
+        ["WWW", 1],
+      ];
+      
+      const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Summary");
+      
+      // Generate Excel file
+      XLSX.writeFile(workbook, filename);
+      
     } else {
-      // PDF format
-      content = "9ja VetOncoData - Veterinary Oncology Report\n" +
-        "=" .repeat(50) + "\n\n" +
-        "Generated: " + new Date().toLocaleString() + "\n" +
-        "Report ID: " + templateId + "\n\n" +
-        "SUMMARY STATISTICS\n" +
-        "-" .repeat(50) + "\n" +
-        "Total Cases: 17\n" +
-        "New Cases This Month: 3\n" +
-        "Active Clinics: 3\n" +
-        "Remission Rate: 17%\n\n" +
-        "CASES BY MONTH\n" +
-        "-" .repeat(50) + "\n" +
-        "January 2025: 4 cases\n" +
-        "September 2024: 3 cases\n" +
-        "October 2025: 8 cases\n" +
-        "November 2025: 2 cases\n\n" +
-        "TOP TUMOUR TYPES\n" +
-        "-" .repeat(50) + "\n" +
-        "Unknown: 9 cases\n" +
-        "Melanoma: 3 cases\n" +
-        "Lymphoma: 2 cases\n" +
-        "GI Lymphoma: 2 cases\n" +
-        "WWW: 1 case\n";
-      mimeType = "application/pdf";
+      // PDF format using jsPDF
+      const doc = new jsPDF();
+      
+      doc.setFontSize(18);
+      doc.text("9ja VetOncoData", 20, 20);
+      doc.setFontSize(14);
+      doc.text("Veterinary Oncology Report", 20, 28);
+      
+      doc.setFontSize(10);
+      doc.text("Generated: " + new Date().toLocaleString(), 20, 38);
+      doc.text("Report ID: " + templateId, 20, 44);
+      
+      doc.setFontSize(12);
+      doc.text("SUMMARY STATISTICS", 20, 56);
+      doc.setFontSize(10);
+      doc.text("Total Cases: 17", 20, 66);
+      doc.text("New Cases This Month: 3", 20, 72);
+      doc.text("Active Clinics: 3", 20, 78);
+      doc.text("Remission Rate: 17%", 20, 84);
+      
+      doc.setFontSize(12);
+      doc.text("CASES BY MONTH", 20, 96);
+      doc.setFontSize(10);
+      doc.text("January 2025: 4 cases", 20, 106);
+      doc.text("September 2024: 3 cases", 20, 112);
+      doc.text("October 2025: 8 cases", 20, 118);
+      doc.text("November 2025: 2 cases", 20, 124);
+      
+      doc.setFontSize(12);
+      doc.text("TOP TUMOUR TYPES", 20, 136);
+      doc.setFontSize(10);
+      doc.text("Unknown: 9 cases", 20, 146);
+      doc.text("Melanoma: 3 cases", 20, 152);
+      doc.text("Lymphoma: 2 cases", 20, 158);
+      doc.text("GI Lymphoma: 2 cases", 20, 164);
+      doc.text("WWW: 1 case", 20, 170);
+      
+      doc.save(filename);
     }
-
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
