@@ -498,15 +498,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/users/profile", requireAuth, async (req, res) => {
     try {
       const userId = (req.session as any).userId;
-      const { name, email } = req.body;
+      const { 
+        name, 
+        email, 
+        firstName, 
+        lastName, 
+        title, 
+        jobTitle, 
+        specialty, 
+        displayName,
+        bio 
+      } = req.body;
       
-      const updatedUser = await storage.updateUser(userId, { name, email });
+      const profileSchema = z.object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        title: z.string().optional(),
+        jobTitle: z.string().optional(),
+        specialty: z.string().optional(),
+        displayName: z.string().optional(),
+        bio: z.string().optional(),
+      });
+
+      const validated = profileSchema.parse({
+        name,
+        email,
+        firstName,
+        lastName,
+        title,
+        jobTitle,
+        specialty,
+        displayName,
+        bio,
+      });
+      
+      const updatedUser = await storage.updateUser(userId, validated);
       
       res.json({ 
         user: { 
           id: updatedUser.id, 
           email: updatedUser.email, 
           name: updatedUser.name, 
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          title: updatedUser.title,
+          jobTitle: updatedUser.jobTitle,
+          specialty: updatedUser.specialty,
+          displayName: updatedUser.displayName,
+          bio: updatedUser.bio,
           role: updatedUser.role 
         } 
       });

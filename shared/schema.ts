@@ -64,6 +64,16 @@ export const users = pgTable("users", {
   password: text("password"), // nullable for OAuth users
   googleId: text("google_id").unique(), // for Google OAuth
   image: text("image"),
+  
+  // Profile information
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  title: text("title"), // Dr., Prof., Mr., Ms., etc.
+  displayName: text("display_name"), // What shows on cases, comments, etc.
+  jobTitle: text("job_title"), // Veterinarian, Veterinary Technician, etc.
+  specialty: text("specialty"), // Oncology, Internal Medicine, etc.
+  bio: text("bio"), // Short biography
+  
   role: roleEnum("role").notNull().default("CLINICIAN"),
   clinicId: uuid("clinic_id").references(() => clinics.id),
   emailVerified: timestamp("email_verified"),

@@ -17,8 +17,14 @@ import { useToast } from "@/hooks/use-toast";
 import { User, Cog, Moon, Sun, Monitor } from "lucide-react";
 
 const profileSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email"),
+  title: z.string().optional(), // Dr., Prof., Mr., Ms., etc.
+  displayName: z.string().optional(),
+  jobTitle: z.string().optional(),
+  specialty: z.string().optional(),
+  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
 });
 
 const clinicSchema = z.object({
@@ -28,6 +34,8 @@ const clinicSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 type ClinicFormData = z.infer<typeof clinicSchema>;
+
+const titles = ["Dr.", "Prof.", "Mr.", "Ms.", "Mrs.", "Eng.", "Pharm."];
 
 export default function Settings() {
   const { user, clinic } = useAuth();
@@ -40,12 +48,21 @@ export default function Settings() {
     return false;
   });
 
+  // Parse name into first and last
+  const [firstName, lastName] = user?.name?.split(" ") || ["", ""];
+
   // Profile form
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: user?.name || "",
+      firstName: (user as any)?.firstName || firstName || "",
+      lastName: (user as any)?.lastName || lastName || "",
       email: user?.email || "",
+      title: (user as any)?.title || "",
+      displayName: (user as any)?.displayName || "",
+      jobTitle: (user as any)?.jobTitle || "",
+      specialty: (user as any)?.specialty || "",
+      bio: (user as any)?.bio || "",
     },
   });
 
@@ -102,7 +119,12 @@ export default function Settings() {
   });
 
   const handleProfileSubmit = (data: ProfileFormData) => {
-    updateProfileMutation.mutate(data);
+    // Combine first and last name into full name for display
+    const fullName = `${data.firstName} ${data.lastName}`.trim();
+    updateProfileMutation.mutate({
+      ...data,
+      name: fullName,
+    } as any);
   };
 
   const handleClinicSubmit = (data: ClinicFormData) => {
@@ -174,40 +196,181 @@ export default function Settings() {
             <CardContent>
               <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit(handleProfileSubmit)} className="space-y-6">
-                  <FormField
-                    control={profileForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter your full name" data-testid="input-name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Name Section */}
+                  <div className="space-y-4 border-b pb-4">
+                    <h3 className="text-base font-semibold">Full Name</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={profileForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="First name" data-testid="input-firstName" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={profileForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Enter your email address" 
-                            data-testid="input-email"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Your email is used for login and notifications
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={profileForm.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Last name" data-testid="input-lastName" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Professional Information */}
+                  <div className="space-y-4 border-b pb-4">
+                    <h3 className="text-base font-semibold">Professional Information</h3>
+                    
+                    <FormField
+                      control={profileForm.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g. Dr., Prof., Mr., Ms." 
+                              data-testid="input-title"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Professional title (Dr., Prof., Mr., Ms., etc.)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="jobTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Job Title</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g. Veterinarian, Veterinary Technician" 
+                              data-testid="input-jobTitle"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Your position in the clinic
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="specialty"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Specialty</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g. Oncology, Internal Medicine" 
+                              data-testid="input-specialty"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Your area of specialization
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Display & Communication */}
+                  <div className="space-y-4 border-b pb-4">
+                    <h3 className="text-base font-semibold">Display & Communication</h3>
+                    
+                    <FormField
+                      control={profileForm.control}
+                      name="displayName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Display Name</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="How your name appears on cases and comments" 
+                              data-testid="input-displayName"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            This name will appear on cases, comments, and feed posts
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="bio"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Bio</FormLabel>
+                          <FormControl>
+                            <textarea 
+                              placeholder="Tell us about yourself..." 
+                              data-testid="input-bio"
+                              className="min-h-24 w-full px-3 py-2 border border-input rounded-md text-sm shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            A brief biography (up to 500 characters)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Email Section */}
+                  <div className="space-y-4 border-b pb-4">
+                    <h3 className="text-base font-semibold">Contact Information</h3>
+                    
+                    <FormField
+                      control={profileForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter your email address" 
+                              data-testid="input-email"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Your email is used for login and notifications
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <div className="space-y-4">
                     <div>
