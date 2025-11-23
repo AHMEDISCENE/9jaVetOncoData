@@ -78,7 +78,7 @@ export default function Header() {
   return (
     <header className="glass border-b">
       <div className="flex items-center justify-between h-16 px-2 sm:px-4 md:px-6">
-        <div className="flex items-center space-x-2 min-w-0 flex-1">
+        <div className="flex items-center space-x-3 sm:space-x-2 min-w-0 flex-1">
           {/* Mobile Hamburger Menu */}
           <button
             onClick={() => setIsMobileOpen(!isMobileOpen)}
