@@ -1183,7 +1183,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
 
       if (format === 'csv') {
         // Build CSV content manually for reliable export
-        const headers = ['Case ID', 'Upload Date', 'Patient Name', 'Species', 'Breed', 'Age', 'Sex', 'Tumour Type', 'Anatomical Site', 'State', 'Clinic', 'Status', 'Outcome', 'Diagnosis Date'];
+        const headers = ['Case ID', 'Upload Date', 'Patient Name', 'Species', 'Breed', 'Age', 'Sex', 'Tumour Type', 'Anatomical Site', 'Stage', 'State', 'Clinic', 'Case Status', 'Outcome', 'Diagnosis Date', 'Diagnosis Method'];
         
         const rows = casesForExport.map((c: any) => [
           c.caseNumber || '',
@@ -1195,11 +1195,13 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           c.sex || '',
           c.tumourType?.name || c.tumourTypeCustom || '',
           c.anatomicalSite?.name || c.anatomicalSiteCustom || '',
+          c.stage || '',
           c.state || '',
           c.clinic?.name || '',
           c.status || '',
           c.outcome || '',
-          c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : ''
+          c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : '',
+          c.diagnosisMethod || ''
         ]);
 
         // Escape CSV values
@@ -1227,13 +1229,20 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           'Species': c.species || '',
           'Breed': c.breed || '',
           'Age': (c.ageYears ? `${c.ageYears}y` : '') + (c.ageMonths ? ` ${c.ageMonths}m` : ''),
+          'Sex': c.sex || '',
           'Tumour Type': c.tumourType?.name || c.tumourTypeCustom || '',
           'Anatomical Site': c.anatomicalSite?.name || c.anatomicalSiteCustom || '',
+          'Laterality': c.laterality || '',
+          'Stage': c.stage || '',
           'State': c.state || '',
           'Clinic': c.clinic?.name || '',
-          'Status': c.status || '',
+          'Case Status': c.status || '',
           'Outcome': c.outcome || '',
+          'Treatment Plan': c.treatmentPlan || '',
+          'Treatment Start': c.treatmentStart ? new Date(c.treatmentStart).toLocaleDateString() : '',
+          'Last Follow Up': c.lastFollowUp ? new Date(c.lastFollowUp).toLocaleDateString() : '',
           'Diagnosis Date': c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : '',
+          'Diagnosis Method': c.diagnosisMethod || '',
         }));
 
         const ws = XLSX.utils.json_to_sheet(wsData);
