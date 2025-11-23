@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { MetricDrilldown } from "@/components/analytics/MetricDrilldown";
 import {
   Select,
   SelectContent,
@@ -29,6 +30,8 @@ import {
 import { Filter, X, Rss } from "lucide-react";
 import type { DashboardStats } from "@/lib/types";
 import type { FeedPost } from "@shared/schema";
+
+type MetricType = "totalCases" | "newThisMonth" | "remissionRate" | "activeClinics" | null;
 
 const COLORS = [
   "#3b82f6", // Blue
@@ -70,8 +73,20 @@ export default function Dashboard() {
   const [zone, setZone] = useState<string>("");
   const [species, setSpecies] = useState<string>("");
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
+  const [selectedMetric, setSelectedMetric] = useState<MetricType>(null);
+  const [isDrilldownOpen, setIsDrilldownOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  const handleMetricClick = (metric: MetricType) => {
+    setSelectedMetric(metric);
+    setIsDrilldownOpen(true);
+  };
+
+  const handleCloseDrilldown = () => {
+    setIsDrilldownOpen(false);
+    setTimeout(() => setSelectedMetric(null), 300);
+  };
 
   const buildQueryParams = () => {
     const params = new URLSearchParams();
@@ -340,7 +355,19 @@ export default function Dashboard() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+        <Card 
+          className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          role="button"
+          tabIndex={0}
+          onClick={() => handleMetricClick("totalCases")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleMetricClick("totalCases");
+            }
+          }}
+          data-testid="card-total-cases"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -359,12 +386,24 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-xs font-medium text-blue-600 dark:text-blue-300 mt-2">
-              {myClinicOnly ? "From your clinic" : "Across all clinics"}
+              Click for details
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
+        <Card 
+          className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          role="button"
+          tabIndex={0}
+          onClick={() => handleMetricClick("newThisMonth")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleMetricClick("newThisMonth");
+            }
+          }}
+          data-testid="card-new-this-month"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -383,12 +422,24 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-xs font-medium text-purple-600 dark:text-purple-300 mt-2">
-              Diagnosed this month
+              Click for details
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800">
+        <Card 
+          className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          role="button"
+          tabIndex={0}
+          onClick={() => handleMetricClick("activeClinics")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleMetricClick("activeClinics");
+            }
+          }}
+          data-testid="card-active-clinics"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -406,11 +457,23 @@ export default function Dashboard() {
                 <i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-xl"></i>
               </div>
             </div>
-            <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-2">Across Nigeria</p>
+            <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-2">Click for details</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
+        <Card 
+          className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          role="button"
+          tabIndex={0}
+          onClick={() => handleMetricClick("remissionRate")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleMetricClick("remissionRate");
+            }
+          }}
+          data-testid="card-remission-rate"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -429,7 +492,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-xs font-medium text-green-600 dark:text-green-300 mt-2">
-              Treatment success
+              Click for details
             </p>
           </CardContent>
         </Card>
@@ -712,6 +775,16 @@ export default function Dashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Metric Drilldown */}
+      {stats && (
+        <MetricDrilldown
+          isOpen={isDrilldownOpen}
+          onClose={handleCloseDrilldown}
+          metric={selectedMetric}
+          stats={stats}
+        />
+      )}
     </div>
   );
 }
