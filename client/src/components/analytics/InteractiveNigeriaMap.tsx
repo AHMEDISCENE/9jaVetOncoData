@@ -59,7 +59,9 @@ export function InteractiveNigeriaMap({
   const [selectedState, setSelectedState] = useState<LocationCaseStat | null>(null);
   const [hoveredState, setHoveredState] = useState<string | null>(null);
   const [zoneStats, setZoneStats] = useState<any>(null);
+  const [stateStats, setStateStats] = useState<any>(null);
   const [zoneLoading, setZoneLoading] = useState(false);
+  const [stateLoading, setStateLoading] = useState(false);
 
   useEffect(() => {
     if (selectedState?.zone) {
@@ -71,6 +73,17 @@ export function InteractiveNigeriaMap({
         .finally(() => setZoneLoading(false));
     }
   }, [selectedState?.zone]);
+
+  useEffect(() => {
+    if (selectedState?.state) {
+      setStateLoading(true);
+      fetch(`/api/analytics/state-stats?state=${selectedState.state}`)
+        .then(res => res.json())
+        .then(data => setStateStats(data))
+        .catch(err => console.error('Failed to fetch state stats:', err))
+        .finally(() => setStateLoading(false));
+    }
+  }, [selectedState?.state]);
 
   if (isLoading) {
     return (
@@ -365,6 +378,37 @@ export function InteractiveNigeriaMap({
                         </>
                       );
                     })()}
+                  </div>
+                </div>
+
+                {/* State Statistics */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">
+                    {selectedState.state.replace(/_/g, " ")} State Statistics
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    {stateLoading ? (
+                      <Skeleton className="h-20 w-full" />
+                    ) : stateStats ? (
+                      <>
+                        <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Total Cases</p>
+                          <p className="text-2xl font-bold">{stateStats.totalCases.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Top Tumour Type</p>
+                          <p className="text-sm font-bold truncate">{stateStats.tumours?.[0]?.name || 'N/A'}</p>
+                        </div>
+                        <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Primary Species</p>
+                          <p className="text-sm font-bold capitalize truncate">{stateStats.species?.[0]?.name || 'N/A'}</p>
+                        </div>
+                        <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Common Status</p>
+                          <p className="text-sm font-bold uppercase truncate">{stateStats.statuses?.[0]?.status?.substring(0, 10) || 'N/A'}</p>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
                 </div>
 
