@@ -8,7 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/export";
 import { useCasesByLocation } from "@/hooks/useCasesByLocation";
-import { NigeriaCaseDensityMap } from "@/components/analytics/NigeriaCaseDensityMap";
+import { InteractiveNigeriaMap } from "@/components/analytics/InteractiveNigeriaMap";
 import type { DashboardStats } from "@/lib/types";
 
 const COLORS = [
@@ -525,7 +525,7 @@ export default function Analytics() {
         </CardHeader>
         <CardContent>
           {locationData ? (
-            <NigeriaCaseDensityMap
+            <InteractiveNigeriaMap
               data={locationData.data}
               isLoading={isLocationLoading}
               error={locationError}
