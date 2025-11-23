@@ -97,30 +97,16 @@ export default function Header() {
         <div className="flex items-center space-x-1 sm:space-x-2">
           {/* Quick Actions - New Case */}
           {location !== "/cases/new" && (
-            <>
-              {/* Mobile version - icon only */}
-              <Button 
-                asChild
-                size="icon"
-                variant="ghost"
-                className="sm:hidden text-primary-foreground bg-primary hover:bg-primary hover:opacity-90"
-                data-testid="button-new-case-mobile"
-              >
-                <a href="/cases/new" title="New Case">
-                  <i className="fas fa-plus"></i>
-                </a>
-              </Button>
-              {/* Desktop version - full button */}
-              <Button 
-                asChild
-                className="hidden sm:flex bg-primary text-primary-foreground hover:bg-primary hover:opacity-90"
-                data-testid="button-new-case"
-              >
-                <a href="/cases/new">
-                  <i className="fas fa-plus mr-2"></i>New Case
-                </a>
-              </Button>
-            </>
+            <Button 
+              asChild
+              className="bg-primary text-primary-foreground hover:bg-primary hover:opacity-90 rounded-full px-3 sm:px-4"
+              data-testid="button-new-case"
+            >
+              <a href="/cases/new">
+                <i className="fas fa-plus mr-1.5 sm:mr-2"></i>
+                <span className="text-sm sm:text-base">New Case</span>
+              </a>
+            </Button>
           )}
           
           {/* Notifications */}
