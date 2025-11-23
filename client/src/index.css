@@ -115,7 +115,7 @@
   }
   
   .nav-item.active {
-    @apply bg-primary bg-opacity-10 text-primary border-l-4 border-primary hover:bg-opacity-15 hover:opacity-100 font-semibold;
+    @apply bg-primary bg-opacity-20 text-primary border-l-4 border-primary hover:bg-opacity-25 font-semibold;
   }
   
   .nav-item i {
