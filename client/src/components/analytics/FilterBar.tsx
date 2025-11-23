@@ -79,14 +79,14 @@ export function FilterBar() {
             <div key={key} className="space-y-1">
               <Label htmlFor={key} className="text-xs font-medium">{label}</Label>
               <Select
-                value={filters[key as keyof typeof filters] || ""}
-                onValueChange={(value) => updateFilter(key as any, value || undefined)}
+                value={filters[key as keyof typeof filters] || "all"}
+                onValueChange={(value) => updateFilter(key as any, value === "all" ? undefined : value)}
               >
                 <SelectTrigger id={key} className="h-8 text-xs" data-testid={`select-${key}`}>
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   {options.map(option => (
                     <SelectItem key={option} value={option}>
                       {option}
@@ -102,14 +102,14 @@ export function FilterBar() {
             <div className="space-y-1">
               <Label htmlFor="state" className="text-xs font-medium">State</Label>
               <Select
-                value={filters.state || ""}
-                onValueChange={(value) => updateFilter("state", value || undefined)}
+                value={filters.state || "all"}
+                onValueChange={(value) => updateFilter("state", value === "all" ? undefined : value)}
               >
                 <SelectTrigger id="state" className="h-8 text-xs" data-testid="select-state">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   {STATES.map(state => (
                     <SelectItem key={state} value={state}>
                       {state}
