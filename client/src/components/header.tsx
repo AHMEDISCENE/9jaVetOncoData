@@ -11,6 +11,7 @@ import type { Notification } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { Moon, Sun, Menu } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
+import doodleHeaderImage from "@assets/generated_images/doodle_art_of_dog_cat_breeds_and_vet_materials.png";
 
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
@@ -96,19 +97,22 @@ export default function Header() {
   const unreadCount = unreadData?.count || 0;
 
   return (
-    <header className="glass border-b sticky top-0 z-30">
-      <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 md:px-10">
+    <header className="sticky top-0 z-30 border-b" style={{ backgroundImage: `url(${doodleHeaderImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      {/* Overlay for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/90 to-white/85 dark:from-gray-950/95 dark:via-gray-950/90 dark:to-gray-950/85 pointer-events-none" />
+      
+      <div className="relative flex items-center justify-between h-14 sm:h-16 md:h-20 px-3 sm:px-6 md:px-10">
         <div className="flex items-center space-x-2 min-w-0 flex-1">
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className="lg:hidden text-foreground p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:border-white/30 transition-all duration-200 hover:shadow-md"
+            className="lg:hidden text-foreground p-2 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 hover:border-white/40 transition-all duration-200 hover:shadow-md"
             data-testid="button-toggle-mobile-menu"
             title="Toggle navigation"
           >
             <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
-          <h1 className="flex-1 text-center sm:text-left sm:flex-none text-sm sm:text-base md:text-xl text-foreground font-extrabold" data-testid="text-page-title">
+          <h1 className="flex-1 text-center sm:text-left sm:flex-none text-sm sm:text-base md:text-lg lg:text-xl text-foreground font-extrabold" data-testid="text-page-title">
             {pageTitle}
           </h1>
         </div>
