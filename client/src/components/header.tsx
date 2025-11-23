@@ -97,14 +97,14 @@ export default function Header() {
 
   return (
     <header className="glass border-b">
-      <div className="flex items-center justify-between h-16 px-6 sm:px-8 md:px-10">
-        <div className="flex items-center space-x-3 sm:space-x-2 min-w-0 flex-1">
-          <h1 className="flex-1 text-center sm:text-left sm:flex-none sm:text-base md:text-xl text-foreground text-[18px] font-extrabold ml-12 sm:ml-4" data-testid="text-page-title">
+      <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 md:px-10">
+        <div className="flex items-center space-x-2 min-w-0 flex-1">
+          <h1 className="flex-1 text-center sm:text-left sm:flex-none text-sm sm:text-base md:text-xl text-foreground font-extrabold ml-8 sm:ml-0" data-testid="text-page-title">
             {pageTitle}
           </h1>
         </div>
         
-        <div className="flex items-center space-x-1 sm:space-x-2">
+        <div className="flex items-center space-x-0.5 sm:space-x-1 md:space-x-2">
           {/* Quick Actions - New Case */}
           {location !== "/cases/new" && (
             <motion.div
@@ -113,13 +113,13 @@ export default function Header() {
             >
               <Button 
                 asChild
-                className="bg-primary text-primary-foreground hover:bg-primary hover:opacity-90 rounded-full px-3 sm:px-4 transition-transform"
+                className="bg-primary text-primary-foreground hover:bg-primary hover:opacity-90 rounded-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 transition-transform h-auto"
                 data-testid="button-new-case"
                 onClick={handleNewCaseClick}
               >
-                <a href="/cases/new" className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 pl-[10px] pr-[10px] pt-[0px] pb-[0px] ml-[0px] mr-[0px] text-left font-semibold">
-                  <i className="fas fa-plus mr-1.5 sm:mr-2"></i>
-                  <span className="text-sm sm:text-base">New Case</span>
+                <a href="/cases/new" className="inline-flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap text-xs sm:text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 font-semibold">
+                  <i className="fas fa-plus text-xs sm:text-sm"></i>
+                  <span className="hidden sm:inline text-xs sm:text-sm">New Case</span>
                 </a>
               </Button>
             </motion.div>
@@ -129,7 +129,7 @@ export default function Header() {
           <Popover>
             <PopoverTrigger asChild>
               <motion.button 
-                className="relative text-muted-foreground hover:text-foreground p-1.5 sm:p-2"
+                className="relative text-muted-foreground hover:text-foreground p-2 sm:p-2"
                 data-testid="button-notifications"
                 onClick={handleNotificationClick}
                 animate={notificationAnimating ? { rotate: [-5, 5, -5, 0] } : { rotate: 0 }}
@@ -215,7 +215,7 @@ export default function Header() {
             animate={themeAnimating ? { rotate: 360 } : { rotate: 0 }}
             transition={{ duration: 0.6, ease: "easeInOut" }}
           >
-            {isDark ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
+            {isDark ? <Sun className="h-4 w-4 sm:h-4 md:h-5 md:w-5" /> : <Moon className="h-4 w-4 sm:h-4 md:h-5 md:w-5" />}
           </motion.button>
         </div>
       </div>
