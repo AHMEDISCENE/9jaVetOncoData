@@ -64,7 +64,8 @@ export function computeZoneFromState(state?: string | null): GeoZone | 'Unknown'
 }
 
 export function statesForZones(zones: string[]): string[] {
-  const wanted = new Set(zones.map(z => z.trim().toLowerCase()));
+  // Normalize input zones: convert underscores to spaces and lowercase for comparison
+  const wanted = new Set(zones.map(z => z.trim().toLowerCase().replace(/_/g, ' ')));
   return Object.entries(STATE_TO_ZONE)
     .filter(([, zone]) => wanted.has(zone.toLowerCase()))
     .map(([state]) => state); // Returns uppercase with underscores
