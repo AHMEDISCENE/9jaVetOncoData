@@ -1563,6 +1563,12 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
   app.get("/api/admin/users", requireAuth, requireRole("ADMIN"), async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
+      
+      // Ensure admin has a clinic (prevent cross-clinic data leakage)
+      if (!clinicId) {
+        return res.status(403).json({ message: "Admin must belong to a clinic" });
+      }
+      
       const users = await storage.getUsersByClinic(clinicId);
       res.json(users);
     } catch (error) {
@@ -1576,6 +1582,11 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       const { role } = req.body;
       const actorId = (req.session as any).userId;
       const clinicId = (req.session as any).clinicId;
+
+      // Ensure admin has a clinic (prevent cross-clinic operations)
+      if (!clinicId) {
+        return res.status(403).json({ message: "Admin must belong to a clinic" });
+      }
 
       // Validate role
       if (!["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"].includes(role)) {
@@ -1605,7 +1616,7 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
         entityType: 'USER',
         entityId: id,
         action: 'UPDATE',
-        details: { field: 'role', oldValue: targetUser.role, newValue: role },
+        diff: { before: { role: targetUser.role }, after: { role } },
         ip: req.ip,
         userAgent: req.get('User-Agent'),
       });
@@ -1622,6 +1633,11 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       const { userStatus } = req.body;
       const actorId = (req.session as any).userId;
       const clinicId = (req.session as any).clinicId;
+
+      // Ensure admin has a clinic (prevent cross-clinic operations)
+      if (!clinicId) {
+        return res.status(403).json({ message: "Admin must belong to a clinic" });
+      }
 
       // Validate status
       if (!["ACTIVE", "SUSPENDED", "RESTRICTED"].includes(userStatus)) {
@@ -1651,7 +1667,7 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
         entityType: 'USER',
         entityId: id,
         action: 'UPDATE',
-        details: { field: 'userStatus', oldValue: targetUser.userStatus, newValue: userStatus },
+        diff: { before: { userStatus: targetUser.userStatus }, after: { userStatus } },
         ip: req.ip,
         userAgent: req.get('User-Agent'),
       });
@@ -1667,6 +1683,11 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       const { id } = req.params;
       const actorId = (req.session as any).userId;
       const clinicId = (req.session as any).clinicId;
+
+      // Ensure admin has a clinic (prevent cross-clinic operations)
+      if (!clinicId) {
+        return res.status(403).json({ message: "Admin must belong to a clinic" });
+      }
 
       // Check if user exists and belongs to same clinic
       const targetUser = await storage.getUserById(id);

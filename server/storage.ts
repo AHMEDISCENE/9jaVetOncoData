@@ -46,6 +46,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserWithClinic(id: string): Promise<UserWithClinic | undefined>;
+  getUsersByClinic(clinicId: string): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
   
@@ -265,6 +266,20 @@ export class DatabaseStorage implements IStorage {
   async getUserById(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
+  }
+
+  async getUsersByClinic(clinicId: string): Promise<User[]> {
+    // Safety check: return empty array if clinicId is null/undefined
+    if (!clinicId) {
+      return [];
+    }
+    
+    const clinicUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.clinicId, clinicId))
+      .orderBy(desc(users.createdAt));
+    return clinicUsers;
   }
 
   async linkGoogleAccount(userId: string, googleId: string): Promise<void> {
