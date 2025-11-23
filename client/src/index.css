@@ -111,7 +111,7 @@
   }
 
   .nav-item {
-    @apply flex items-center py-3.5 text-sm font-medium text-muted-foreground rounded-xl transition-all duration-200 hover:bg-muted/70 hover:text-foreground;
+    @apply flex items-center py-3.5 text-sm font-medium text-muted-foreground rounded-xl transition-all duration-200 hover:bg-muted hover:text-foreground;
   }
   
   .nav-item.active {

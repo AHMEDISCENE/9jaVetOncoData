@@ -131,7 +131,7 @@ export default function Sidebar() {
                   title={isCollapsed ? item.name : undefined}
                 >
                   <Icon className="h-5 w-5 flex-shrink-0" />
-                  {!isCollapsed && <span className="text-sm font-medium">{item.name}</span>}
+                  {!isCollapsed && <span className="font-medium">{item.name}</span>}
                 </Link>
               );
             })}
