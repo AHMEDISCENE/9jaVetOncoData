@@ -153,6 +153,36 @@ export default function Analytics() {
     }
   };
 
+  const speciesRows = stats.casesBySpecies.map((item) => ({
+    species: item.name,
+    cases: item.count,
+  }));
+  const hasSpeciesData = speciesRows.length > 0;
+
+  const handleSpeciesExport = () => {
+    if (!hasSpeciesData) {
+      return;
+    }
+
+    try {
+      exportToCsv({
+        rows: speciesRows,
+        headers: [
+          { key: "species", label: "species" },
+          { key: "cases", label: "cases" },
+        ],
+        filename: "cases-by-species",
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: "We couldn't export the Species data. Please try again.",
+      });
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6">
       {/* Header */}
@@ -315,19 +345,51 @@ export default function Analytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases by Species</CardTitle>
-            <Button variant="outline" size="sm" data-testid="button-export-species-chart">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="button-export-species-chart"
+              onClick={handleSpeciesExport}
+              disabled={!hasSpeciesData}
+              aria-label={
+                hasSpeciesData
+                  ? "Export Cases by Species as CSV"
+                  : "No cases by species data to export"
+              }
+            >
               <i className="fas fa-download mr-2"></i>Export
             </Button>
           </CardHeader>
           <CardContent>
             <div className="h-80">
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <i className="fas fa-chart-bar text-4xl mb-2"></i>
-                  <p>Species analysis coming soon</p>
-                  <p className="text-sm">Data processing in progress</p>
+              {stats.casesBySpecies.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.casesBySpecies}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255,255,255,0.95)",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px"
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#10b981"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <i className="fas fa-chart-bar text-4xl mb-2"></i>
+                    <p>No species data available</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
