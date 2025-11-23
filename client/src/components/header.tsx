@@ -96,23 +96,22 @@ export default function Header() {
   const unreadCount = unreadData?.count || 0;
 
   return (
-    <>
-      {/* Floating Mobile Menu Button */}
-      <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="fixed top-6 left-4 lg:hidden z-50 text-foreground p-3 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 hover:border-white/40 transition-all duration-300 shadow-lg hover:shadow-xl"
-        data-testid="button-toggle-mobile-menu"
-        title="Toggle navigation"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
-      <header className="glass border-b sticky top-0 z-30">
-        <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 md:px-10">
-          <div className="flex items-center space-x-2 min-w-0 flex-1">
-            <h1 className="flex-1 text-center sm:text-left sm:flex-none text-sm sm:text-base md:text-xl text-foreground font-extrabold pl-12 sm:pl-0" data-testid="text-page-title">
-              {pageTitle}
-            </h1>
-          </div>
+    <header className="glass border-b sticky top-0 z-30">
+      <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 md:px-10">
+        <div className="flex items-center space-x-2 min-w-0 flex-1">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            className="lg:hidden text-foreground p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:border-white/30 transition-all duration-200 hover:shadow-md"
+            data-testid="button-toggle-mobile-menu"
+            title="Toggle navigation"
+          >
+            <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
+          </button>
+          <h1 className="flex-1 text-center sm:text-left sm:flex-none text-sm sm:text-base md:text-xl text-foreground font-extrabold" data-testid="text-page-title">
+            {pageTitle}
+          </h1>
+        </div>
         
         <div className="flex items-center space-x-0.5 sm:space-x-1 md:space-x-2">
           {/* Quick Actions - New Case */}
@@ -230,6 +229,5 @@ export default function Header() {
         </div>
       </div>
     </header>
-    </>
   );
 }
