@@ -75,19 +75,19 @@ export default function Header() {
 
   return (
     <header className="glass border-b">
-      <div className="flex items-center justify-between h-16 px-4 sm:px-6">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold text-foreground lg:ml-0 ml-12" data-testid="text-page-title">
+      <div className="flex items-center justify-between h-16 px-2 sm:px-4 md:px-6">
+        <div className="flex items-center space-x-2 min-w-0">
+          <h1 className="text-sm sm:text-lg md:text-xl font-semibold text-foreground lg:ml-0 ml-8 truncate" data-testid="text-page-title">
             {pageTitle}
           </h1>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-1 sm:space-x-2">
           {/* Quick Actions */}
           {location !== "/cases/new" && (
             <Button 
               asChild
-              className="bg-primary text-primary-foreground hover:bg-primary hover:opacity-90"
+              className="bg-primary text-primary-foreground hover:bg-primary hover:opacity-90 hidden sm:flex"
               data-testid="button-new-case"
             >
               <a href="/cases/new">
@@ -100,12 +100,12 @@ export default function Header() {
           <Popover>
             <PopoverTrigger asChild>
               <button 
-                className={`relative text-muted-foreground hover:text-foreground p-2 ${
+                className={`relative text-muted-foreground hover:text-foreground p-1.5 sm:p-2 ${
                   unreadCount > 0 ? "jitter-animation" : ""
                 }`}
                 data-testid="button-notifications"
               >
-                <i className="fas fa-bell"></i>
+                <i className="fas fa-bell text-sm sm:text-base"></i>
                 {unreadCount > 0 && (
                   <Badge 
                     variant="destructive" 
@@ -179,11 +179,11 @@ export default function Header() {
           {/* Theme Toggle */}
           <button 
             onClick={toggleTheme}
-            className="text-muted-foreground hover:text-foreground p-2 transition-colors rounded-lg hover:bg-muted/50"
+            className="text-muted-foreground hover:text-foreground p-1.5 sm:p-2 transition-colors rounded-lg hover:bg-muted/50"
             data-testid="button-toggle-theme"
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {isDark ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
           </button>
         </div>
       </div>
