@@ -310,6 +310,8 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
   };
 
   const onSubmit = (data: CaseFormData) => {
+    console.log("[CaseWizard] Form submitted with data:", data);
+    console.log("[CaseWizard] Form errors:", form.formState.errors);
     caseMutation.mutate(data);
   };
 
