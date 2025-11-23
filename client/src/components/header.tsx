@@ -97,9 +97,9 @@ export default function Header() {
   const unreadCount = unreadData?.count || 0;
 
   return (
-    <header className="sticky top-0 z-30 border-b" style={{ backgroundImage: `url(${doodleHeaderImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+    <header className="sticky top-0 z-30 border-b" style={{ backgroundImage: `url(${doodleHeaderImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backdropFilter: 'blur(12px)' }}>
       {/* Overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/90 to-white/85 dark:from-gray-950/95 dark:via-gray-950/90 dark:to-gray-950/85 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-white/30 to-white/20 dark:from-gray-950/90 dark:via-gray-950/85 dark:to-gray-950/80 pointer-events-none" />
       
       <div className="relative flex items-center justify-between h-14 sm:h-16 md:h-20 px-3 sm:px-6 md:px-10">
         <div className="flex items-center space-x-2 min-w-0 flex-1">
