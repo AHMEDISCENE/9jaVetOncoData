@@ -195,7 +195,11 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
     },
     onSuccess: async (result) => {
       const resultCaseId = result.id || caseId;
+      // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/cases-by-location"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/stats"] });
       if (isEditing) {
         queryClient.invalidateQueries({ queryKey: [`/api/cases/${resultCaseId}`] });
       }
