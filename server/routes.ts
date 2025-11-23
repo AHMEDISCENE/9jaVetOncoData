@@ -1578,7 +1578,20 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       
       // Use shared feed posts with cursor pagination
       const result = await storage.getSharedFeedPosts(filters);
-      res.json(result);
+      
+      // Fetch author info for each post
+      const postsWithAuthors = await Promise.all(
+        result.items.map(async (post) => {
+          const author = await storage.getUser(post.authorId);
+          return {
+            ...post,
+            authorName: author?.name || "Unknown Author",
+            authorEmail: author?.email,
+          };
+        })
+      );
+      
+      res.json({ items: postsWithAuthors, nextCursor: result.nextCursor });
     } catch (error) {
       console.error("[ERROR] Get feed posts failed:", error);
       // Return empty result instead of 500
@@ -1662,7 +1675,20 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
       const posts = await storage.getRecentFeedPosts(limit);
-      res.json(posts);
+      
+      // Fetch author info for each post
+      const postsWithAuthors = await Promise.all(
+        posts.map(async (post) => {
+          const author = await storage.getUser(post.authorId);
+          return {
+            ...post,
+            authorName: author?.name || "Unknown Author",
+            authorEmail: author?.email,
+          };
+        })
+      );
+      
+      res.json(postsWithAuthors);
     } catch (error) {
       res.status(500).json({ message: "Failed to get recent feed posts" });
     }

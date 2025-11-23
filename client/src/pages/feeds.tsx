@@ -365,7 +365,7 @@ export default function Feeds() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>
                         <i className="fas fa-user mr-1"></i>
-                        Author
+                        {(post as any).authorName || "Author"}
                       </span>
                       <span>
                         <i className="fas fa-calendar mr-1"></i>

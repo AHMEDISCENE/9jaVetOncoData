@@ -641,9 +641,14 @@ export default function Dashboard() {
                     <p className="text-sm text-foreground font-medium truncate">
                       {post.title}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(post.createdAt).toLocaleDateString()}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        {(post as any).authorName || "Unknown Author"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -668,7 +673,7 @@ export default function Dashboard() {
               <DialogHeader>
                 <DialogTitle>{selectedPost.title}</DialogTitle>
                 <DialogDescription>
-                  Posted on {new Date(selectedPost.createdAt).toLocaleDateString()} at {new Date(selectedPost.createdAt).toLocaleTimeString()}
+                  By {(selectedPost as any).authorName || "Unknown Author"} • Posted on {new Date(selectedPost.createdAt).toLocaleDateString()} at {new Date(selectedPost.createdAt).toLocaleTimeString()}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
