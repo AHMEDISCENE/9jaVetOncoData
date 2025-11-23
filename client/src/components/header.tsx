@@ -57,7 +57,7 @@ export default function Header() {
   const unreadCount = unreadData?.count || 0;
 
   return (
-    <header className="bg-card border-b border-border">
+    <header className="glass border-b">
       <div className="flex items-center justify-between h-16 px-4 sm:px-6">
         <div className="flex items-center space-x-4">
           <h1 className="text-xl font-semibold text-foreground lg:ml-0 ml-12" data-testid="text-page-title">
