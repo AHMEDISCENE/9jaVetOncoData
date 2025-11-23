@@ -113,7 +113,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
 
   // Load draft on mount or populate from case data if editing
   useEffect(() => {
-    if (isEditing && caseData) {
+    if (isEditing && caseData && Object.keys(caseData).length > 0) {
       form.reset({
         state: caseData.geoZone ? Object.keys(NIGERIA_STATES).find(s => getZoneForState(s) === caseData.geoZone) || "" : "",
         clinicId: caseData.clinic?.id || userClinic?.id || "",
@@ -147,7 +147,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
         }
       }
     }
-  }, [isEditing, caseData, form, userClinic]);
+  }, [isEditing, caseId, caseData?.id]);
 
   // Reset breed when species changes
   useEffect(() => {
@@ -195,11 +195,21 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
     },
     onSuccess: async (result) => {
       const resultCaseId = result.id || caseId;
-      // Invalidate all related queries
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics/cases-by-location"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics/stats"] });
+      // Invalidate all related queries - use partial matching for queries with parameters
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/cases"],
+        type: "all"
+      });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return typeof key === "string" && (
+            key.includes("/api/analytics") || 
+            key.includes("/api/dashboard") || 
+            key.includes("/api/cases-by-location")
+          );
+        }
+      });
       if (isEditing) {
         queryClient.invalidateQueries({ queryKey: [`/api/cases/${resultCaseId}`] });
       }
