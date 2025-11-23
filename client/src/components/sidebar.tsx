@@ -77,26 +77,26 @@ export default function Sidebar() {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 bg-card border-r border-border transform transition-all duration-200 ease-in-out lg:translate-x-0 ${
+      <div className={`fixed inset-y-0 left-0 z-50 bg-card border-r border-border transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
         isMobileOpen ? "translate-x-0" : "-translate-x-full"
-      } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64`}>
+      } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-72`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-            <div className="flex items-center space-x-2 overflow-hidden">
-              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                <Stethoscope className="h-4 w-4 text-primary-foreground" />
+          <div className="flex items-center justify-between h-16 px-6 border-b border-border">
+            <div className="flex items-center space-x-3 overflow-hidden">
+              <div className="h-9 w-9 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                <Stethoscope className="h-5 w-5 text-primary-foreground" />
               </div>
               {!isCollapsed && (
-                <span className="text-lg font-semibold text-foreground whitespace-nowrap">9ja VetOncoData</span>
+                <span className="text-base font-bold text-foreground whitespace-nowrap lg:text-lg">9ja VetOncoData</span>
               )}
             </div>
             <button 
-              className="lg:hidden text-muted-foreground hover:text-foreground"
+              className="lg:hidden text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
               onClick={toggleMobileSidebar}
               data-testid="button-close-sidebar"
             >
-              <X className="h-5 w-5" />
+              <X className="h-6 w-6" />
             </button>
           </div>
 
@@ -118,31 +118,31 @@ export default function Sidebar() {
           </button>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-4 space-y-2">
+          <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
             {allNavigation.map((item) => {
               const Icon = item.icon;
               return (
                 <Link 
                   key={item.name} 
                   href={item.href}
-                  className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "justify-center" : "gap-3"}`}
+                  className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "justify-center px-3" : "gap-3 px-4"}`}
                   data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
                   onClick={() => setIsMobileOpen(false)}
                   title={isCollapsed ? item.name : undefined}
                 >
                   <Icon className="h-5 w-5 flex-shrink-0" />
-                  {!isCollapsed && <span>{item.name}</span>}
+                  {!isCollapsed && <span className="text-sm font-medium">{item.name}</span>}
                 </Link>
               );
             })}
           </nav>
 
           {/* User Profile */}
-          <div className="border-t border-border p-4">
+          <div className="border-t border-border p-4 bg-muted/30">
             {isCollapsed ? (
               <div className="flex flex-col items-center space-y-3">
-                <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center" title={user?.name || "Unknown User"}>
-                  <span className="text-sm font-medium" data-testid="text-user-initials">
+                <div className="h-9 w-9 bg-primary/10 border-2 border-primary rounded-full flex items-center justify-center" title={user?.name || "Unknown User"}>
+                  <span className="text-sm font-semibold text-primary" data-testid="text-user-initials">
                     {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                   </span>
                 </div>
@@ -159,14 +159,14 @@ export default function Sidebar() {
               </div>
             ) : (
               <>
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium" data-testid="text-user-initials">
+                <div className="flex items-center space-x-3 mb-4 px-1">
+                  <div className="h-10 w-10 bg-primary/10 border-2 border-primary rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-semibold text-primary" data-testid="text-user-initials">
                       {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-name">
+                    <p className="text-sm font-semibold text-foreground truncate" data-testid="text-user-name">
                       {user?.name || "Unknown User"}
                     </p>
                     <p className="text-xs text-muted-foreground truncate" data-testid="text-clinic-name">
@@ -177,7 +177,7 @@ export default function Sidebar() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full" 
+                  className="w-full justify-center" 
                   onClick={handleLogout}
                   data-testid="button-logout"
                 >
