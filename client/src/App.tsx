@@ -23,6 +23,7 @@ import Settings from "@/pages/settings";
 import UserManagement from "@/pages/user-management";
 import { SidebarProvider, useSidebar } from "@/contexts/sidebar-context";
 import { AnalyticsDateRangeProvider } from "@/contexts/analytics-date-range-context";
+import { AnalyticsFiltersProvider } from "@/contexts/analytics-filters-context";
 
 function AuthenticatedLayout() {
   const { isCollapsed } = useSidebar();
@@ -99,9 +100,11 @@ function Router() {
 
   return (
     <AnalyticsDateRangeProvider>
-      <SidebarProvider>
-        <AuthenticatedLayout />
-      </SidebarProvider>
+      <AnalyticsFiltersProvider>
+        <SidebarProvider>
+          <AuthenticatedLayout />
+        </SidebarProvider>
+      </AnalyticsFiltersProvider>
     </AnalyticsDateRangeProvider>
   );
 }

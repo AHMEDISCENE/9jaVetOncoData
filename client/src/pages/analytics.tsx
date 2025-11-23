@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/export";
 import { useCasesByLocation } from "@/hooks/useCasesByLocation";
 import { InteractiveNigeriaMap } from "@/components/analytics/InteractiveNigeriaMap";
+import { FilterBar } from "@/components/analytics/FilterBar";
+import { useAnalyticsFilters, buildFilterParams } from "@/contexts/analytics-filters-context";
 import type { DashboardStats } from "@/lib/types";
 
 const COLORS = [
@@ -38,9 +40,15 @@ function groupTumourTypes(tumours: Array<{ name: string; count: number }>, maxIt
 export default function Analytics() {
   const { toast } = useToast();
   const [selectedChart, setSelectedChart] = useState<string | null>(null);
+  const { filters } = useAnalyticsFilters();
+  
+  // Build query key with filters
+  const filterParams = buildFilterParams(filters);
+  const queryString = filterParams.toString();
+  const statsUrl = queryString ? `/api/dashboard/stats?${queryString}` : "/api/dashboard/stats";
   
   const { data: stats, isLoading, error } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"],
+    queryKey: [statsUrl],
   });
 
   const { 
@@ -56,6 +64,7 @@ export default function Analytics() {
   if (isLoading) {
     return (
       <div className="p-4 sm:p-6">
+        <FilterBar />
         <div className="mb-8">
           <Skeleton className="h-8 w-48 mb-2" />
           <Skeleton className="h-4 w-64" />
@@ -80,6 +89,7 @@ export default function Analytics() {
   if (error || !stats) {
     return (
       <div className="p-4 sm:p-6">
+        <FilterBar />
         <Card>
           <CardContent className="p-6 text-center">
             <i className="fas fa-exclamation-triangle text-destructive text-4xl mb-4"></i>
@@ -242,6 +252,9 @@ export default function Analytics() {
 
   return (
     <div className="p-4 sm:p-6">
+      {/* Global Filter Bar */}
+      <FilterBar />
+      
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground">Analytics & Insights</h2>
