@@ -186,7 +186,7 @@ export default function UserManagement() {
   }
 
   // This should rarely show due to redirect in useEffect, but kept as failsafe
-  if (currentUser.role !== "ADMIN") {
+  if (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN") {
     return null;
   }
 
