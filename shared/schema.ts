@@ -13,6 +13,10 @@ export const attachmentKindEnum = pgEnum("attachment_kind", ["IMAGE", "PDF", "LA
 export const reportStatusEnum = pgEnum("report_status", ["PENDING", "RUNNING", "COMPLETED", "FAILED"]);
 export const feedStatusEnum = pgEnum("feed_status", ["DRAFT", "PUBLISHED", "MODERATION"]);
 export const userStatusEnum = pgEnum("user_status", ["ACTIVE", "SUSPENDED", "RESTRICTED"]);
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "CASE_ASSIGNED", "CASE_UPDATED", "COMMENT_ADDED", "IMPORT_COMPLETED", 
+  "IMPORT_FAILED", "MENTION", "FOLLOW_UP_DUE", "SYSTEM"
+]);
 export const geoPoliticalZoneEnum = pgEnum("geo_political_zone", [
   "NORTH_CENTRAL", "NORTH_EAST", "NORTH_WEST", 
   "SOUTH_EAST", "SOUTH_SOUTH", "SOUTH_WEST"
@@ -104,6 +108,27 @@ export const invitations = pgTable("invitations", {
   acceptedAt: timestamp("accepted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  type: notificationTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  linkUrl: text("link_url"), // optional URL to navigate to
+  isRead: boolean("is_read").default(false).notNull(),
+  metadata: jsonb("metadata").$type<{
+    caseId?: string;
+    importId?: string;
+    userId?: string;
+    commentId?: string;
+  }>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("notifications_user_id_idx").on(table.userId),
+  isReadIdx: index("notifications_is_read_idx").on(table.isRead),
+  createdAtIdx: index("notifications_created_at_idx").on(table.createdAt),
+}));
 
 // Master vocabulary tables
 export const tumourTypes = pgTable("tumour_types", {
@@ -495,6 +520,11 @@ export const insertFollowUpSchema = createInsertSchema(followUps).omit({
   completedAt: true,
 });
 
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Clinic = typeof clinics.$inferSelect;
 export type User = typeof users.$inferSelect;
@@ -511,6 +541,7 @@ export type FollowUp = typeof followUps.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type ImportJob = typeof importJobs.$inferSelect;
 export type Invitation = typeof invitations.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
 
 export type InsertClinic = z.infer<typeof insertClinicSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -521,6 +552,7 @@ export type InsertAttachment = z.infer<typeof insertAttachmentSchema>;
 export type InsertCaseFile = z.infer<typeof insertCaseFileSchema>;
 export type InsertFeedPost = z.infer<typeof insertFeedPostSchema>;
 export type InsertFollowUp = z.infer<typeof insertFollowUpSchema>;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 // User with clinic data
 export type UserWithClinic = User & {
