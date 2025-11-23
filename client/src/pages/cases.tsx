@@ -807,6 +807,7 @@ export default function Cases() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Case ID</TableHead>
+                        <TableHead>Upload Date</TableHead>
                         <TableHead>Patient</TableHead>
                         <TableHead>Tumour Type</TableHead>
                         <TableHead>Clinic</TableHead>
@@ -825,6 +826,9 @@ export default function Cases() {
                         <TableRow key={caseItem.id} className="hover:bg-muted/50">
                           <TableCell className="font-medium" data-testid={`case-id-${caseItem.id}`}>
                             {caseItem.caseNumber}
+                          </TableCell>
+                          <TableCell data-testid={`upload-date-${caseItem.id}`}>
+                            {caseItem.createdAt ? new Date(caseItem.createdAt).toLocaleDateString() : "—"}
                           </TableCell>
                           <TableCell>
                             <div>
@@ -892,7 +896,7 @@ export default function Cases() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           No cases found
                         </TableCell>
                       </TableRow>
