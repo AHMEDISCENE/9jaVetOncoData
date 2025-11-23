@@ -1040,7 +1040,14 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       
       const updates = insertCaseSchema.partial().parse(transformedUpdates);
       
-      const updatedCase = await storage.updateCase(req.params.id, updates, clinicId);
+      await storage.updateCase(req.params.id, updates, clinicId);
+      
+      // Fetch the updated case with all details
+      const updatedCase = await storage.getCase(req.params.id, clinicId);
+      
+      if (!updatedCase) {
+        return res.status(404).json({ message: "Case not found after update" });
+      }
       
       // Create notification for all clinic users (non-blocking)
       try {
