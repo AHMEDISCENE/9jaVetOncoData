@@ -1004,10 +1004,14 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
     }
   });
 
-  app.put("/api/cases/:id", requireAuth, async (req, res) => {
+  const updateCaseHandler = async (req: any, res: any) => {
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
+      
+      if (!clinicId || !userId) {
+        return res.status(401).json({ message: "Session invalid" });
+      }
       
       // Apply mutual exclusivity rules for tumour type and anatomical site
       let tumourTypeId = req.body.tumourTypeId || null;
@@ -1078,7 +1082,10 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update case" });
     }
-  });
+  };
+
+  app.put("/api/cases/:id", requireAuth, updateCaseHandler);
+  app.patch("/api/cases/:id", requireAuth, updateCaseHandler);
 
   app.delete("/api/cases/:id", requireAuth, async (req, res) => {
     try {
