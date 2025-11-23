@@ -7,7 +7,18 @@ import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/export";
 import type { DashboardStats } from "@/lib/types";
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--secondary))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+const COLORS = [
+  '#3b82f6', // Blue
+  '#ef4444', // Red
+  '#10b981', // Green
+  '#f59e0b', // Amber
+  '#8b5cf6', // Purple
+  '#ec4899', // Pink
+  '#06b6d4', // Cyan
+  '#f97316', // Orange
+  '#6366f1', // Indigo
+  '#14b8a6', // Teal
+];
 
 export default function Analytics() {
   const { toast } = useToast();
@@ -215,16 +226,23 @@ export default function Analytics() {
               {stats.casesByMonth.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={stats.casesByMonth}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "rgba(255,255,255,0.95)", 
+                        border: "1px solid #ccc",
+                        borderRadius: "4px"
+                      }}
+                    />
                     <Line 
                       type="monotone" 
                       dataKey="count" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      dot={{ fill: "hsl(var(--primary))" }}
+                      stroke="#3b82f6" 
+                      strokeWidth={3}
+                      dot={{ fill: "#3b82f6", r: 5 }}
+                      activeDot={{ r: 7 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
