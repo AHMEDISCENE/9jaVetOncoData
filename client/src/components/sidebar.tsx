@@ -143,16 +143,16 @@ export default function Sidebar() {
           </nav>
 
           {/* User Profile */}
-          <div className="border-t border-border p-4">
+          <div className="border-t border-border p-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-t-lg">
             {isCollapsed ? (
               <div className="flex flex-col items-center space-y-3">
-                <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center" title={user?.name || "Unknown User"}>
-                  <span className="text-sm font-medium" data-testid="text-user-initials">
+                <div className="h-10 w-10 bg-primary/80 rounded-full flex items-center justify-center shadow-md" title={user?.name || "Unknown User"}>
+                  <span className="text-sm font-bold text-primary-foreground" data-testid="text-user-initials">
                     {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                   </span>
                 </div>
                 <Button 
-                  variant="outline" 
+                  variant="default" 
                   size="sm" 
                   className="w-full px-2" 
                   onClick={handleLogout}
@@ -164,25 +164,25 @@ export default function Sidebar() {
               </div>
             ) : (
               <>
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium" data-testid="text-user-initials">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="h-10 w-10 bg-primary/80 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                    <span className="text-sm font-bold text-primary-foreground" data-testid="text-user-initials">
                       {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-name">
+                    <p className="text-sm font-semibold text-foreground truncate" data-testid="text-user-name">
                       {user?.name || "Unknown User"}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate" data-testid="text-clinic-name">
+                    <p className="text-xs text-foreground/70 truncate" data-testid="text-clinic-name">
                       {clinic?.name || "No Clinic"}
                     </p>
                   </div>
                 </div>
                 <Button 
-                  variant="outline" 
+                  variant="default" 
                   size="sm" 
-                  className="w-full" 
+                  className="w-full font-semibold" 
                   onClick={handleLogout}
                   data-testid="button-logout"
                 >
