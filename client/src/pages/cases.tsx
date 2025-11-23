@@ -518,7 +518,6 @@ export default function Cases() {
       {/* Cases Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Case Management</h2>
           <p className="text-muted-foreground">Manage and view all veterinary oncology cases</p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
