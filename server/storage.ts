@@ -1327,14 +1327,13 @@ export class DatabaseStorage implements IStorage {
       if (filters.geoZones && filters.geoZones.length > 0) {
         if (useJoin) {
           const allowedStates = await db
-            .select({ code: sql<string>`name` })
-            .from(sql`ng_states`)
-            .where(sql`zone::text = ANY(ARRAY[${sql.join(filters.geoZones.map(z => sql`${z}`), sql`, `)}])`);
+            .select({ code: ngStates.code })
+            .from(ngStates)
+            .where(inArray(ngStates.zone, filters.geoZones as any));
           
           if (allowedStates.length > 0) {
-            // Map state names to uppercase enums for matching
-            const stateEnums = allowedStates.map(s => s.code.toUpperCase()).map(s => sql`${s}`);
-            query = query.where(inArray(cases.state, stateEnums as any));
+            const stateCodes = allowedStates.map(s => s.code);
+            query = query.where(inArray(cases.state, stateCodes as any));
           }
         } else {
           // Convert zone format from "NORTH_CENTRAL" to "North Central" for statesForZones
