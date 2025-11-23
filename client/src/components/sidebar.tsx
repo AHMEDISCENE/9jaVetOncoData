@@ -125,13 +125,13 @@ export default function Sidebar() {
                 <Link 
                   key={item.name} 
                   href={item.href}
-                  className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "justify-center" : "gap-3"}`}
+                  className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "lg:justify-center" : "gap-3"}`}
                   data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
                   onClick={() => setIsMobileOpen(false)}
                   title={isCollapsed ? item.name : undefined}
                 >
                   <Icon className="h-5 w-5 flex-shrink-0" />
-                  {!isCollapsed && <span>{item.name}</span>}
+                  <span className={isCollapsed ? "lg:hidden" : ""}>{item.name}</span>
                 </Link>
               );
             })}
