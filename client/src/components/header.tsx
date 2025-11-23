@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -7,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiRequest } from "@/lib/queryClient";
 import type { Notification } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { Moon, Sun } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
@@ -22,8 +24,27 @@ const pageTitles: Record<string, string> = {
 
 export default function Header() {
   const [location] = useLocation();
+  const [isDark, setIsDark] = useState(false);
   const pageTitle = pageTitles[location] || "9ja VetOncoData";
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    setIsDark(isDarkMode);
+  }, []);
+
+  const toggleTheme = () => {
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    if (isDarkMode) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setIsDark(false);
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setIsDark(true);
+    }
+  };
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -152,6 +173,16 @@ export default function Header() {
               </ScrollArea>
             </PopoverContent>
           </Popover>
+
+          {/* Theme Toggle */}
+          <button 
+            onClick={toggleTheme}
+            className="text-muted-foreground hover:text-foreground p-2 transition-colors rounded-lg hover:bg-muted/50"
+            data-testid="button-toggle-theme"
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
         </div>
       </div>
     </header>
