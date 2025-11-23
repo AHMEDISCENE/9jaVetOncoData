@@ -69,19 +69,14 @@ export function buildFilterParams(filters: AnalyticsFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.species) params.append("species", filters.species);
   
-  // Convert zone format from "SOUTH_WEST" to "South West"
+  // Send zone as-is (already in correct format: NORTH_CENTRAL, SOUTH_WEST, etc.)
   if (filters.zone) {
-    const convertedZone = filters.zone
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-    params.append("geoZones", convertedZone);
+    params.append("geoZones", filters.zone);
   }
   
-  // Convert state format from "LAGOS" to "Lagos"
+  // Send state as-is (already in correct format: LAGOS, KOGI, etc.)
   if (filters.state) {
-    const convertedState = filters.state.charAt(0).toUpperCase() + filters.state.slice(1).toLowerCase();
-    params.append("states", convertedState);
+    params.append("states", filters.state);
   }
   
   if (filters.tumourType) params.append("tumourTypeIds", filters.tumourType);

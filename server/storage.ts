@@ -1332,16 +1332,22 @@ export class DatabaseStorage implements IStorage {
             .where(sql`zone::text = ANY(ARRAY[${sql.join(filters.geoZones.map(z => sql`${z}`), sql`, `)}])`);
           
           if (allowedStates.length > 0) {
-            query = query.where(
-              sql`LOWER(TRIM(${cases.state})) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`LOWER(TRIM(${s.code}))`), sql`, `)}])`
-            );
+            // Map state names to uppercase enums for matching
+            const stateEnums = allowedStates.map(s => s.code.toUpperCase()).map(s => sql`${s}`);
+            query = query.where(inArray(cases.state, stateEnums as any));
           }
         } else {
-          const allowedStates = statesForZones(filters.geoZones);
+          // Convert zone format from "NORTH_CENTRAL" to "North Central" for statesForZones
+          const convertedZones = filters.geoZones.map(z => 
+            z.split('_')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+              .join(' ')
+          );
+          const allowedStates = statesForZones(convertedZones);
           if (allowedStates.length > 0) {
-            query = query.where(
-              sql`LOWER(TRIM(${cases.state})) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`${s}`), sql`, `)}])`
-            );
+            // Convert state names to uppercase enums for matching
+            const stateEnums = allowedStates.map(s => s.toUpperCase());
+            query = query.where(inArray(cases.state, stateEnums as any));
           }
         }
       }
