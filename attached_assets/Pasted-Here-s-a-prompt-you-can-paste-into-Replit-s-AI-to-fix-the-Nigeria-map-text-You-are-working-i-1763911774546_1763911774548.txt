@@ -1,0 +1,102 @@
+Here’s a prompt you can paste into Replit’s AI to fix the Nigeria map:
+
+```text
+You are working inside the VetOncoData project.
+
+Context:
+- We have an Analytics page with a Nigeria map widget for case distribution by zone.
+- We are using a map component (likely react-simple-maps or similar) to render Nigeria.
+- PROBLEM: Instead of a full Nigeria map with all state boundaries (like a standard “States of Nigeria” map), the UI currently shows a single small polygon in the middle of a large green background. It looks like either:
+  - Only one geography is being rendered, or
+  - The projection/scale/center are wrong so the map is tiny and not filling the card.
+
+Goal:
+Make the Nigeria map display correctly:
+- Show the entire outline of Nigeria.
+- Show all states as separate polygons with internal boundaries.
+- Fill most of the card area (not a tiny shape in the centre).
+- Keep the existing zone legend and case counts working.
+
+------------------------------------------------
+1. Inspect current map component and data
+------------------------------------------------
+1.1. Locate the map component used on the Analytics page (e.g. NigeriaCaseDensityMap.tsx or similar).
+1.2. Identify:
+  - Which library is used (react-simple-maps, mapbox, etc.).
+  - Which GeoJSON/TopoJSON file is being loaded for Nigeria.
+  - How <ComposableMap>, <Geographies>, and <Geography> are configured (projection, projectionConfig, width/height, etc).
+
+------------------------------------------------
+2. Fix the geography data
+------------------------------------------------
+2.1. Confirm that the data source actually contains **all Nigeria states**, not just one polygon:
+  - If we are currently using a file that only has a single polygon (whole country), replace it with a GeoJSON/TopoJSON containing state-level boundaries (36 states + FCT).
+  - Ensure each state feature has a name property like `properties.NAME_1` or `properties.state_name`, and normalise it if needed.
+
+2.2. In the map component, map over **all** features:
+  - Use something like:
+
+    <Geographies geography={nigeriaStatesTopo}>
+      {({ geographies }) =>
+        geographies.map(geo => (
+          <Geography key={geo.rsmKey} geography={geo} ... />
+        ))
+      }
+    </Geographies>
+
+  - Make sure we are not accidentally filtering the list down to a single feature.
+
+------------------------------------------------
+3. Fix projection, centre and scale
+------------------------------------------------
+3.1. Use a suitable projection (geoMercator or the default from react-simple-maps).
+3.2. Set `projectionConfig` so Nigeria fills most of the card:
+  - Example for react-simple-maps:
+
+    <ComposableMap
+      projection="geoMercator"
+      projectionConfig={{
+        center: [8.6753, 9.0820],   // approximate centre of Nigeria
+        scale: 2500                 // adjust until map nicely fills the container
+      }}
+    >
+
+3.3. Make sure width/height or viewBox are consistent with the container:
+  - For SVG-based maps, prefer `viewBox="0 0 800 600"` (or similar) and set the outer wrapper to `width: 100%` so the map scales responsively.
+  - Avoid hard-coding a tiny width/height like 200x200.
+
+3.4. If using `ZoomableGroup`, ensure:
+  - `center={[8.6753, 9.0820]}`
+  - `zoom` is reasonable (around 1 initially).
+  - There is no `minZoom` or `maxZoom` forcing a strange scale.
+
+------------------------------------------------
+4. Visual polish and state outlines
+------------------------------------------------
+4.1. For each state, render:
+  - A light fill colour (we will replace with choropleth colours later).
+  - A clear stroke for boundaries, e.g. `stroke="#222"` and a thin strokeWidth.
+
+4.2. Make sure the background of the map card is separate from the SVG; the SVG itself should be roughly 80–90% of the card width, centred.
+
+------------------------------------------------
+5. Connect back to case data
+------------------------------------------------
+5.1. Once the map correctly shows all states and fills the card, re-apply the colour scale logic that shades states by case density.
+5.2. Use the state name property from the GeoJSON to match against our aggregated data (e.g. Lagos, Kwara, Kano).
+5.3. Keep hover tooltips and the zone legend working as before.
+
+------------------------------------------------
+6. Implementation steps
+------------------------------------------------
+- Step 1: Print a brief summary of the current map component (library used, projection, size, and geo file path).
+- Step 2: If necessary, replace the geo file with a proper Nigeria-states file and update the import.
+- Step 3: Fix the projectionConfig / width / viewBox so the whole country fills the card.
+- Step 4: Ensure we iterate over ALL geographies and draw them.
+- Step 5: Manually test on the Analytics page:
+  - All states visible.
+  - Map fills the card.
+  - No tiny Nigeria in the middle of a big empty background.
+
+Do NOT rewrite the rest of the analytics page or change unrelated components. Only modify the Nigeria map code and any supporting geo data needed to get a correct, full Nigeria map with state boundaries.
+```

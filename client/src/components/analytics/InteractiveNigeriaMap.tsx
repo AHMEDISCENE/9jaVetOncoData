@@ -136,6 +136,20 @@ export function InteractiveNigeriaMap({
     };
   }, [stateDataMap]);
 
+  const zoneStats = useMemo(() => {
+    const stats: Record<string, { total: number; states: number }> = {};
+    
+    data.forEach((item) => {
+      if (!stats[item.zone]) {
+        stats[item.zone] = { total: 0, states: 0 };
+      }
+      stats[item.zone].total += item.caseCount;
+      stats[item.zone].states += 1;
+    });
+
+    return stats;
+  }, [data]);
+
   const getIntensity = (count: number) => {
     if (maxCount === minCount) return 0.5;
     return (count - minCount) / (maxCount - minCount);
@@ -226,20 +240,6 @@ export function InteractiveNigeriaMap({
     );
   }
 
-  const zoneStats = useMemo(() => {
-    const stats: Record<string, { total: number; states: number }> = {};
-    
-    data.forEach((item) => {
-      if (!stats[item.zone]) {
-        stats[item.zone] = { total: 0, states: 0 };
-      }
-      stats[item.zone].total += item.caseCount;
-      stats[item.zone].states += 1;
-    });
-
-    return stats;
-  }, [data]);
-
   return (
     <div className="space-y-6">
       {/* Map Card */}
@@ -260,60 +260,59 @@ export function InteractiveNigeriaMap({
           <ComposableMap
             projection="geoMercator"
             projectionConfig={{
-              scale: 2400,
-              center: [8, 9.5],
+              scale: 1800,
+              center: [8.6753, 9.0820],
             }}
+            width={800}
+            height={600}
             style={{
               width: "100%",
               height: "auto",
             }}
-            className="w-full"
           >
-            <ZoomableGroup center={[8, 9.5]} zoom={1}>
-              <Geographies geography={nigeriaGeoJSON}>
-                {({ geographies }: { geographies: any[] }) =>
-                  geographies.map((geo: any) => {
-                    const stateName = geo.properties.shapeName;
-                    const stateCode = STATE_NAME_MAP[stateName];
-                    const isHovered = hoveredState === stateCode;
-                    const isSelected = selectedState?.state === stateCode;
+            <Geographies geography={nigeriaGeoJSON}>
+              {({ geographies }: { geographies: any[] }) =>
+                geographies.map((geo: any) => {
+                  const stateName = geo.properties.shapeName;
+                  const stateCode = STATE_NAME_MAP[stateName];
+                  const isHovered = hoveredState === stateCode;
+                  const isSelected = selectedState?.state === stateCode;
 
-                    return (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        fill={getStateFill(stateName)}
-                        stroke={
-                          isSelected
-                            ? "#3b82f6"
-                            : isHovered
-                            ? "#1f2937"
-                            : "#94a3b8"
-                        }
-                        strokeWidth={isSelected ? 1.5 : isHovered ? 1 : 0.5}
-                        style={{
-                          default: {
-                            outline: "none",
-                          },
-                          hover: {
-                            outline: "none",
-                            cursor: "pointer",
-                            filter: "brightness(0.9)",
-                          },
-                          pressed: {
-                            outline: "none",
-                          },
-                        }}
-                        onClick={() => handleGeographyClick(geo)}
-                        onMouseEnter={(event) => handleGeographyMouseEnter(geo, event)}
-                        onMouseLeave={handleGeographyMouseLeave}
-                        data-testid={`state-${stateCode}`}
-                      />
-                    );
-                  })
-                }
-              </Geographies>
-            </ZoomableGroup>
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill={getStateFill(stateName)}
+                      stroke={
+                        isSelected
+                          ? "#3b82f6"
+                          : isHovered
+                          ? "#1f2937"
+                          : "#94a3b8"
+                      }
+                      strokeWidth={isSelected ? 0.8 : isHovered ? 0.6 : 0.4}
+                      style={{
+                        default: {
+                          outline: "none",
+                        },
+                        hover: {
+                          outline: "none",
+                          cursor: "pointer",
+                          filter: "brightness(0.9)",
+                        },
+                        pressed: {
+                          outline: "none",
+                        },
+                      }}
+                      onClick={() => handleGeographyClick(geo)}
+                      onMouseEnter={(event) => handleGeographyMouseEnter(geo, event)}
+                      onMouseLeave={handleGeographyMouseLeave}
+                      data-testid={`state-${stateCode}`}
+                    />
+                  );
+                })
+              }
+            </Geographies>
           </ComposableMap>
         </div>
 
