@@ -77,7 +77,7 @@ export default function Sidebar() {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 glass border-r transform transition-all duration-200 ease-in-out lg:translate-x-0 ${
+      <div className={`fixed top-16 left-0 bottom-0 z-40 glass border-r transform transition-all duration-200 ease-in-out lg:translate-x-0 lg:top-0 ${
         isMobileOpen ? "translate-x-0" : "-translate-x-full"
       } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64`}>
         <div className="flex flex-col h-full">
