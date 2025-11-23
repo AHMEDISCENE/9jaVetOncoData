@@ -82,8 +82,8 @@ export default function Sidebar() {
         } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64`}
         style={{ backgroundImage: `url(${doodleImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}
       >
-        {/* Background overlay for text readability - stronger blur effect */}
-        <div className="absolute inset-0 backdrop-blur-md bg-gradient-to-b from-white/98 via-white/96 to-white/94 dark:from-gray-950/98 dark:via-gray-950/96 dark:to-gray-950/94 pointer-events-none" />
+        {/* Background overlay for text readability - subtle like header */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white/90 to-white/85 dark:from-gray-950/95 dark:via-gray-950/90 dark:to-gray-950/85 pointer-events-none" />
         
         <div className="relative flex flex-col h-full">
           {/* Logo */}
