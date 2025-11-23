@@ -40,7 +40,7 @@ const caseSchema = z.object({
   diagnosisMethod: z.string().optional(),
   treatmentPlan: z.string().optional(),
   treatmentStart: z.string().transform(val => val === "" ? undefined : val).optional(),
-  outcome: z.enum(["REMISSION", "MORTALITY", "EUTHANASIA", "TREATMENT_ONGOING", "MANAGEMENT"]).transform(val => val === "" ? undefined : val).optional(),
+  outcome: z.enum(["REMISSION", "MORTALITY", "EUTHANASIA", "TREATMENT_ONGOING", "MANAGEMENT"]).optional().transform(val => val === "" ? undefined : val),
   notes: z.string().optional(),
 });
 
@@ -53,12 +53,17 @@ const steps = [
   { id: 4, title: "Review", description: "Review and submit" },
 ];
 
-export default function CaseWizard() {
+interface CaseWizardProps {
+  caseId?: string;
+}
+
+export default function CaseWizard({ caseId }: CaseWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { clinic: userClinic } = useAuth();
+  const isEditing = !!caseId;
   
   // Attachment queue
   const attachmentQueue = useAttachmentQueue();
@@ -100,18 +105,49 @@ export default function CaseWizard() {
     return () => subscription.unsubscribe();
   }, [form]);
 
-  // Load draft on mount
+  // Load case data if editing
+  const { data: caseData = {} } = useQuery<any>({
+    queryKey: [`/api/cases/${caseId}`],
+    enabled: !!caseId,
+  });
+
+  // Load draft on mount or populate from case data if editing
   useEffect(() => {
-    const draft = localStorage.getItem("caseWizardDraft");
-    if (draft) {
-      try {
-        const draftData = JSON.parse(draft);
-        form.reset(draftData);
-      } catch (error) {
-        console.error("Failed to load draft:", error);
+    if (isEditing && caseData) {
+      form.reset({
+        state: caseData.geoZone ? Object.keys(NIGERIA_STATES).find(s => getZoneForState(s) === caseData.geoZone) || "" : "",
+        clinicId: caseData.clinic?.id || userClinic?.id || "",
+        patientName: caseData.patientName || "",
+        species: caseData.species || "",
+        breed: caseData.breed || "",
+        sex: caseData.sex || "",
+        ageYears: caseData.ageYears,
+        ageMonths: caseData.ageMonths,
+        diagnosisDate: caseData.diagnosisDate || "",
+        tumourTypeId: caseData.tumourTypeCustom ? "OTHER" : (caseData.tumourType?.id || ""),
+        tumourTypeCustom: caseData.tumourTypeCustom || "",
+        anatomicalSiteId: caseData.anatomicalSiteCustom ? "OTHER" : (caseData.anatomicalSite?.id || ""),
+        anatomicalSiteCustom: caseData.anatomicalSiteCustom || "",
+        laterality: caseData.laterality || "",
+        stage: caseData.stage || "",
+        diagnosisMethod: caseData.diagnosisMethod || "",
+        treatmentPlan: caseData.treatmentPlan || "",
+        treatmentStart: caseData.treatmentStart || "",
+        outcome: caseData.outcome || "",
+        notes: caseData.notes || "",
+      });
+    } else if (!isEditing) {
+      const draft = localStorage.getItem("caseWizardDraft");
+      if (draft) {
+        try {
+          const draftData = JSON.parse(draft);
+          form.reset(draftData);
+        } catch (error) {
+          console.error("Failed to load draft:", error);
+        }
       }
     }
-  }, [form]);
+  }, [isEditing, caseData, form, userClinic]);
 
   // Reset breed when species changes
   useEffect(() => {
@@ -139,7 +175,7 @@ export default function CaseWizard() {
     }
   }, [userClinic, form]);
 
-  const createCaseMutation = useMutation({
+  const caseMutation = useMutation({
     mutationFn: async (data: CaseFormData) => {
       // Transform data to properly handle custom vs selected values
       const transformedData = {
@@ -152,18 +188,24 @@ export default function CaseWizard() {
         anatomicalSiteCustom: data.anatomicalSiteId === "OTHER" ? data.anatomicalSiteCustom : undefined,
       };
 
-      const response = await apiRequest("POST", "/api/cases", transformedData);
+      const method = isEditing ? "PATCH" : "POST";
+      const endpoint = isEditing ? `/api/cases/${caseId}` : "/api/cases";
+      const response = await apiRequest(method, endpoint, transformedData);
       return response.json();
     },
-    onSuccess: async (newCase) => {
+    onSuccess: async (result) => {
+      const resultCaseId = result.id || caseId;
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      if (isEditing) {
+        queryClient.invalidateQueries({ queryKey: [`/api/cases/${resultCaseId}`] });
+      }
       localStorage.removeItem("caseWizardDraft");
       
       // Upload queued files if any
       if (attachmentQueue.hasFiles) {
         setIsUploadingFiles(true);
         const failedFiles: string[] = [];
-        const totalFiles = attachmentQueue.fileCount; // Capture count before clearing
+        const totalFiles = attachmentQueue.fileCount;
         
         for (const queuedFile of attachmentQueue.queuedFiles) {
           try {
@@ -172,7 +214,7 @@ export default function CaseWizard() {
             const formData = new FormData();
             formData.append('file', queuedFile.file);
             
-            const response = await fetch(`/api/cases/${newCase.id}/files`, {
+            const response = await fetch(`/api/cases/${resultCaseId}/files`, {
               method: 'POST',
               body: formData,
             });
@@ -197,30 +239,30 @@ export default function CaseWizard() {
         
         if (failedFiles.length > 0) {
           toast({
-            title: "Case created with warnings",
+            title: isEditing ? "Case updated with warnings" : "Case created with warnings",
             description: `Case saved successfully, but ${failedFiles.length} file(s) failed to upload. You can try uploading them again from the case details.`,
             variant: "default",
           });
         } else {
           toast({
-            title: "Case created successfully",
+            title: isEditing ? "Case updated successfully" : "Case created successfully",
             description: totalFiles > 0 
               ? `Case and ${totalFiles} attachment(s) uploaded successfully.`
-              : "The new case has been added to your records.",
+              : isEditing ? "Case has been updated." : "The new case has been added to your records.",
           });
         }
       } else {
         toast({
-          title: "Case created successfully",
-          description: "The new case has been added to your records.",
+          title: isEditing ? "Case updated successfully" : "Case created successfully",
+          description: isEditing ? "Case has been updated." : "The new case has been added to your records.",
         });
       }
       
-      setLocation(`/cases/${newCase.id}`);
+      setLocation(`/cases/${resultCaseId}`);
     },
     onError: (error) => {
       toast({
-        title: "Failed to create case",
+        title: isEditing ? "Failed to update case" : "Failed to create case",
         description: error instanceof Error ? error.message : "Please check your information and try again.",
         variant: "destructive",
       });
@@ -254,7 +296,7 @@ export default function CaseWizard() {
   };
 
   const onSubmit = (data: CaseFormData) => {
-    createCaseMutation.mutate(data);
+    caseMutation.mutate(data);
   };
 
   const clearDraft = () => {
@@ -270,7 +312,9 @@ export default function CaseWizard() {
     <div className="max-w-4xl mx-auto">
       {/* Wizard Header */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground mb-4">New Case Entry</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-4">
+          {isEditing ? "Edit Case" : "New Case Entry"}
+        </h2>
         
         {/* Progress Steps */}
         <div className="flex items-center justify-between">
