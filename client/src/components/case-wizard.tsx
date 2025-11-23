@@ -1055,18 +1055,18 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
               ) : (
                 <Button
                   type="submit"
-                  disabled={createCaseMutation.isPending}
+                  disabled={caseMutation.isPending}
                   data-testid="button-submit-case"
                 >
-                  {createCaseMutation.isPending ? (
+                  {caseMutation.isPending ? (
                     <>
                       <i className="fas fa-spinner fa-spin mr-2"></i>
-                      Creating Case...
+                      {isEditing ? "Updating Case..." : "Creating Case..."}
                     </>
                   ) : (
                     <>
                       <i className="fas fa-save mr-2"></i>
-                      Create Case
+                      {isEditing ? "Update Case" : "Create Case"}
                     </>
                   )}
                 </Button>
