@@ -418,10 +418,8 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                               <Input 
                                 placeholder="Enter clinic name" 
                                 data-testid="input-clinic-name"
-                                value={selectedClinic?.name || field.value}
+                                value={selectedClinic?.name || field.value || ""}
                                 onChange={(e) => {
-                                  // For now, just store the text value directly
-                                  // In a real app, you might want to sync this with the clinic record
                                   field.onChange(e.target.value);
                                 }}
                               />
@@ -550,7 +548,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                                   min="0"
                                   max="30"
                                   data-testid="input-age-years"
-                                  {...field}
+                                  value={field.value ?? ""}
                                   onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                                 />
                               </FormControl>
@@ -570,7 +568,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                                   min="0"
                                   max="11"
                                   data-testid="input-age-months"
-                                  {...field}
+                                  value={field.value ?? ""}
                                   onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                                 />
                               </FormControl>
