@@ -13,7 +13,6 @@ export const STATE_TO_ZONE: Record<string, GeoZone> = {
   'NIGER': 'North Central',
   'PLATEAU': 'North Central',
   'FCT': 'North Central',
-  'ABUJA': 'North Central',
   
   // North East
   'ADAMAWA': 'North East',
