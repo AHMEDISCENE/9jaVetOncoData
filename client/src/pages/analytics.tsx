@@ -10,6 +10,7 @@ import { exportToCsv } from "@/lib/export";
 import { useCasesByLocation } from "@/hooks/useCasesByLocation";
 import { InteractiveNigeriaMap } from "@/components/analytics/InteractiveNigeriaMap";
 import { FilterBar } from "@/components/analytics/FilterBar";
+import { MetricDrilldown } from "@/components/analytics/MetricDrilldown";
 import { useAnalyticsFilters, buildFilterParams } from "@/contexts/analytics-filters-context";
 import type { DashboardStats } from "@/lib/types";
 
@@ -863,6 +864,13 @@ export default function Analytics() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Metric Drilldown */}
+      <MetricDrilldown
+        metric={selectedMetric}
+        isOpen={isDrilldownOpen}
+        onClose={handleCloseDrilldown}
+      />
     </div>
   );
 }
