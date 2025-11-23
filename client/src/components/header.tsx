@@ -26,9 +26,15 @@ const pageTitles: Record<string, string> = {
 export default function Header() {
   const [location] = useLocation();
   const [isDark, setIsDark] = useState(false);
+  const [isNewCaseJittering, setIsNewCaseJittering] = useState(false);
   const pageTitle = pageTitles[location] || "9ja VetOncoData";
   const queryClient = useQueryClient();
   const { isMobileOpen, setIsMobileOpen } = useSidebar();
+
+  const handleNewCaseClick = () => {
+    setIsNewCaseJittering(true);
+    setTimeout(() => setIsNewCaseJittering(false), 500); // Duration matches jitter animation
+  };
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
@@ -99,8 +105,11 @@ export default function Header() {
           {location !== "/cases/new" && (
             <Button 
               asChild
-              className="bg-primary text-primary-foreground hover:bg-primary hover:opacity-90 rounded-full px-3 sm:px-4"
+              className={`bg-primary text-primary-foreground hover:bg-primary hover:opacity-90 rounded-full px-3 sm:px-4 transition-transform ${
+                isNewCaseJittering ? "jitter-animation" : ""
+              }`}
               data-testid="button-new-case"
+              onClick={handleNewCaseClick}
             >
               <a href="/cases/new">
                 <i className="fas fa-plus mr-1.5 sm:mr-2"></i>
