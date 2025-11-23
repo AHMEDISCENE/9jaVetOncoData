@@ -49,7 +49,7 @@ export default function Analytics() {
     error: locationError,
     refetch: refetchLocation
   } = useCasesByLocation({
-    startDate: '2025-01-01',
+    startDate: '2000-01-01',
     endDate: new Date().toISOString().split('T')[0],
   });
 
