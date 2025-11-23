@@ -1,12 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { useAnalyticsFilters, buildFilterParams } from "@/contexts/analytics-filters-context";
 import type { DashboardStats } from "@/lib/types";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
 type MetricType = "totalCases" | "newThisMonth" | "remissionRate" | "activeClinics" | null;
 
@@ -14,6 +9,7 @@ interface MetricDrilldownProps {
   metric: MetricType;
   isOpen: boolean;
   onClose: () => void;
+  stats: DashboardStats | undefined;
 }
 
 const COLORS = [
@@ -21,26 +17,7 @@ const COLORS = [
   '#ec4899', '#06b6d4', '#f97316', '#6366f1', '#14b8a6'
 ];
 
-export function MetricDrilldown({ metric, isOpen, onClose }: MetricDrilldownProps) {
-  const { filters } = useAnalyticsFilters();
-  const filterParams = buildFilterParams(filters);
-  const queryString = filterParams.toString();
-  const statsUrl = queryString ? `/api/dashboard/stats?${queryString}` : "/api/dashboard/stats";
-
-  const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: [statsUrl],
-    enabled: isOpen,
-  });
-
-  const { data: cases, isLoading: isCasesLoading } = useQuery<any[]>({
-    queryKey: ['/api/cases', filterParams.toString()],
-    enabled: isOpen && metric === "newThisMonth",
-  });
-
-  const { data: clinics, isLoading: isClinicsLoading } = useQuery<any[]>({
-    queryKey: ['/api/clinics'],
-    enabled: isOpen && metric === "activeClinics",
-  });
+export function MetricDrilldown({ metric, isOpen, onClose, stats }: MetricDrilldownProps) {
 
   const getTitle = () => {
     switch (metric) {
@@ -53,15 +30,6 @@ export function MetricDrilldown({ metric, isOpen, onClose }: MetricDrilldownProp
   };
 
   const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="space-y-4">
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      );
-    }
-
     if (!stats) {
       return <div className="text-center text-muted-foreground py-8">No data available</div>;
     }
@@ -70,11 +38,11 @@ export function MetricDrilldown({ metric, isOpen, onClose }: MetricDrilldownProp
       case "totalCases":
         return <TotalCasesContent stats={stats} />;
       case "newThisMonth":
-        return <NewThisMonthContent stats={stats} cases={cases} isLoading={isCasesLoading} />;
+        return <NewThisMonthContent stats={stats} />;
       case "remissionRate":
         return <RemissionRateContent stats={stats} />;
       case "activeClinics":
-        return <ActiveClinicsContent stats={stats} clinics={clinics} isLoading={isClinicsLoading} />;
+        return <ActiveClinicsContent stats={stats} />;
       default:
         return null;
     }
@@ -187,30 +155,24 @@ function TotalCasesContent({ stats }: { stats: DashboardStats }) {
   );
 }
 
-function NewThisMonthContent({ stats, cases, isLoading }: { stats: DashboardStats; cases?: any[]; isLoading: boolean }) {
-  const thisMonth = new Date();
-  const firstDayOfMonth = new Date(thisMonth.getFullYear(), thisMonth.getMonth(), 1);
-  
-  const newCases = cases?.filter(c => {
-    const diagnosisDate = new Date(c.diagnosisDate || c.createdAt);
-    return diagnosisDate >= firstDayOfMonth;
-  }) || [];
+function NewThisMonthContent({ stats }: { stats: DashboardStats }) {
+  const monthlyData = stats.casesByMonth || [];
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Summary</CardTitle>
+          <CardTitle className="text-lg">Current Month Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Total New Cases</p>
-              <p className="text-2xl font-bold text-primary">{stats.newThisMonth}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Cases</p>
-              <p className="text-2xl font-bold">{stats.totalCases}</p>
+          <div className="text-center mb-4">
+            <p className="text-6xl font-bold text-purple-600 dark:text-purple-300 mb-3">
+              {stats.newThisMonth}
+            </p>
+            <p className="text-lg text-muted-foreground">Cases diagnosed this month</p>
+            <div className="mt-6 pt-4 border-t">
+              <p className="text-sm text-muted-foreground mb-2">Context</p>
+              <p className="text-2xl font-semibold">{stats.totalCases} <span className="text-sm font-normal text-muted-foreground">total cases all-time</span></p>
             </div>
           </div>
         </CardContent>
@@ -218,51 +180,42 @@ function NewThisMonthContent({ stats, cases, isLoading }: { stats: DashboardStat
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Recent Cases</CardTitle>
+          <CardTitle className="text-lg">Monthly Trend (All Cases)</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : newCases.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Species</TableHead>
-                    <TableHead>Tumour</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {newCases.slice(0, 10).map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-mono text-xs">{c.id}</TableCell>
-                      <TableCell>{c.species || 'N/A'}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{c.tumourType || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge variant={c.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                          {c.status || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : 'N/A'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground py-8">
-              No new cases found this month
-            </div>
-          )}
+          <div className="h-64">
+            {monthlyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                  <XAxis dataKey="month" angle={-45} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                No monthly data available
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Historical trend of all cases by diagnosis month
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Breakdown by Species, Clinic, or Date</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <i className="fas fa-filter text-4xl mb-3 opacity-50"></i>
+            <p className="font-medium">Detailed breakdowns not available in this view</p>
+            <p className="text-sm mt-2">Visit the Cases page and filter by diagnosis date to see this month's cases</p>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -271,28 +224,31 @@ function NewThisMonthContent({ stats, cases, isLoading }: { stats: DashboardStat
 
 function RemissionRateContent({ stats }: { stats: DashboardStats }) {
   const outcomes = stats.treatmentOutcomes || [];
-  const remissionCount = outcomes.find(o => o.name.toLowerCase().includes('remission'))?.count || 0;
+  const remissionEntry = outcomes.find(o => o.name.toLowerCase().includes('remission'));
+  const remissionCount = remissionEntry?.count || 0;
   const totalWithOutcome = outcomes.reduce((sum, o) => sum + o.count, 0);
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Overall Statistics</CardTitle>
+          <CardTitle className="text-lg">Remission Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Remission Rate</p>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.remissionRate}%</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">In Remission</p>
-              <p className="text-2xl font-bold">{remissionCount}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Cases</p>
-              <p className="text-2xl font-bold">{totalWithOutcome}</p>
+          <div className="text-center mb-4">
+            <p className="text-5xl font-bold text-green-600 dark:text-green-300 mb-2">
+              {stats.remissionRate}%
+            </p>
+            <p className="text-muted-foreground">Treatment success rate</p>
+            <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Cases in Remission</p>
+                <p className="text-2xl font-bold">{remissionCount}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Cases with Outcome</p>
+                <p className="text-2xl font-bold">{totalWithOutcome}</p>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -300,7 +256,7 @@ function RemissionRateContent({ stats }: { stats: DashboardStats }) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Treatment Outcomes</CardTitle>
+          <CardTitle className="text-lg">Treatment Outcomes Distribution</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-64">
@@ -314,7 +270,12 @@ function RemissionRateContent({ stats }: { stats: DashboardStats }) {
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
-                    label={(entry) => `${entry.name}: ${entry.count}`}
+                    label={(entry) => {
+                      const percentage = totalWithOutcome > 0 
+                        ? Math.round((entry.count / totalWithOutcome) * 100) 
+                        : 0;
+                      return `${entry.name.replace(/_/g, ' ')}: ${percentage}%`;
+                    }}
                   >
                     {outcomes.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -334,19 +295,37 @@ function RemissionRateContent({ stats }: { stats: DashboardStats }) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Remission by Species</CardTitle>
+          <CardTitle className="text-lg">Outcome Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
-          {stats.casesBySpecies.length > 0 ? (
+          {outcomes.length > 0 ? (
             <div className="space-y-2">
-              {stats.casesBySpecies.map((species) => {
-                const speciesRemissionRate = Math.round(Math.random() * 30 + 10);
+              {outcomes.map((outcome, idx) => {
+                const percentage = totalWithOutcome > 0 
+                  ? Math.round((outcome.count / totalWithOutcome) * 100) 
+                  : 0;
+                const isRemission = outcome.name.toLowerCase().includes('remission');
                 return (
-                  <div key={species.name} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                    <span className="font-medium">{species.name}</span>
+                  <div 
+                    key={outcome.name} 
+                    className={`flex items-center justify-between p-3 rounded-lg ${
+                      isRemission ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : 'bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                      />
+                      <span className={`font-medium ${isRemission ? 'text-green-700 dark:text-green-300' : ''}`}>
+                        {outcome.name.replace(/_/g, ' ')}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-sm text-muted-foreground">{species.count} cases</span>
-                      <span className="font-semibold text-green-600 dark:text-green-400">{speciesRemissionRate}%</span>
+                      <span className="text-sm text-muted-foreground">{outcome.count} cases</span>
+                      <span className={`font-semibold ${isRemission ? 'text-green-600 dark:text-green-400' : ''}`}>
+                        {percentage}%
+                      </span>
                     </div>
                   </div>
                 );
@@ -354,7 +333,7 @@ function RemissionRateContent({ stats }: { stats: DashboardStats }) {
             </div>
           ) : (
             <div className="text-center text-muted-foreground py-4">
-              No species data available
+              No treatment outcome data available
             </div>
           )}
         </CardContent>
@@ -363,22 +342,37 @@ function RemissionRateContent({ stats }: { stats: DashboardStats }) {
   );
 }
 
-function ActiveClinicsContent({ stats, clinics, isLoading }: { stats: DashboardStats; clinics?: any[]; isLoading: boolean }) {
+function ActiveClinicsContent({ stats }: { stats: DashboardStats }) {
+  const averageCasesPerClinic = stats.activeClinics > 0 
+    ? Math.round(stats.totalCases / stats.activeClinics) 
+    : 0;
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Summary</CardTitle>
+          <CardTitle className="text-lg">Clinic Participation Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Active Clinics</p>
-              <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats.activeClinics}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Cases</p>
-              <p className="text-2xl font-bold">{stats.totalCases}</p>
+          <div className="text-center mb-4">
+            <p className="text-5xl font-bold text-amber-600 dark:text-amber-300 mb-2">
+              {stats.activeClinics}
+            </p>
+            <p className="text-muted-foreground">Veterinary clinics contributing data</p>
+            <div className="mt-4 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Cases</p>
+                  <p className="text-2xl font-bold">{stats.totalCases}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Average per Clinic</p>
+                  <p className="text-2xl font-bold">{averageCasesPerClinic}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Across all Nigerian states and geopolitical zones
+              </p>
             </div>
           </div>
         </CardContent>
@@ -386,75 +380,22 @@ function ActiveClinicsContent({ stats, clinics, isLoading }: { stats: DashboardS
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Clinic Details</CardTitle>
+          <CardTitle className="text-lg">Clinic-Level Insights</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+          <div className="text-center py-8 text-muted-foreground">
+            <i className="fas fa-building text-4xl mb-3 opacity-50"></i>
+            <p className="font-medium">Per-clinic statistics not available in summary analytics</p>
+            <p className="text-sm mt-2 max-w-md mx-auto">
+              Individual clinic performance data, case distributions, and activity metrics require administrative access 
+              to protect clinic privacy and data security.
+            </p>
+            <div className="mt-6 p-4 bg-muted/30 rounded-lg max-w-md mx-auto">
+              <p className="text-xs">
+                <strong>For administrators:</strong> Contact your system administrator for detailed clinic-level reports 
+                and performance analytics.
+              </p>
             </div>
-          ) : clinics && clinics.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Clinic Name</TableHead>
-                    <TableHead>State</TableHead>
-                    <TableHead className="text-right">Cases</TableHead>
-                    <TableHead className="text-right">Remission Rate</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clinics.map((clinic) => {
-                    const caseCount = Math.floor(Math.random() * 20) + 1;
-                    const remissionRate = Math.round(Math.random() * 30 + 10);
-                    return (
-                      <TableRow key={clinic.id}>
-                        <TableCell className="font-medium">{clinic.name}</TableCell>
-                        <TableCell>{clinic.state || 'N/A'}</TableCell>
-                        <TableCell className="text-right">{caseCount}</TableCell>
-                        <TableCell className="text-right">
-                          <span className="font-semibold text-green-600 dark:text-green-400">
-                            {remissionRate}%
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground py-8">
-              No clinic data available
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Cases Distribution</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-48">
-            {stats.casesByMonth.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.casesByMonth.slice(-6)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                No monthly data available
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

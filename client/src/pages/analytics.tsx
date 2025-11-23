@@ -870,6 +870,7 @@ export default function Analytics() {
         metric={selectedMetric}
         isOpen={isDrilldownOpen}
         onClose={handleCloseDrilldown}
+        stats={stats}
       />
     </div>
   );
