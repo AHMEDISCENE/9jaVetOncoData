@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/export";
@@ -22,6 +24,7 @@ const COLORS = [
 
 export default function Analytics() {
   const { toast } = useToast();
+  const [selectedChart, setSelectedChart] = useState<string | null>(null);
   const { data: stats, isLoading, error } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -263,7 +266,7 @@ export default function Analytics() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Cases Trend */}
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('casesOverTime')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases Over Time</CardTitle>
             <Button
@@ -319,7 +322,7 @@ export default function Analytics() {
         </Card>
 
         {/* Tumour Distribution */}
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('tumourDistribution')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Tumour Type Distribution</CardTitle>
             <Button
@@ -372,7 +375,7 @@ export default function Analytics() {
         </Card>
 
         {/* Species Breakdown */}
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('casesBySpecies')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases by Species</CardTitle>
             <Button
@@ -425,7 +428,7 @@ export default function Analytics() {
         </Card>
 
         {/* Outcome Analysis */}
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('treatmentOutcomes')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Treatment Outcomes</CardTitle>
             <Button
@@ -513,6 +516,214 @@ export default function Analytics() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Detailed Modals */}
+      {/* Cases Over Time Detail */}
+      <Dialog open={selectedChart === 'casesOverTime'} onOpenChange={() => setSelectedChart(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cases Over Time - Detailed View</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="h-64 w-full">
+              {stats && stats.casesByMonth.length > 0 && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={stats.casesByMonth}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-semibold">Monthly Breakdown:</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Month</th>
+                      <th className="p-3 text-right">Cases</th>
+                      <th className="p-3 text-right">% of Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats?.casesByMonth.map((item) => (
+                      <tr key={item.month} className="border-t">
+                        <td className="p-3">{item.month}</td>
+                        <td className="p-3 text-right font-semibold">{item.count}</td>
+                        <td className="p-3 text-right text-muted-foreground">
+                          {stats.totalCases > 0 ? `${Math.round((item.count / stats.totalCases) * 100)}%` : '0%'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tumour Distribution Detail */}
+      <Dialog open={selectedChart === 'tumourDistribution'} onOpenChange={() => setSelectedChart(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tumour Type Distribution - Detailed View</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="h-64 w-full">
+              {stats && stats.topTumourTypes.length > 0 && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={stats.topTumourTypes} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} dataKey="count">
+                      {stats.topTumourTypes.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-semibold">Detailed Breakdown:</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Tumour Type</th>
+                      <th className="p-3 text-right">Cases</th>
+                      <th className="p-3 text-right">Percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats?.topTumourTypes.map((item) => {
+                      const total = stats.topTumourTypes.reduce((sum, t) => sum + t.count, 0);
+                      return (
+                        <tr key={item.name} className="border-t">
+                          <td className="p-3">{item.name}</td>
+                          <td className="p-3 text-right font-semibold">{item.count}</td>
+                          <td className="p-3 text-right text-muted-foreground">{Math.round((item.count / total) * 100)}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cases by Species Detail */}
+      <Dialog open={selectedChart === 'casesBySpecies'} onOpenChange={() => setSelectedChart(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cases by Species - Detailed View</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="h-64 w-full">
+              {stats && stats.casesBySpecies.length > 0 && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.casesBySpecies}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#10b981" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-semibold">Species Breakdown:</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Species</th>
+                      <th className="p-3 text-right">Cases</th>
+                      <th className="p-3 text-right">% of Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats?.casesBySpecies.map((item) => (
+                      <tr key={item.name} className="border-t">
+                        <td className="p-3">{item.name}</td>
+                        <td className="p-3 text-right font-semibold">{item.count}</td>
+                        <td className="p-3 text-right text-muted-foreground">
+                          {stats.totalCases > 0 ? `${Math.round((item.count / stats.totalCases) * 100)}%` : '0%'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Treatment Outcomes Detail */}
+      <Dialog open={selectedChart === 'treatmentOutcomes'} onOpenChange={() => setSelectedChart(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Treatment Outcomes - Detailed View</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="h-64 w-full">
+              {stats && stats.treatmentOutcomes.length > 0 && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={stats.treatmentOutcomes} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} dataKey="count">
+                      {stats.treatmentOutcomes.map((entry, index) => {
+                        const outcomeColors: Record<string, string> = {
+                          'REMISSION': '#10b981',
+                          'TREATMENT_ONGOING': '#3b82f6',
+                          'MANAGEMENT': '#f59e0b',
+                          'MORTALITY': '#ef4444',
+                          'EUTHANASIA': '#8b5cf6'
+                        };
+                        return <Cell key={`cell-${index}`} fill={outcomeColors[entry.name] || COLORS[index % COLORS.length]} />;
+                      })}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-semibold">Outcome Breakdown:</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Status</th>
+                      <th className="p-3 text-right">Cases</th>
+                      <th className="p-3 text-right">Percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats?.treatmentOutcomes.map((item) => {
+                      const total = stats.treatmentOutcomes.reduce((sum, t) => sum + t.count, 0);
+                      return (
+                        <tr key={item.name} className="border-t">
+                          <td className="p-3 font-medium">{item.name.replace(/_/g, ' ')}</td>
+                          <td className="p-3 text-right font-semibold">{item.count}</td>
+                          <td className="p-3 text-right text-muted-foreground">{Math.round((item.count / total) * 100)}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
