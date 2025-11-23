@@ -77,7 +77,7 @@ export default function Sidebar() {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 bg-card border-r border-border transform transition-all duration-200 ease-in-out lg:translate-x-0 ${
+      <div className={`fixed inset-y-0 left-0 z-50 glass border-r transform transition-all duration-200 ease-in-out lg:translate-x-0 ${
         isMobileOpen ? "translate-x-0" : "-translate-x-full"
       } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64`}>
         <div className="flex flex-col h-full">
@@ -192,7 +192,7 @@ export default function Sidebar() {
 
       {/* Mobile menu button */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-30 p-2 rounded-md bg-card border border-border text-muted-foreground hover:text-foreground"
+        className="lg:hidden fixed top-4 left-4 z-30 p-2 rounded-md glass text-muted-foreground hover:text-foreground"
         onClick={toggleMobileSidebar}
         data-testid="button-open-sidebar"
       >
