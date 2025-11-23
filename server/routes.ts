@@ -13,6 +13,8 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { putObject, getObject, deleteObject, generateStorageKey, isAllowedMimeType, determineFileKind, MAX_FILE_SIZE, MAX_FILES_PER_CASE } from "./storage/files";
 import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import path from "path";
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -1147,8 +1149,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cases = await storage.getSharedCases(apiFilters);
 
       if (format === 'xlsx') {
-        const XLSX = require('xlsx');
-        
         const wsData = cases.map(c => ({
           'Case ID': c.caseNumber,
           'Upload Date': c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
@@ -1172,9 +1172,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.xlsx"`);
         res.send(buffer);
       } else if (format === 'pdf') {
-        const { jsPDF } = require('jspdf');
-        const autoTable = require('jspdf-autotable');
-
         const doc = new jsPDF();
         
         // Add title
@@ -1188,23 +1185,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.text(`Total Cases: ${cases.length}`, 14, 32);
         doc.setTextColor(0);
 
-        // Add table
-        const tableData = cases.map(c => [
-          c.caseNumber,
-          c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
-          c.patientName || '',
-          c.species || '',
-          c.tumourTypeCustom || '',
-          c.outcome || '',
-        ]);
-
-        autoTable(doc, {
-          head: [['Case ID', 'Upload Date', 'Patient', 'Species', 'Tumour Type', 'Outcome']],
-          body: tableData,
-          startY: 40,
-          theme: 'grid',
-          styles: { fontSize: 9 },
-          headStyles: { fillColor: [100, 150, 150] },
+        // Add simple table with case data
+        let yPosition = 45;
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 14;
+        const lineHeight = 6;
+        
+        // Table headers
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.text('Case ID', margin, yPosition);
+        doc.text('Upload Date', margin + 25, yPosition);
+        doc.text('Patient', margin + 50, yPosition);
+        doc.text('Species', margin + 85, yPosition);
+        doc.text('Tumour Type', margin + 115, yPosition);
+        yPosition += lineHeight;
+        
+        // Draw line
+        doc.setDrawColor(150);
+        doc.line(margin, yPosition, 196, yPosition);
+        yPosition += lineHeight;
+        
+        // Table rows
+        doc.setFont(undefined, 'normal');
+        cases.forEach(c => {
+          if (yPosition > pageHeight - 15) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          
+          doc.text(c.caseNumber, margin, yPosition);
+          doc.text(c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '', margin + 25, yPosition);
+          doc.text(c.patientName || '', margin + 50, yPosition);
+          doc.text(c.species || '', margin + 85, yPosition);
+          doc.text((c.tumourTypeCustom || '').substring(0, 20), margin + 115, yPosition);
+          
+          yPosition += lineHeight;
         });
 
         res.setHeader('Content-Type', 'application/pdf');
