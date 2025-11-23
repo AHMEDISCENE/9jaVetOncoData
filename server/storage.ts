@@ -1429,14 +1429,14 @@ export class DatabaseStorage implements IStorage {
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 
-      // Treatment outcomes by status
-      const statusCounts = new Map<string, number>();
+      // Treatment outcomes by animal status
+      const outcomeCounts = new Map<string, number>();
       allCases.forEach(c => {
-        if (c.status) {
-          statusCounts.set(c.status, (statusCounts.get(c.status) || 0) + 1);
+        if (c.outcome) {
+          outcomeCounts.set(c.outcome, (outcomeCounts.get(c.outcome) || 0) + 1);
         }
       });
-      const treatmentOutcomes = Array.from(statusCounts.entries())
+      const treatmentOutcomes = Array.from(outcomeCounts.entries())
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 

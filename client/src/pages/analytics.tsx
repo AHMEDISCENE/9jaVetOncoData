@@ -459,14 +459,15 @@ export default function Analytics() {
                       dataKey="count"
                     >
                       {stats.treatmentOutcomes.map((entry, index) => {
-                        // Color code by status
-                        const statusColors: Record<string, string> = {
-                          'DRAFT': '#9ca3af',      // Gray
-                          'ACTIVE': '#3b82f6',     // Blue
-                          'COMPLETED': '#10b981',  // Green
-                          'ARCHIVED': '#f59e0b'    // Amber
+                        // Color code by animal outcome status
+                        const outcomeColors: Record<string, string> = {
+                          'REMISSION': '#10b981',           // Green
+                          'TREATMENT_ONGOING': '#3b82f6',   // Blue
+                          'MANAGEMENT': '#f59e0b',          // Amber
+                          'MORTALITY': '#ef4444',           // Red
+                          'EUTHANASIA': '#8b5cf6'           // Purple
                         };
-                        return <Cell key={`cell-${index}`} fill={statusColors[entry.name] || COLORS[index % COLORS.length]} />;
+                        return <Cell key={`cell-${index}`} fill={outcomeColors[entry.name] || COLORS[index % COLORS.length]} />;
                       })}
                     </Pie>
                     <Tooltip />
