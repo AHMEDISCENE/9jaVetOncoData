@@ -340,95 +340,95 @@ export default function Dashboard() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
                   Total Cases
                 </p>
                 <p
-                  className="text-3xl font-bold text-foreground"
+                  className="text-4xl font-bold text-blue-600 dark:text-blue-300"
                   data-testid="stat-total-cases"
                 >
                   {stats.totalCases.toLocaleString()}
                 </p>
               </div>
-              <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <i className="fas fa-folder-medical text-primary"></i>
+              <div className="h-14 w-14 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
+                <i className="fas fa-folder-medical text-blue-600 dark:text-blue-300 text-xl"></i>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs font-medium text-blue-600 dark:text-blue-300 mt-2">
               {myClinicOnly ? "From your clinic" : "Across all clinics"}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
                   New This Month
                 </p>
                 <p
-                  className="text-3xl font-bold text-foreground"
+                  className="text-4xl font-bold text-purple-600 dark:text-purple-300"
                   data-testid="stat-new-this-month"
                 >
                   {stats.newThisMonth.toLocaleString()}
                 </p>
               </div>
-              <div className="h-12 w-12 bg-accent/10 rounded-full flex items-center justify-center">
-                <i className="fas fa-plus text-accent"></i>
+              <div className="h-14 w-14 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center">
+                <i className="fas fa-plus text-purple-600 dark:text-purple-300 text-xl"></i>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs font-medium text-purple-600 dark:text-purple-300 mt-2">
               Diagnosed this month
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
                   Active Clinics
                 </p>
                 <p
-                  className="text-3xl font-bold text-foreground"
+                  className="text-4xl font-bold text-amber-600 dark:text-amber-300"
                   data-testid="stat-active-clinics"
                 >
                   {stats.activeClinics.toLocaleString()}
                 </p>
               </div>
-              <div className="h-12 w-12 bg-secondary/10 rounded-full flex items-center justify-center">
-                <i className="fas fa-hospital text-secondary-foreground"></i>
+              <div className="h-14 w-14 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
+                <i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-xl"></i>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Across Nigeria</p>
+            <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-2">Across Nigeria</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-sm font-medium text-green-700 dark:text-green-200">
                   Remission Rate
                 </p>
                 <p
-                  className="text-3xl font-bold text-foreground"
+                  className="text-4xl font-bold text-green-600 dark:text-green-300"
                   data-testid="stat-remission-rate"
                 >
                   {stats.remissionRate}%
                 </p>
               </div>
-              <div className="h-12 w-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-                <i className="fas fa-heart text-green-600 dark:text-green-400"></i>
+              <div className="h-14 w-14 bg-green-200 dark:bg-green-800 rounded-full flex items-center justify-center">
+                <i className="fas fa-heart text-green-600 dark:text-green-300 text-xl"></i>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs font-medium text-green-600 dark:text-green-300 mt-2">
               Treatment success
             </p>
           </CardContent>
