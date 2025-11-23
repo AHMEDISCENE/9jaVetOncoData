@@ -961,16 +961,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const clinicUsers = await storage.getUsersByClinic(clinicId);
         for (const user of clinicUsers) {
-          if (user.id !== userId) { // Don't notify the creator
-            await storage.createNotification({
-              userId: user.id,
-              type: 'CASE_UPDATED',
-              title: 'New Case Created',
-              message: `A new case "${newCase.patientName || 'Case ' + newCase.caseNumber}" has been created`,
-              linkUrl: `/cases/${newCase.id}`,
-              metadata: { caseId: newCase.id },
-            });
-          }
+          await storage.createNotification({
+            userId: user.id,
+            type: 'CASE_UPDATED',
+            title: user.id === userId ? 'Case Created' : 'New Case Created',
+            message: user.id === userId 
+              ? `You created a new case "${newCase.patientName || 'Case ' + newCase.caseNumber}"`
+              : `A new case "${newCase.patientName || 'Case ' + newCase.caseNumber}" has been created`,
+            linkUrl: `/cases/${newCase.id}`,
+            metadata: { caseId: newCase.id },
+          });
         }
       } catch (notifError) {
         console.error("[WARNING] Failed to create notifications:", notifError);
@@ -1031,16 +1031,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const clinicUsers = await storage.getUsersByClinic(clinicId);
         for (const user of clinicUsers) {
-          if (user.id !== userId) { // Don't notify the updater
-            await storage.createNotification({
-              userId: user.id,
-              type: 'CASE_UPDATED',
-              title: 'Case Updated',
-              message: `Case "${updatedCase.patientName || 'Case ' + updatedCase.caseNumber}" has been updated`,
-              linkUrl: `/cases/${updatedCase.id}`,
-              metadata: { caseId: updatedCase.id },
-            });
-          }
+          await storage.createNotification({
+            userId: user.id,
+            type: 'CASE_UPDATED',
+            title: user.id === userId ? 'Case Updated' : 'Case Updated',
+            message: user.id === userId
+              ? `You updated case "${updatedCase.patientName || 'Case ' + updatedCase.caseNumber}"`
+              : `Case "${updatedCase.patientName || 'Case ' + updatedCase.caseNumber}" has been updated`,
+            linkUrl: `/cases/${updatedCase.id}`,
+            metadata: { caseId: updatedCase.id },
+          });
         }
       } catch (notifError) {
         console.error("[WARNING] Failed to create notifications:", notifError);
