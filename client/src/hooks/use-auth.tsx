@@ -56,6 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     onSuccess: (data) => {
       setUser(data.user);
       setClinic(data.clinic);
+      // Store userId in localStorage for WebSocket notifications
+      if (data.user?.id) {
+        localStorage.setItem('userId', data.user.id);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },
   });
@@ -68,6 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     onSuccess: (data) => {
       setUser(data.user);
       setClinic(data.clinic);
+      // Store userId in localStorage for WebSocket notifications
+      if (data.user?.id) {
+        localStorage.setItem('userId', data.user.id);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },
   });
@@ -79,6 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     onSuccess: () => {
       setUser(null);
       setClinic(null);
+      // Clear userId from localStorage
+      localStorage.removeItem('userId');
       queryClient.clear();
     },
   });

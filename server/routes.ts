@@ -114,7 +114,9 @@ const preventAdminRoleInBody = (req: any, res: any, next: any) => {
   next();
 };
 
-export async function registerRoutes(app: Express): Promise<Server> {
+import type { NotificationManager } from './notifications';
+
+export async function registerRoutes(app: Express, notificationManager?: any): Promise<Server> {
   // Ensure SESSION_SECRET is set
   if (!process.env.SESSION_SECRET) {
     throw new Error('SESSION_SECRET environment variable is required');
@@ -965,7 +967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const clinicUsers = await storage.getUsersByClinic(clinicId);
         for (const user of clinicUsers) {
-          await storage.createNotification({
+          const notification = await storage.createNotification({
             userId: user.id,
             type: 'CASE_UPDATED',
             title: user.id === userId ? 'Case Created' : 'New Case Created',
@@ -975,6 +977,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             linkUrl: `/cases/${newCase.id}`,
             metadata: { caseId: newCase.id },
           });
+          
+          // Send real-time notification via WebSocket
+          if (notificationManager) {
+            notificationManager.sendNotification(user.id, notification);
+          }
         }
       } catch (notifError) {
         console.error("[WARNING] Failed to create notifications:", notifError);
@@ -1035,7 +1042,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const clinicUsers = await storage.getUsersByClinic(clinicId);
         for (const user of clinicUsers) {
-          await storage.createNotification({
+          const notification = await storage.createNotification({
             userId: user.id,
             type: 'CASE_UPDATED',
             title: user.id === userId ? 'Case Updated' : 'Case Updated',
@@ -1045,6 +1052,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             linkUrl: `/cases/${updatedCase.id}`,
             metadata: { caseId: updatedCase.id },
           });
+          
+          // Send real-time notification via WebSocket
+          if (notificationManager) {
+            notificationManager.sendNotification(user.id, notification);
+          }
         }
       } catch (notifError) {
         console.error("[WARNING] Failed to create notifications:", notifError);

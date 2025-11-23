@@ -11,6 +11,7 @@ import type { Notification } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { Moon, Sun, Menu } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useNotifications } from "@/hooks/use-notifications";
 import doodleHeaderImage from "@assets/generated_images/doodle_art_of_dog_cat_breeds_and_vet_materials.png";
 
 const pageTitles: Record<string, string> = {
@@ -34,6 +35,9 @@ export default function Header() {
   const pageTitle = pageTitles[location] || "9ja VetOncoData";
   const queryClient = useQueryClient();
   const { isMobileOpen, setIsMobileOpen } = useSidebar();
+  
+  // Initialize real-time notifications
+  useNotifications();
 
   const handleNewCaseClick = () => {
     setNewCaseAnimating(true);
