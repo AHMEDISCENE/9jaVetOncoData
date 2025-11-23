@@ -1,49 +1,99 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  ZoomableGroup,
+} from "react-simple-maps";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { LocationCaseStat } from "@/lib/types";
+import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import type { LocationCaseStat } from "@/lib/types";
 
-// Nigeria states with geographic positioning (normalized to 0-100 grid)
-const NIGERIA_STATES = {
-  SOKOTO: { x: 10, y: 8, zone: "NORTH_WEST" },
-  KEBBI: { x: 15, y: 12, zone: "NORTH_WEST" },
-  ZAMFARA: { x: 20, y: 8, zone: "NORTH_WEST" },
-  KATSINA: { x: 28, y: 5, zone: "NORTH_WEST" },
-  KANO: { x: 32, y: 8, zone: "NORTH_WEST" },
-  JIGAWA: { x: 38, y: 10, zone: "NORTH_WEST" },
-  KADUNA: { x: 38, y: 25, zone: "NORTH_CENTRAL" },
-  KOGI: { x: 42, y: 35, zone: "NORTH_CENTRAL" },
-  NIGER: { x: 38, y: 32, zone: "NORTH_CENTRAL" },
-  NASARAWA: { x: 45, y: 32, zone: "NORTH_CENTRAL" },
-  FCT: { x: 45, y: 36, zone: "NORTH_CENTRAL" },
-  PLATEAU: { x: 48, y: 28, zone: "NORTH_CENTRAL" },
-  BAUCHI: { x: 48, y: 18, zone: "NORTH_EAST" },
-  GOMBE: { x: 55, y: 20, zone: "NORTH_EAST" },
-  YOBE: { x: 52, y: 12, zone: "NORTH_EAST" },
-  BORNO: { x: 58, y: 8, zone: "NORTH_EAST" },
-  ADAMAWA: { x: 62, y: 18, zone: "NORTH_EAST" },
-  TARABA: { x: 58, y: 28, zone: "NORTH_EAST" },
-  BENUE: { x: 48, y: 38, zone: "NORTH_CENTRAL" },
-  KWARA: { x: 32, y: 38, zone: "NORTH_CENTRAL" },
-  OGUN: { x: 28, y: 50, zone: "SOUTH_WEST" },
-  LAGOS: { x: 22, y: 52, zone: "SOUTH_WEST" },
-  OSUN: { x: 30, y: 55, zone: "SOUTH_WEST" },
-  OYO: { x: 32, y: 50, zone: "SOUTH_WEST" },
-  EKITI: { x: 38, y: 52, zone: "SOUTH_WEST" },
-  ONDO: { x: 42, y: 55, zone: "SOUTH_WEST" },
-  DELTA: { x: 42, y: 60, zone: "SOUTH_SOUTH" },
-  EDO: { x: 40, y: 57, zone: "SOUTH_SOUTH" },
-  BAYELSA: { x: 45, y: 62, zone: "SOUTH_SOUTH" },
-  RIVERS: { x: 50, y: 65, zone: "SOUTH_SOUTH" },
-  CROSS_RIVER: { x: 58, y: 62, zone: "SOUTH_SOUTH" },
-  AKWA_IBOM: { x: 62, y: 65, zone: "SOUTH_SOUTH" },
-  ENUGU: { x: 52, y: 50, zone: "SOUTH_EAST" },
-  EBONYI: { x: 58, y: 48, zone: "SOUTH_EAST" },
-  ANAMBRA: { x: 50, y: 52, zone: "SOUTH_EAST" },
-  IMO: { x: 52, y: 58, zone: "SOUTH_EAST" },
-  ABIA: { x: 58, y: 55, zone: "SOUTH_EAST" },
-} as const;
+const nigeriaGeoJSON = "/nigeria-states.geojson";
+
+// Map GeoJSON state names to our state enum format
+const STATE_NAME_MAP: Record<string, string> = {
+  "Abia": "ABIA",
+  "Adamawa": "ADAMAWA",
+  "Akwa Ibom": "AKWA_IBOM",
+  "Anambra": "ANAMBRA",
+  "Bauchi": "BAUCHI",
+  "Bayelsa": "BAYELSA",
+  "Benue": "BENUE",
+  "Borno": "BORNO",
+  "Cross River": "CROSS_RIVER",
+  "Delta": "DELTA",
+  "Ebonyi": "EBONYI",
+  "Edo": "EDO",
+  "Ekiti": "EKITI",
+  "Enugu": "ENUGU",
+  "Federal Capital Territory": "FCT",
+  "Gombe": "GOMBE",
+  "Imo": "IMO",
+  "Jigawa": "JIGAWA",
+  "Kaduna": "KADUNA",
+  "Kano": "KANO",
+  "Katsina": "KATSINA",
+  "Kebbi": "KEBBI",
+  "Kogi": "KOGI",
+  "Kwara": "KWARA",
+  "Lagos": "LAGOS",
+  "Nasarawa": "NASARAWA",
+  "Niger": "NIGER",
+  "Ogun": "OGUN",
+  "Ondo": "ONDO",
+  "Osun": "OSUN",
+  "Oyo": "OYO",
+  "Plateau": "PLATEAU",
+  "Rivers": "RIVERS",
+  "Sokoto": "SOKOTO",
+  "Taraba": "TARABA",
+  "Yobe": "YOBE",
+  "Zamfara": "ZAMFARA",
+};
+
+// State to zone mapping
+const STATE_TO_ZONE: Record<string, string> = {
+  ABIA: "SOUTH_EAST",
+  ADAMAWA: "NORTH_EAST",
+  AKWA_IBOM: "SOUTH_SOUTH",
+  ANAMBRA: "SOUTH_EAST",
+  BAUCHI: "NORTH_EAST",
+  BAYELSA: "SOUTH_SOUTH",
+  BENUE: "NORTH_CENTRAL",
+  BORNO: "NORTH_EAST",
+  CROSS_RIVER: "SOUTH_SOUTH",
+  DELTA: "SOUTH_SOUTH",
+  EBONYI: "SOUTH_EAST",
+  EDO: "SOUTH_SOUTH",
+  EKITI: "SOUTH_WEST",
+  ENUGU: "SOUTH_EAST",
+  FCT: "NORTH_CENTRAL",
+  GOMBE: "NORTH_EAST",
+  IMO: "SOUTH_EAST",
+  JIGAWA: "NORTH_WEST",
+  KADUNA: "NORTH_CENTRAL",
+  KANO: "NORTH_WEST",
+  KATSINA: "NORTH_WEST",
+  KEBBI: "NORTH_WEST",
+  KOGI: "NORTH_CENTRAL",
+  KWARA: "NORTH_CENTRAL",
+  LAGOS: "SOUTH_WEST",
+  NASARAWA: "NORTH_CENTRAL",
+  NIGER: "NORTH_CENTRAL",
+  OGUN: "SOUTH_WEST",
+  ONDO: "SOUTH_WEST",
+  OSUN: "SOUTH_WEST",
+  OYO: "SOUTH_WEST",
+  PLATEAU: "NORTH_CENTRAL",
+  RIVERS: "SOUTH_SOUTH",
+  SOKOTO: "NORTH_WEST",
+  TARABA: "NORTH_EAST",
+  YOBE: "NORTH_EAST",
+  ZAMFARA: "NORTH_WEST",
+};
 
 const ZONE_COLORS: Record<string, { base: string; light: string; dark: string }> = {
   NORTH_CENTRAL: { base: "#06b6d4", light: "#cffafe", dark: "#0c4a6e" },
@@ -71,6 +121,86 @@ export function InteractiveNigeriaMap({
 }: InteractiveNigeriaMapProps) {
   const [selectedState, setSelectedState] = useState<LocationCaseStat | null>(null);
   const [hoveredState, setHoveredState] = useState<string | null>(null);
+  const [tooltipContent, setTooltipContent] = useState<{ name: string; cases: number; x: number; y: number } | null>(null);
+
+  const stateDataMap = useMemo(
+    () => new Map(data.map((d) => [d.state, d])),
+    [data]
+  );
+
+  const { maxCount, minCount } = useMemo(() => {
+    const counts = Array.from(stateDataMap.values()).map((d) => d.caseCount);
+    return {
+      maxCount: Math.max(...counts, 1),
+      minCount: Math.min(...counts, 0),
+    };
+  }, [stateDataMap]);
+
+  const getIntensity = (count: number) => {
+    if (maxCount === minCount) return 0.5;
+    return (count - minCount) / (maxCount - minCount);
+  };
+
+  const getStateFill = (stateName: string) => {
+    const stateCode = STATE_NAME_MAP[stateName];
+    if (!stateCode) return "#e5e7eb";
+
+    const stateData = stateDataMap.get(stateCode);
+    const zone = STATE_TO_ZONE[stateCode];
+
+    if (!zone) return "#e5e7eb";
+
+    const zoneColor = ZONE_COLORS[zone];
+    if (!zoneColor) return "#e5e7eb";
+
+    if (!stateData) {
+      return zoneColor.light;
+    }
+
+    const intensity = getIntensity(stateData.caseCount);
+    const baseColor = zoneColor.base;
+
+    const hex = baseColor.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${0.4 + intensity * 0.6})`;
+  };
+
+  const handleGeographyClick = (geo: { properties: { shapeName: string } }) => {
+    const stateName = geo.properties.shapeName;
+    const stateCode = STATE_NAME_MAP[stateName];
+    if (stateCode) {
+      const stateData = stateDataMap.get(stateCode);
+      if (stateData) {
+        setSelectedState(stateData);
+      }
+    }
+  };
+
+  const handleGeographyMouseEnter = (geo: { properties: { shapeName: string } }, event: React.MouseEvent) => {
+    const stateName = geo.properties.shapeName;
+    const stateCode = STATE_NAME_MAP[stateName];
+    setHoveredState(stateCode || null);
+
+    if (stateCode) {
+      const stateData = stateDataMap.get(stateCode);
+      if (stateData) {
+        setTooltipContent({
+          name: stateName,
+          cases: stateData.caseCount,
+          x: event.clientX,
+          y: event.clientY,
+        });
+      }
+    }
+  };
+
+  const handleGeographyMouseLeave = () => {
+    setHoveredState(null);
+    setTooltipContent(null);
+  };
 
   if (isLoading) {
     return (
@@ -96,183 +226,185 @@ export function InteractiveNigeriaMap({
     );
   }
 
-  const stateDataMap = new Map(data.map(d => [d.state, d]));
-  const counts = Array.from(stateDataMap.values()).map(d => d.caseCount);
-  const maxCount = Math.max(...counts, 1);
-  const minCount = Math.min(...counts, 1);
+  const zoneStats = useMemo(() => {
+    const stats: Record<string, { total: number; states: number }> = {};
+    
+    data.forEach((item) => {
+      if (!stats[item.zone]) {
+        stats[item.zone] = { total: 0, states: 0 };
+      }
+      stats[item.zone].total += item.caseCount;
+      stats[item.zone].states += 1;
+    });
 
-  const getIntensity = (count: number) => {
-    if (maxCount === minCount) return 0.5;
-    return (count - minCount) / (maxCount - minCount);
-  };
-
-  const getStateColor = (stateName: string) => {
-    const statData = stateDataMap.get(stateName);
-    if (!statData) return "#f3f4f6";
-
-    const stateInfo = NIGERIA_STATES[stateName as keyof typeof NIGERIA_STATES];
-    if (!stateInfo) return "#f3f4f6";
-
-    const baseColor = ZONE_COLORS[stateInfo.zone]?.base || "#9ca3af";
-    const intensity = getIntensity(statData.caseCount);
-
-    const hex = baseColor.replace("#", "");
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-
-    return `rgba(${r}, ${g}, ${b}, ${0.3 + intensity * 0.7})`;
-  };
-
-  const stateNames = Object.keys(NIGERIA_STATES) as Array<keyof typeof NIGERIA_STATES>;
+    return stats;
+  }, [data]);
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-border p-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      {/* Map Card */}
+      <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border-border p-6 relative">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-foreground">Geographic Distribution of Cases</h3>
-            <p className="text-sm text-muted-foreground">Interactive map showing case density by state</p>
+            <h3 className="text-lg font-semibold text-foreground">Interactive Nigeria Map</h3>
+            <p className="text-sm text-muted-foreground">Click on any state to view detailed analytics</p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-primary">{totalCases.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-primary">{totalCases.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">Total cases</p>
           </div>
         </div>
 
         {/* Interactive Map */}
-        <div className="mb-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-lg p-4 overflow-x-auto">
-          <svg
-            viewBox="0 0 100 80"
-            className="w-full min-w-full"
-            style={{ aspectRatio: "100/80", maxHeight: "500px" }}
+        <div className="bg-white dark:bg-slate-950 rounded-lg p-4 shadow-inner" data-testid="nigeria-map-container">
+          <ComposableMap
+            projection="geoMercator"
+            projectionConfig={{
+              scale: 2400,
+              center: [8, 9.5],
+            }}
+            style={{
+              width: "100%",
+              height: "auto",
+            }}
+            className="w-full"
           >
-            {/* Background */}
-            <rect width="100" height="80" fill="transparent" />
+            <ZoomableGroup center={[8, 9.5]} zoom={1}>
+              <Geographies geography={nigeriaGeoJSON}>
+                {({ geographies }: { geographies: any[] }) =>
+                  geographies.map((geo: any) => {
+                    const stateName = geo.properties.shapeName;
+                    const stateCode = STATE_NAME_MAP[stateName];
+                    const isHovered = hoveredState === stateCode;
+                    const isSelected = selectedState?.state === stateCode;
 
-            {/* State buttons arranged geographically */}
-            {stateNames.map((stateName) => {
-              const stateInfo = NIGERIA_STATES[stateName];
-              const statData = stateDataMap.get(stateName);
-              const isHovered = hoveredState === stateName;
-              const isSelected = selectedState?.state === stateName;
-              const intensity = statData ? getIntensity(statData.caseCount) : 0;
-
-              return (
-                <g key={stateName}>
-                  {/* State circle/box */}
-                  <circle
-                    cx={stateInfo.x}
-                    cy={stateInfo.y}
-                    r={2.5}
-                    fill={getStateColor(stateName)}
-                    stroke={isSelected ? "#3b82f6" : isHovered ? "#000" : "#ccc"}
-                    strokeWidth={isSelected ? 0.3 : isHovered ? 0.2 : 0.1}
-                    style={{
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      filter: isHovered ? "drop-shadow(0 0 4px rgba(0,0,0,0.3))" : "none",
-                    }}
-                    onClick={() => setSelectedState(statData || null)}
-                    onMouseEnter={() => setHoveredState(stateName)}
-                    onMouseLeave={() => setHoveredState(null)}
-                  />
-
-                  {/* State label */}
-                  <text
-                    x={stateInfo.x}
-                    y={stateInfo.y}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fontSize="1"
-                    fontWeight={isSelected ? "bold" : "500"}
-                    fill={isSelected ? "#fff" : isHovered ? "#000" : "#333"}
-                    style={{
-                      pointerEvents: "none",
-                      fontFamily: "sans-serif",
-                      fontSize: isHovered ? "1.2px" : "0.8px",
-                    }}
-                  >
-                    {stateName.substring(0, 2).toUpperCase()}
-                  </text>
-
-                  {/* Case count if data exists */}
-                  {statData && (
-                    <text
-                      x={stateInfo.x}
-                      y={stateInfo.y + 1.2}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontSize="0.7"
-                      fontWeight="bold"
-                      fill="#333"
-                      style={{
-                        pointerEvents: "none",
-                        fontFamily: "sans-serif",
-                      }}
-                    >
-                      {statData.caseCount}
-                    </text>
-                  )}
-
-                  {/* Tooltip on hover */}
-                  {isHovered && statData && (
-                    <title>{`${stateName.replace(/_/g, " ")}: ${statData.caseCount} cases (${Math.round((statData.caseCount / totalCases) * 100)}%)`}</title>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill={getStateFill(stateName)}
+                        stroke={
+                          isSelected
+                            ? "#3b82f6"
+                            : isHovered
+                            ? "#1f2937"
+                            : "#94a3b8"
+                        }
+                        strokeWidth={isSelected ? 1.5 : isHovered ? 1 : 0.5}
+                        style={{
+                          default: {
+                            outline: "none",
+                          },
+                          hover: {
+                            outline: "none",
+                            cursor: "pointer",
+                            filter: "brightness(0.9)",
+                          },
+                          pressed: {
+                            outline: "none",
+                          },
+                        }}
+                        onClick={() => handleGeographyClick(geo)}
+                        onMouseEnter={(event) => handleGeographyMouseEnter(geo, event)}
+                        onMouseLeave={handleGeographyMouseLeave}
+                        data-testid={`state-${stateCode}`}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+            </ZoomableGroup>
+          </ComposableMap>
         </div>
 
-        {/* Legend */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          {Object.entries(ZONE_COLORS).map(([zone, colors]) => (
-            <div key={zone} className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: colors.base }} />
-              <p className="text-xs text-muted-foreground">{zone.replace(/_/g, " ")}</p>
+        {/* Tooltip */}
+        {tooltipContent && (
+          <div
+            className="fixed z-50 pointer-events-none"
+            style={{
+              left: tooltipContent.x + 10,
+              top: tooltipContent.y - 40,
+            }}
+          >
+            <div className="bg-slate-900 text-white px-3 py-2 rounded-md shadow-lg text-sm">
+              <p className="font-semibold">{tooltipContent.name}</p>
+              <p className="text-xs">Cases: {tooltipContent.cases}</p>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
+      </Card>
 
-        {/* Summary stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-          <div className="bg-accent/50 rounded p-3">
-            <p className="text-muted-foreground text-xs">Highest Cases</p>
-            <p className="font-bold text-lg">
-              {stateDataMap.size > 0 ? Array.from(stateDataMap.values()).reduce((a, b) => a.caseCount > b.caseCount ? a : b).state.substring(0, 3) : "—"}
-            </p>
-          </div>
-          <div className="bg-accent/50 rounded p-3">
-            <p className="text-muted-foreground text-xs">States with Cases</p>
-            <p className="font-bold text-lg">{stateDataMap.size}</p>
-          </div>
-          <div className="bg-accent/50 rounded p-3">
-            <p className="text-muted-foreground text-xs">Avg Cases/State</p>
-            <p className="font-bold text-lg">
-              {stateDataMap.size > 0 ? Math.round(totalCases / stateDataMap.size) : 0}
-            </p>
-          </div>
-          <div className="bg-accent/50 rounded p-3">
-            <p className="text-muted-foreground text-xs">Click on a state</p>
-            <p className="font-bold text-lg">for details →</p>
-          </div>
+      {/* Legend */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {Object.entries(ZONE_COLORS).map(([zone, colors]) => {
+          const stats = zoneStats[zone];
+          return (
+            <div
+              key={zone}
+              className="flex items-center gap-2 p-2 rounded-md bg-accent/50 border border-border"
+            >
+              <div className="w-4 h-4 rounded flex-shrink-0" style={{ backgroundColor: colors.base }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-foreground truncate">
+                  {zone.replace(/_/g, " ")}
+                </p>
+                {stats && (
+                  <p className="text-xs text-muted-foreground">
+                    {stats.total} cases
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-primary/10 rounded-lg p-4 text-center border border-primary/20">
+          <p className="text-2xl font-bold text-primary">
+            {data.length}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">States with cases</p>
+        </div>
+        <div className="bg-blue-500/10 rounded-lg p-4 text-center border border-blue-500/20">
+          <p className="text-2xl font-bold text-blue-600">
+            {data.length > 0
+              ? data.reduce((max, s) => (s.caseCount > max.caseCount ? s : max)).state.substring(0, 3)
+              : "—"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Highest cases</p>
+        </div>
+        <div className="bg-green-500/10 rounded-lg p-4 text-center border border-green-500/20">
+          <p className="text-2xl font-bold text-green-600">
+            {data.length > 0 ? Math.round(totalCases / data.length) : 0}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Avg per state</p>
+        </div>
+        <div className="bg-amber-500/10 rounded-lg p-4 text-center border border-amber-500/20">
+          <p className="text-2xl font-bold text-amber-600">
+            {Object.keys(zoneStats).length}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Active zones</p>
         </div>
       </div>
 
       {/* State Detail Dialog */}
       <Dialog open={!!selectedState} onOpenChange={() => setSelectedState(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           {selectedState && (
             <>
               <DialogHeader>
-                <DialogTitle>
-                  {selectedState.state.replace(/_/g, " ")} — {selectedState.zone.replace(/_/g, " ")}
+                <DialogTitle className="text-2xl">
+                  {selectedState.state.replace(/_/g, " ")} State
                 </DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  {selectedState.zone.replace(/_/g, " ")} Zone
+                </p>
               </DialogHeader>
 
               <div className="space-y-6">
-                {/* Key metrics */}
+                {/* Key Metrics */}
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-primary/10 rounded-lg p-4 text-center">
                     <p className="text-sm text-muted-foreground mb-1">Total Cases</p>
@@ -287,34 +419,35 @@ export function InteractiveNigeriaMap({
                   <div className="bg-green-500/10 rounded-lg p-4 text-center">
                     <p className="text-sm text-muted-foreground mb-1">Rank</p>
                     <p className="text-3xl font-bold text-green-600">
-                      {Array.from(stateDataMap.values())
+                      #{data
                         .sort((a, b) => b.caseCount - a.caseCount)
-                        .findIndex(s => s.state === selectedState.state) + 1}
+                        .findIndex((s) => s.state === selectedState.state) + 1}
                     </p>
                   </div>
                 </div>
 
-                {/* Comparison chart */}
+                {/* Comparison Chart */}
                 <div>
-                  <h4 className="text-sm font-semibold mb-3">Top 5 States Comparison</h4>
-                  <ResponsiveContainer width="100%" height={250}>
+                  <h4 className="text-sm font-semibold mb-3">Top 10 States by Case Count</h4>
+                  <ResponsiveContainer width="100%" height={300}>
                     <BarChart
-                      data={Array.from(stateDataMap.values())
+                      data={data
                         .sort((a, b) => b.caseCount - a.caseCount)
-                        .slice(0, 5)}
+                        .slice(0, 10)}
+                      margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="state"
-                        tick={{ fontSize: 12 }}
-                        tickFormatter={(value) => value.substring(0, 3)}
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(value) => value.substring(0, 4)}
                       />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="caseCount" fill="#3b82f6">
-                        {Array.from(stateDataMap.values())
+                      <Bar dataKey="caseCount" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+                        {data
                           .sort((a, b) => b.caseCount - a.caseCount)
-                          .slice(0, 5)
+                          .slice(0, 10)
                           .map((entry, idx) => (
                             <Cell
                               key={`cell-${idx}`}
@@ -328,22 +461,23 @@ export function InteractiveNigeriaMap({
                   </ResponsiveContainer>
                 </div>
 
-                {/* Zone statistics */}
+                {/* Zone Statistics */}
                 <div>
-                  <h4 className="text-sm font-semibold mb-3">Zone Statistics ({selectedState.zone})</h4>
+                  <h4 className="text-sm font-semibold mb-3">
+                    {selectedState.zone.replace(/_/g, " ")} Zone Statistics
+                  </h4>
                   <div className="grid grid-cols-2 gap-4">
                     {(() => {
-                      const zoneStates = Array.from(stateDataMap.values()).filter(
-                        s => s.zone === selectedState.zone
-                      );
+                      const zoneStates = data.filter((s) => s.zone === selectedState.zone);
                       const zoneTotal = zoneStates.reduce((sum, s) => sum + s.caseCount, 0);
-                      const statePercentOfZone = zoneTotal > 0 ? (selectedState.caseCount / zoneTotal) * 100 : 0;
+                      const statePercentOfZone =
+                        zoneTotal > 0 ? (selectedState.caseCount / zoneTotal) * 100 : 0;
 
                       return (
                         <>
                           <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
-                            <p className="text-xs text-muted-foreground mb-1">Zone Total</p>
-                            <p className="text-2xl font-bold">{zoneTotal}</p>
+                            <p className="text-xs text-muted-foreground mb-1">Zone Total Cases</p>
+                            <p className="text-2xl font-bold">{zoneTotal.toLocaleString()}</p>
                           </div>
                           <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
                             <p className="text-xs text-muted-foreground mb-1">% of Zone</p>
@@ -354,8 +488,10 @@ export function InteractiveNigeriaMap({
                             <p className="text-2xl font-bold">{zoneStates.length}</p>
                           </div>
                           <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
-                            <p className="text-xs text-muted-foreground mb-1">Avg per State</p>
-                            <p className="text-2xl font-bold">{Math.round(zoneTotal / zoneStates.length)}</p>
+                            <p className="text-xs text-muted-foreground mb-1">Zone Avg</p>
+                            <p className="text-2xl font-bold">
+                              {Math.round(zoneTotal / zoneStates.length)}
+                            </p>
                           </div>
                         </>
                       );
