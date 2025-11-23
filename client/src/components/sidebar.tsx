@@ -14,11 +14,11 @@ import {
   Upload,
   MessageSquare,
   Calendar,
-  Settings,
   Stethoscope,
   X,
   Menu,
-  Users
+  Users,
+  Settings
 } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
 import doodleImage from "@assets/generated_images/doodle_art_of_dog_cat_breeds_and_vet_materials.png";
@@ -36,7 +36,6 @@ export default function Sidebar() {
     { name: "Bulk Upload", href: "/bulk-upload", icon: Upload },
     { name: "Feeds", href: "/feeds", icon: MessageSquare },
     { name: "Calendar", href: "/calendar", icon: Calendar },
-    { name: "Settings", href: "/settings", icon: Settings },
   ];
 
   // Admin-only navigation (both ADMIN and SUPER_ADMIN)
@@ -164,12 +163,21 @@ export default function Sidebar() {
             transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
           >
             {isCollapsed ? (
-              <div className="flex flex-col items-center space-y-3">
+              <div className="flex flex-col items-center space-y-2">
                 <div className="h-10 w-10 bg-primary/80 rounded-full flex items-center justify-center shadow-md" title={user?.name || "Unknown User"}>
                   <span className="text-sm font-bold text-primary-foreground" data-testid="text-user-initials">
                     {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                   </span>
                 </div>
+                <Link 
+                  href="/settings"
+                  className="w-full px-2 py-2 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
+                  data-testid="link-settings"
+                  onClick={() => setIsMobileOpen(false)}
+                  title="Settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </Link>
                 <Button 
                   variant="default" 
                   size="sm" 
@@ -198,16 +206,27 @@ export default function Sidebar() {
                     </p>
                   </div>
                 </div>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  className="w-full font-semibold" 
-                  onClick={handleLogout}
-                  data-testid="button-logout"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
+                <div className="space-y-2">
+                  <Link 
+                    href="/settings"
+                    className="nav-item gap-2 font-semibold justify-center py-2 rounded-md hover:bg-muted transition-colors"
+                    data-testid="link-settings"
+                    onClick={() => setIsMobileOpen(false)}
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span className="text-sm font-semibold">Settings</span>
+                  </Link>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="w-full font-semibold" 
+                    onClick={handleLogout}
+                    data-testid="button-logout"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </div>
               </>
             )}
           </motion.div>
