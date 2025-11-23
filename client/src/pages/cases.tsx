@@ -295,15 +295,18 @@ export default function Cases() {
   const canDeleteCase = (caseItem: CaseWithDetails) => {
     if (!user || !clinic) return false;
     
+    const isSuperAdmin = user.role === 'SUPER_ADMIN';
     const isAdmin = user.role === 'ADMIN';
     const isManager = user.role === 'MANAGER';
     const isCreator = caseItem.createdBy && caseItem.createdBy.id === user.id;
     const isSameClinic = caseItem.clinic && caseItem.clinic.id === clinic.id;
     
     // Allow if:
-    // 1. User is ADMIN (can delete any case)
-    // 2. User is MANAGER from the same clinic
-    // 3. User is the creator from the same clinic
+    // 1. User is SUPER_ADMIN (can delete any case across all clinics)
+    // 2. User is ADMIN (can delete any case)
+    // 3. User is MANAGER from the same clinic
+    // 4. User is the creator from the same clinic
+    if (isSuperAdmin) return true;
     if (isAdmin) return true;
     if (isManager && isSameClinic) return true;
     if (isCreator && isSameClinic) return true;

@@ -1116,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check write permission: creator or admin
       const user = await storage.getUser(userId);
       const isCreator = caseData.createdBy.id === userId;
-      const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+      const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN';
       
       if (!isCreator && !isAdmin) {
         return res.status(403).json({ message: "Only case creator or admins can delete files" });
