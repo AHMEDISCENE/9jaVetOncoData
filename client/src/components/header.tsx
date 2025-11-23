@@ -75,8 +75,8 @@ export default function Header() {
 
   return (
     <header className="glass border-b">
-      <div className="flex items-center justify-between h-16 px-2 sm:px-4 md:px-6">
-        <div className="flex items-center space-x-2 min-w-0">
+      <div className="flex items-center justify-between h-16 px-12 sm:px-4 md:px-6">
+        <div className="flex items-center space-x-3 sm:space-x-2 min-w-0 flex-1">
           <h1 className="text-sm sm:text-base md:text-xl font-semibold text-foreground truncate" data-testid="text-page-title">
             {pageTitle}
           </h1>
