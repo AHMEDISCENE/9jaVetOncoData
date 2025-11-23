@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useQuery } from "@tanstack/react-query";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -24,13 +26,26 @@ const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
-  clinicName: z.string().min(1, "Clinic name is required"),
-  clinicState: z.string().min(1, "State is required"),
-  clinicCity: z.string().min(1, "City is required"),
+  clinicMode: z.enum(["create", "join"]).default("create"),
+  clinicId: z.string().optional(),
+  clinicName: z.string().optional(),
+  clinicState: z.string().optional(),
+  clinicCity: z.string().optional(),
   role: z.enum(["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]).default("CLINICIAN"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
+}).refine((data) => {
+  if (data.clinicMode === "create") {
+    return data.clinicName && data.clinicState && data.clinicCity;
+  }
+  if (data.clinicMode === "join") {
+    return data.clinicId;
+  }
+  return true;
+}, {
+  message: "Please complete all clinic information",
+  path: ["clinicName"],
 });
 
 const nigerianStates = [
@@ -62,12 +77,35 @@ export default function Login() {
       name: "",
       password: "",
       confirmPassword: "",
+      clinicMode: "create",
+      clinicId: "",
       clinicName: "",
       clinicState: "",
       clinicCity: "",
       role: "CLINICIAN",
     },
   });
+
+  // Fetch available clinics
+  const { data: availableClinics = [] } = useQuery<Array<{ id: string; name: string; state: string; city: string }>>({
+    queryKey: ["/api/clinics/available"],
+    enabled: activeTab === "register",
+  });
+
+  // Watch clinic mode and selected clinic
+  const clinicMode = registerForm.watch("clinicMode");
+  const selectedClinicId = registerForm.watch("clinicId");
+
+  // Auto-fill state and city when a clinic is selected
+  useEffect(() => {
+    if (clinicMode === "join" && selectedClinicId) {
+      const selectedClinic = availableClinics.find(c => c.id === selectedClinicId);
+      if (selectedClinic) {
+        registerForm.setValue("clinicState", selectedClinic.state);
+        registerForm.setValue("clinicCity", selectedClinic.city);
+      }
+    }
+  }, [selectedClinicId, availableClinics, clinicMode, registerForm]);
 
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
     try {
@@ -88,20 +126,64 @@ export default function Login() {
 
   const onRegister = async (values: z.infer<typeof registerSchema>) => {
     try {
-      await register({
-        email: values.email,
-        name: values.name,
-        password: values.password,
-        clinicName: values.clinicName,
-        clinicState: values.clinicState,
-        clinicCity: values.clinicCity,
-        role: values.role,
-      });
-      setLocation("/dashboard");
-      toast({
-        title: "Welcome to 9ja VetOncoData!",
-        description: "Your clinic has been created successfully.",
-      });
+      if (values.clinicMode === "create") {
+        // Create new clinic
+        await register({
+          email: values.email,
+          name: values.name,
+          password: values.password,
+          clinicName: values.clinicName!,
+          clinicState: values.clinicState!,
+          clinicCity: values.clinicCity!,
+          role: values.role,
+        });
+        setLocation("/dashboard");
+        toast({
+          title: "Welcome to 9ja VetOncoData!",
+          description: "Your clinic has been created successfully.",
+        });
+      } else {
+        // Join existing clinic - First create user without clinic, then join
+        // Register user without clinic (temporary workaround - pass empty clinic info)
+        const response = await fetch("/api/auth/register-without-clinic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            email: values.email,
+            name: values.name,
+            password: values.password,
+            role: values.role,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Registration failed");
+        }
+
+        // Now join the selected clinic
+        const joinResponse = await fetch("/api/auth/join-clinic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            clinicId: values.clinicId,
+            role: values.role,
+          }),
+        });
+
+        if (!joinResponse.ok) {
+          const error = await joinResponse.json();
+          throw new Error(error.message || "Failed to join clinic");
+        }
+
+        setLocation("/dashboard");
+        toast({
+          title: "Welcome to 9ja VetOncoData!",
+          description: "You have joined the clinic successfully.",
+        });
+      }
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -330,29 +412,93 @@ export default function Login() {
 
                       <FormField
                         control={registerForm.control}
-                        name="clinicName"
+                        name="clinicMode"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Clinic Name</FormLabel>
+                          <FormItem className="space-y-3">
+                            <FormLabel>Clinic Option</FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="Enter clinic name"
-                                data-testid="input-clinic-name"
-                                {...field}
-                              />
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-col space-y-1"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="create" id="create" data-testid="radio-create-clinic" />
+                                  <Label htmlFor="create" className="font-normal cursor-pointer">
+                                    Create New Clinic
+                                  </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="join" id="join" data-testid="radio-join-clinic" />
+                                  <Label htmlFor="join" className="font-normal cursor-pointer">
+                                    Join Existing Clinic
+                                  </Label>
+                                </div>
+                              </RadioGroup>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
 
+                      {clinicMode === "join" && (
+                        <FormField
+                          control={registerForm.control}
+                          name="clinicId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Select Clinic *</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-clinic">
+                                    <SelectValue placeholder="Choose a clinic" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {availableClinics.map((clinic) => (
+                                    <SelectItem key={clinic.id} value={clinic.id}>
+                                      {clinic.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      {clinicMode === "create" && (
+                        <FormField
+                          control={registerForm.control}
+                          name="clinicName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Clinic Name *</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Enter clinic name"
+                                  data-testid="input-clinic-name"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
                       <FormField
                         control={registerForm.control}
                         name="clinicState"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>State</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormLabel>State *</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value}
+                              disabled={clinicMode === "join"}
+                            >
                               <FormControl>
                                 <SelectTrigger data-testid="select-state">
                                   <SelectValue placeholder="Select state" />
@@ -376,11 +522,12 @@ export default function Login() {
                         name="clinicCity"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>City</FormLabel>
+                            <FormLabel>City *</FormLabel>
                             <FormControl>
                               <Input
                                 placeholder="Enter city"
                                 data-testid="input-clinic-city"
+                                disabled={clinicMode === "join"}
                                 {...field}
                               />
                             </FormControl>
@@ -394,7 +541,7 @@ export default function Login() {
                         name="role"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Your Role</FormLabel>
+                            <FormLabel>Your Role *</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger data-testid="select-user-role">

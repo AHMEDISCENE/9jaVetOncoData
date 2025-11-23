@@ -231,7 +231,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
-  // Clinic setup route for Google OAuth users
+  // Get all available clinics (for signup/join)
+  app.get("/api/clinics/available", async (req, res) => {
+    try {
+      const clinics = await storage.getAllClinics();
+      res.json(clinics);
+    } catch (error) {
+      console.error("[ERROR] Failed to get clinics:", error);
+      res.status(500).json({ message: "Failed to retrieve clinics" });
+    }
+  });
+
+  // Join existing clinic route (no auth required - called during signup)
+  app.post("/api/auth/join-clinic", async (req, res) => {
+    try {
+      // Check if user is in session (for authenticated flow) or use provided userId (for signup flow)
+      let userId = (req.session as any).userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { clinicId, role } = req.body;
+
+      // Security check: User must not already have a clinic
+      const existingUser = await storage.getUserById(userId);
+      if (existingUser?.clinicId) {
+        return res.status(400).json({ message: "User already belongs to a clinic" });
+      }
+
+      // Verify clinic exists
+      const clinic = await storage.getClinic(clinicId);
+      if (!clinic) {
+        return res.status(404).json({ message: "Clinic not found" });
+      }
+
+      // Use provided role or default to CLINICIAN
+      const finalRole = role || "CLINICIAN";
+
+      // Update user with clinic and role
+      const updatedUser = await storage.updateUser(userId, {
+        clinicId: clinic.id,
+        role: finalRole,
+      });
+
+      // Update session
+      (req.session as any).clinicId = clinic.id;
+      (req.session as any).userRole = updatedUser.role;
+
+      // Create audit log
+      await storage.createAuditLog({
+        actorId: userId,
+        clinicId: clinic.id,
+        entityType: 'USER',
+        entityId: userId,
+        action: 'UPDATE',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.json({ 
+        user: { 
+          id: updatedUser.id, 
+          email: updatedUser.email, 
+          name: updatedUser.name, 
+          role: updatedUser.role 
+        }, 
+        clinic 
+      });
+    } catch (error) {
+      console.error("[ERROR] Join clinic failed:", error);
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to join clinic" });
+    }
+  });
+
+  // Clinic setup route for Google OAuth users (create new clinic)
   app.post("/api/auth/setup-clinic", requireAuth, async (req, res) => {
     try {
       const userId = (req.session as any).userId;
@@ -291,6 +365,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auth routes
+  // Register user without clinic (for join-clinic flow)
+  app.post("/api/auth/register-without-clinic", async (req, res) => {
+    try {
+      const { email, name, password, role } = req.body;
+      
+      // Check if user exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create user without clinic
+      const user = await storage.createUser({
+        email,
+        name,
+        password: hashedPassword,
+        role: role as any || "CLINICIAN",
+        clinicId: undefined,
+      });
+      
+      // Set session
+      (req.session as any).userId = user.id;
+      (req.session as any).userRole = user.role;
+      
+      res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+    } catch (error) {
+      console.error("[ERROR] Register without clinic failed:", error);
+      res.status(400).json({ message: error instanceof Error ? error.message : "Registration failed" });
+    }
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, name, password, clinicName, clinicState, clinicCity, role } = registerSchema.parse(req.body);

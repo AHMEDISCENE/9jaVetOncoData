@@ -117,6 +117,7 @@ export interface IStorage {
   // Lookups for filters
   getNigerianStates(): Promise<Array<{ code: string; name: string; zone: string }>>;
   getClinicsList(): Promise<Array<{ id: string; name: string }>>;
+  getAllClinics(): Promise<Array<{ id: string; name: string; state: string; city: string }>>;
   getTumourTypesList(): Promise<Array<{ id: string; name: string }>>;
   
   // Attachments
@@ -933,6 +934,15 @@ export class DatabaseStorage implements IStorage {
     return await db.select({
       id: clinics.id,
       name: clinics.name,
+    }).from(clinics).orderBy(asc(clinics.name));
+  }
+
+  async getAllClinics(): Promise<Array<{ id: string; name: string; state: string; city: string }>> {
+    return await db.select({
+      id: clinics.id,
+      name: clinics.name,
+      state: clinics.state,
+      city: clinics.city,
     }).from(clinics).orderBy(asc(clinics.name));
   }
 
