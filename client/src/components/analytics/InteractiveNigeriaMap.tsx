@@ -188,10 +188,10 @@ export function InteractiveNigeriaMap({
       </div>
 
       {/* Map Grid */}
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-xl border-2 border-border p-6">
-        <div className="space-y-2">
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-xl border-2 border-border p-2 sm:p-4 md:p-6">
+        <div className="space-y-1 sm:space-y-2">
           {NIGERIA_STATES_GRID.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex gap-2 justify-center">
+            <div key={rowIndex} className="flex gap-1 sm:gap-2 justify-center flex-wrap">
               {row.map((stateName) => {
                 const stateData = stateDataMap.get(stateName);
                 const zone = STATE_TO_ZONE[stateName];
@@ -205,8 +205,8 @@ export function InteractiveNigeriaMap({
                     onMouseEnter={() => setHoveredState(stateName)}
                     onMouseLeave={() => setHoveredState(null)}
                     className={`
-                      relative flex flex-col items-center justify-center
-                      min-w-[80px] md:min-w-[100px] h-16 md:h-20
+                      relative flex flex-col items-center justify-center flex-shrink-0
+                      min-w-[60px] sm:min-w-[75px] md:min-w-[100px] h-14 sm:h-16 md:h-20
                       rounded-lg border-2 transition-all duration-200
                       ${isSelected ? "border-primary ring-4 ring-primary/30 scale-105" : "border-slate-300 dark:border-slate-600"}
                       ${isHovered ? "scale-105 shadow-lg z-10" : "shadow"}
@@ -217,11 +217,11 @@ export function InteractiveNigeriaMap({
                     }}
                     data-testid={`state-${stateName}`}
                   >
-                    <div className={`text-[10px] md:text-xs font-bold uppercase leading-tight text-center px-1 ${getTextColor(stateName)}`}>
+                    <div className={`text-[8px] sm:text-[10px] md:text-xs font-bold uppercase leading-tight text-center px-1 ${getTextColor(stateName)}`}>
                       {stateName.replace(/_/g, " ")}
                     </div>
                     {stateData && (
-                      <div className={`text-lg font-extrabold ${getTextColor(stateName)}`}>
+                      <div className={`text-base sm:text-lg md:text-lg font-extrabold ${getTextColor(stateName)}`}>
                         {stateData.caseCount}
                       </div>
                     )}
