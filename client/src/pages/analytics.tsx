@@ -37,10 +37,24 @@ function groupTumourTypes(tumours: Array<{ name: string; count: number }>, maxIt
   return [...top, { name: 'Others', count: othersCount }];
 }
 
+type MetricType = "totalCases" | "newThisMonth" | "remissionRate" | "activeClinics" | null;
+
 export default function Analytics() {
   const { toast } = useToast();
   const [selectedChart, setSelectedChart] = useState<string | null>(null);
+  const [selectedMetric, setSelectedMetric] = useState<MetricType>(null);
+  const [isDrilldownOpen, setIsDrilldownOpen] = useState(false);
   const { filters } = useAnalyticsFilters();
+  
+  const handleMetricClick = (metric: MetricType) => {
+    setSelectedMetric(metric);
+    setIsDrilldownOpen(true);
+  };
+  
+  const handleCloseDrilldown = () => {
+    setIsDrilldownOpen(false);
+    setTimeout(() => setSelectedMetric(null), 300); // Wait for animation
+  };
   
   // Build query key with filters
   const filterParams = buildFilterParams(filters);
@@ -263,39 +277,91 @@ export default function Analytics() {
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+        <Card 
+          className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          role="button"
+          tabIndex={0}
+          onClick={() => handleMetricClick("totalCases")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleMetricClick("totalCases");
+            }
+          }}
+          data-testid="card-total-cases"
+        >
           <CardContent className="p-6 text-center">
             <div className="text-4xl font-bold text-blue-600 dark:text-blue-300 mb-2" data-testid="metric-total-cases">
               {stats.totalCases.toLocaleString()}
             </div>
             <p className="text-sm font-medium text-blue-700 dark:text-blue-200">Total Cases</p>
+            <p className="text-xs text-blue-500 dark:text-blue-400 mt-2">Click for details</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
+        <Card 
+          className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          role="button"
+          tabIndex={0}
+          onClick={() => handleMetricClick("newThisMonth")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleMetricClick("newThisMonth");
+            }
+          }}
+          data-testid="card-new-this-month"
+        >
           <CardContent className="p-6 text-center">
             <div className="text-4xl font-bold text-purple-600 dark:text-purple-300 mb-2" data-testid="metric-new-cases">
               {stats.newThisMonth.toLocaleString()}
             </div>
             <p className="text-sm font-medium text-purple-700 dark:text-purple-200">New This Month</p>
+            <p className="text-xs text-purple-500 dark:text-purple-400 mt-2">Click for details</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
+        <Card 
+          className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          role="button"
+          tabIndex={0}
+          onClick={() => handleMetricClick("remissionRate")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleMetricClick("remissionRate");
+            }
+          }}
+          data-testid="card-remission-rate"
+        >
           <CardContent className="p-6 text-center">
             <div className="text-4xl font-bold text-green-600 dark:text-green-300 mb-2" data-testid="metric-remission-rate">
               {stats.remissionRate}%
             </div>
             <p className="text-sm font-medium text-green-700 dark:text-green-200">Remission Rate</p>
+            <p className="text-xs text-green-500 dark:text-green-400 mt-2">Click for details</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800">
+        <Card 
+          className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          role="button"
+          tabIndex={0}
+          onClick={() => handleMetricClick("activeClinics")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleMetricClick("activeClinics");
+            }
+          }}
+          data-testid="card-active-clinics"
+        >
           <CardContent className="p-6 text-center">
             <div className="text-4xl font-bold text-amber-600 dark:text-amber-300 mb-2" data-testid="metric-active-clinics">
               {stats.activeClinics}
             </div>
             <p className="text-sm font-medium text-amber-700 dark:text-amber-200">Active Clinics</p>
+            <p className="text-xs text-amber-500 dark:text-amber-400 mt-2">Click for details</p>
           </CardContent>
         </Card>
       </div>
