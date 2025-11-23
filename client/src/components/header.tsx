@@ -101,7 +101,7 @@ export default function Header() {
             <PopoverTrigger asChild>
               <button 
                 className={`relative text-muted-foreground hover:text-foreground p-2 ${
-                  unreadCount > 0 ? "animate-[jitter_0.5s_ease-in-out_infinite]" : ""
+                  unreadCount > 0 ? "jitter-animation" : ""
                 }`}
                 data-testid="button-notifications"
               >

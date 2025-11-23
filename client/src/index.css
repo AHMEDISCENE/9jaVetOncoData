@@ -198,4 +198,8 @@
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.3),
                 inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
   }
+
+  .jitter-animation {
+    animation: jitter 0.5s ease-in-out infinite;
+  }
 }
