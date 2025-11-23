@@ -333,12 +333,12 @@ export function InteractiveNigeriaMap({
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-primary/10 rounded-lg p-4 text-center">
                     <p className="text-sm text-muted-foreground mb-1">Total Cases</p>
-                    <p className="text-3xl font-bold text-primary">{selectedState.caseCount}</p>
+                    <p className="text-3xl font-bold text-primary">{stateLoading ? "—" : (stateStats?.totalCases ?? selectedState.caseCount)}</p>
                   </div>
                   <div className="bg-blue-500/10 rounded-lg p-4 text-center">
                     <p className="text-sm text-muted-foreground mb-1">% of Total</p>
                     <p className="text-3xl font-bold text-blue-600">
-                      {totalCases > 0 ? Math.round((selectedState.caseCount / totalCases) * 100) : 0}%
+                      {stateLoading ? "—" : (totalCases > 0 ? Math.round(((stateStats?.totalCases ?? selectedState.caseCount) / totalCases) * 100) : 0)}%
                     </p>
                   </div>
                   <div className="bg-green-500/10 rounded-lg p-4 text-center">
@@ -394,19 +394,20 @@ export function InteractiveNigeriaMap({
                   <div className="grid grid-cols-2 gap-4">
                     {(() => {
                       const zoneStates = data.filter((s) => s.zone === selectedState.zone);
-                      const zoneTotal = zoneStates.reduce((sum, s) => sum + s.caseCount, 0);
+                      const zoneTotal = zoneLoading ? 0 : (zoneStats?.totalCases || 0);
+                      const stateCasesInZone = stateLoading ? 0 : (stateStats?.totalCases ?? selectedState.caseCount);
                       const statePercentOfZone =
-                        zoneTotal > 0 ? (selectedState.caseCount / zoneTotal) * 100 : 0;
+                        zoneTotal > 0 ? (stateCasesInZone / zoneTotal) * 100 : 0;
 
                       return (
                         <>
                           <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
                             <p className="text-xs text-muted-foreground mb-1">Zone Total Cases</p>
-                            <p className="text-2xl font-bold">{zoneTotal.toLocaleString()}</p>
+                            <p className="text-2xl font-bold">{zoneLoading ? "—" : zoneTotal.toLocaleString()}</p>
                           </div>
                           <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
                             <p className="text-xs text-muted-foreground mb-1">% of Zone</p>
-                            <p className="text-2xl font-bold">{Math.round(statePercentOfZone)}%</p>
+                            <p className="text-2xl font-bold">{zoneLoading || stateLoading ? "—" : Math.round(statePercentOfZone)}%</p>
                           </div>
                           <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
                             <p className="text-xs text-muted-foreground mb-1">States in Zone</p>
@@ -415,7 +416,7 @@ export function InteractiveNigeriaMap({
                           <div className="bg-slate-100 dark:bg-slate-800 rounded p-3">
                             <p className="text-xs text-muted-foreground mb-1">Zone Avg</p>
                             <p className="text-2xl font-bold">
-                              {Math.round(zoneTotal / zoneStates.length)}
+                              {zoneLoading ? "—" : Math.round(zoneTotal / (zoneStates.length || 1))}
                             </p>
                           </div>
                         </>
