@@ -394,22 +394,15 @@ export default function Cases() {
   const handleExport = async (format: 'pdf' | 'xlsx') => {
     try {
       setIsExporting(true);
-      const response = await apiRequest('/api/cases/export', {
-        method: 'POST',
-        body: JSON.stringify({
-          format,
-          filters: {
-            zone: filters.zone,
-            state: filters.state,
-            clinicId: filters.clinicId,
-            tumourTypeId: filters.tumourTypeId,
-          }
-        }),
+      const response = await apiRequest('POST', '/api/cases/export', {
+        format,
+        filters: {
+          zone: filters.zone,
+          state: filters.state,
+          clinicId: filters.clinicId,
+          tumourTypeId: filters.tumourTypeId,
+        }
       });
-
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
 
       // Get filename from content-disposition header
       const contentDisposition = response.headers.get('content-disposition');
