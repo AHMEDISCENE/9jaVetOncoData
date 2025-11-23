@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronDown, ChevronUp, Filter, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Filter, Trash2, Download } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -186,6 +186,7 @@ export default function Cases() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [caseToDelete, setCaseToDelete] = useState<{ id: string; caseNumber: string } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Load filters from URL on mount
   useEffect(() => {
@@ -390,6 +391,57 @@ export default function Cases() {
     setCurrentPage(1);
   };
 
+  const handleExport = async (format: 'pdf' | 'xlsx') => {
+    try {
+      setIsExporting(true);
+      const response = await apiRequest('/api/cases/export', {
+        method: 'POST',
+        body: JSON.stringify({
+          format,
+          filters: {
+            zone: filters.zone,
+            state: filters.state,
+            clinicId: filters.clinicId,
+            tumourTypeId: filters.tumourTypeId,
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Get filename from content-disposition header
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || `cases-export.${format}`;
+
+      // Download file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Export successful",
+        description: `Cases exported as ${format.toUpperCase()}`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to export cases",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Group cases - trust server-provided geoZone
   const groupedCases = useMemo(() => {
     if (!cases || filters.groupBy === 'none') {
@@ -520,7 +572,7 @@ export default function Cases() {
         <div>
           <p className="text-muted-foreground">Manage and view all veterinary oncology cases</p>
         </div>
-        <div className="mt-4 sm:mt-0 flex space-x-3">
+        <div className="mt-4 sm:mt-0 flex space-x-2">
           <Button asChild data-testid="button-new-case">
             <a href="/cases/new">
               <i className="fas fa-plus mr-2"></i>New Case
@@ -531,6 +583,38 @@ export default function Cases() {
               <i className="fas fa-upload mr-2"></i>Bulk Import
             </a>
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" data-testid="button-export" disabled={isExporting || !cases || cases.length === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-48">
+              <div className="space-y-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => handleExport('pdf')}
+                  disabled={isExporting}
+                  data-testid="export-pdf"
+                >
+                  <i className="fas fa-file-pdf mr-2"></i>Export as PDF
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => handleExport('xlsx')}
+                  disabled={isExporting}
+                  data-testid="export-xlsx"
+                >
+                  <i className="fas fa-file-excel mr-2"></i>Export as Excel
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

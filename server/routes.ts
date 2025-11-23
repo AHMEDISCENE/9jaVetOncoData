@@ -1118,6 +1118,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export cases route
+  app.post("/api/cases/export", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const { format, filters } = req.body;
+
+      if (!format || !['pdf', 'xlsx'].includes(format)) {
+        return res.status(400).json({ message: "Invalid format. Use 'pdf' or 'xlsx'" });
+      }
+
+      // Parse filters
+      const apiFilters: any = {};
+      if (filters) {
+        if (filters.zone && filters.zone.length) apiFilters.zones = filters.zone;
+        if (filters.state && filters.state.length) apiFilters.states = filters.state;
+        if (filters.clinicId && filters.clinicId.length) {
+          apiFilters.clinicIds = filters.clinicId;
+        } else if (clinicId) {
+          apiFilters.clinicIds = [clinicId];
+        }
+        if (filters.tumourTypeId && filters.tumourTypeId.length) apiFilters.tumourTypeIds = filters.tumourTypeId;
+      } else if (clinicId) {
+        apiFilters.clinicIds = [clinicId];
+      }
+
+      // Get cases with filters
+      const cases = await storage.getSharedCases(apiFilters);
+
+      if (format === 'xlsx') {
+        const XLSX = require('xlsx');
+        
+        const wsData = cases.map(c => ({
+          'Case ID': c.caseNumber,
+          'Upload Date': c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
+          'Patient Name': c.patientName || '',
+          'Species': c.species || '',
+          'Breed': c.breed || '',
+          'Age': (c.ageYears ? `${c.ageYears}y` : '') + (c.ageMonths ? ` ${c.ageMonths}m` : ''),
+          'Tumour Type': c.tumourTypeCustom || '',
+          'Anatomical Site': c.anatomicalSiteCustom || '',
+          'Status': c.status || '',
+          'Outcome': c.outcome || '',
+          'Diagnosis Date': c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : '',
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Cases');
+        
+        const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.xlsx"`);
+        res.send(buffer);
+      } else if (format === 'pdf') {
+        const { jsPDF } = require('jspdf');
+        const autoTable = require('jspdf-autotable');
+
+        const doc = new jsPDF();
+        
+        // Add title
+        doc.setFontSize(16);
+        doc.text('Veterinary Cases Report', 14, 15);
+        
+        // Add metadata
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 25);
+        doc.text(`Total Cases: ${cases.length}`, 14, 32);
+        doc.setTextColor(0);
+
+        // Add table
+        const tableData = cases.map(c => [
+          c.caseNumber,
+          c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
+          c.patientName || '',
+          c.species || '',
+          c.tumourTypeCustom || '',
+          c.outcome || '',
+        ]);
+
+        autoTable(doc, {
+          head: [['Case ID', 'Upload Date', 'Patient', 'Species', 'Tumour Type', 'Outcome']],
+          body: tableData,
+          startY: 40,
+          theme: 'grid',
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [100, 150, 150] },
+        });
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.pdf"`);
+        res.send(doc.output('arraybuffer'));
+      }
+    } catch (error) {
+      console.error("[ERROR] Cases export failed:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to export cases" });
+    }
+  });
+
   // Case file routes
   app.post("/api/cases/:caseId/files", requireAuth, caseFileUpload.single('file'), async (req, res) => {
     try {
