@@ -98,6 +98,27 @@ export default function Header() {
     },
   });
 
+  const deleteNotificationMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/notifications/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
+    },
+  });
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'CASE_UPDATED':
+        return '📋';
+      case 'CASE_CREATED':
+        return '✨';
+      case 'FEED_COMMENT':
+        return '💬';
+      default:
+        return '🔔';
+    }
+  };
+
   const unreadCount = unreadData?.count || 0;
 
   return (
@@ -188,22 +209,27 @@ export default function Header() {
                     {notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
+                        className={`p-4 hover:bg-muted/50 transition-colors group ${
                           !notification.isRead ? "bg-muted/30" : ""
                         }`}
-                        onClick={() => {
-                          if (!notification.isRead) {
-                            markAsReadMutation.mutate(notification.id);
-                          }
-                          if (notification.linkUrl) {
-                            window.location.href = notification.linkUrl;
-                          }
-                        }}
                         data-testid={`notification-${notification.id}`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm mb-1">{notification.title}</p>
+                          <div 
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => {
+                              if (!notification.isRead) {
+                                markAsReadMutation.mutate(notification.id);
+                              }
+                              if (notification.linkUrl) {
+                                window.location.href = notification.linkUrl;
+                              }
+                            }}
+                          >
+                            <p className="font-medium text-sm mb-1">
+                              <span className="mr-2">{getNotificationIcon(notification.type)}</span>
+                              {notification.title}
+                            </p>
                             <p className="text-sm text-muted-foreground mb-1">
                               {notification.message}
                             </p>
@@ -211,9 +237,22 @@ export default function Header() {
                               {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                             </p>
                           </div>
-                          {!notification.isRead && (
-                            <div className="h-2 w-2 bg-primary rounded-full flex-shrink-0 mt-1" />
-                          )}
+                          <div className="flex items-start gap-1">
+                            {!notification.isRead && (
+                              <div className="h-2 w-2 bg-primary rounded-full flex-shrink-0 mt-1" />
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotificationMutation.mutate(notification.id);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity p-1"
+                              data-testid={`button-delete-notification-${notification.id}`}
+                              title="Delete notification"
+                            >
+                              <i className="fas fa-times text-sm" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
