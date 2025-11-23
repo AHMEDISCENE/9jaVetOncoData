@@ -68,8 +68,22 @@ export function useAnalyticsFilters() {
 export function buildFilterParams(filters: AnalyticsFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.species) params.append("species", filters.species);
-  if (filters.zone) params.append("geoZones", filters.zone);
-  if (filters.state) params.append("states", filters.state);
+  
+  // Convert zone format from "SOUTH_WEST" to "South West"
+  if (filters.zone) {
+    const convertedZone = filters.zone
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+    params.append("geoZones", convertedZone);
+  }
+  
+  // Convert state format from "LAGOS" to "Lagos"
+  if (filters.state) {
+    const convertedState = filters.state.charAt(0).toUpperCase() + filters.state.slice(1).toLowerCase();
+    params.append("states", convertedState);
+  }
+  
   if (filters.tumourType) params.append("tumourTypeIds", filters.tumourType);
   // Note: ageGroup, sex, status, breed, and clinic filters need backend support to be functional
   return params;
