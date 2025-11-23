@@ -33,6 +33,10 @@ export function FilterBar() {
     { label: "Zone", key: "zone", options: ZONES },
   ];
 
+  const handleDateChange = (dateType: "dateFrom" | "dateTo", value: string) => {
+    updateFilter(dateType, value || undefined);
+  };
+
   if (!isOpen && !hasActiveFilters) {
     return (
       <Button
@@ -74,51 +78,79 @@ export function FilterBar() {
       </div>
 
       {isOpen && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {displayFilters.map(({ label, key, options }) => (
-            <div key={key} className="space-y-1">
-              <Label htmlFor={key} className="text-xs font-medium">{label}</Label>
-              <Select
-                value={filters[key as keyof typeof filters] || "all"}
-                onValueChange={(value) => updateFilter(key as any, value === "all" ? undefined : value)}
-              >
-                <SelectTrigger id={key} className="h-8 text-xs" data-testid={`select-${key}`}>
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {options.map(option => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ))}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {displayFilters.map(({ label, key, options }) => (
+              <div key={key} className="space-y-1">
+                <Label htmlFor={key} className="text-xs font-medium">{label}</Label>
+                <Select
+                  value={filters[key as keyof typeof filters] || "all"}
+                  onValueChange={(value) => updateFilter(key as any, value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger id={key} className="h-8 text-xs" data-testid={`select-${key}`}>
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {options.map(option => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
 
-          {/* State depends on Zone */}
-          {filters.zone && (
+            {/* State depends on Zone */}
+            {filters.zone && (
+              <div className="space-y-1">
+                <Label htmlFor="state" className="text-xs font-medium">State</Label>
+                <Select
+                  value={filters.state || "all"}
+                  onValueChange={(value) => updateFilter("state", value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger id="state" className="h-8 text-xs" data-testid="select-state">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {STATES.map(state => (
+                      <SelectItem key={state} value={state}>
+                        {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
             <div className="space-y-1">
-              <Label htmlFor="state" className="text-xs font-medium">State</Label>
-              <Select
-                value={filters.state || "all"}
-                onValueChange={(value) => updateFilter("state", value === "all" ? undefined : value)}
-              >
-                <SelectTrigger id="state" className="h-8 text-xs" data-testid="select-state">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {STATES.map(state => (
-                    <SelectItem key={state} value={state}>
-                      {state}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="dateFrom" className="text-xs font-medium">From Date</Label>
+              <Input
+                id="dateFrom"
+                type="date"
+                value={filters.dateFrom || ""}
+                onChange={(e) => handleDateChange("dateFrom", e.target.value)}
+                className="h-8 text-xs"
+                data-testid="input-date-from"
+              />
             </div>
-          )}
+            <div className="space-y-1">
+              <Label htmlFor="dateTo" className="text-xs font-medium">To Date</Label>
+              <Input
+                id="dateTo"
+                type="date"
+                value={filters.dateTo || ""}
+                onChange={(e) => handleDateChange("dateTo", e.target.value)}
+                className="h-8 text-xs"
+                data-testid="input-date-to"
+              />
+            </div>
+          </div>
         </div>
       )}
 

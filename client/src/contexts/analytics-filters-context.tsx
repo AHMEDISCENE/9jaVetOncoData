@@ -10,6 +10,8 @@ export interface AnalyticsFilters {
   state?: string;
   clinic?: string;
   status?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 interface AnalyticsFiltersContextValue {
@@ -80,6 +82,8 @@ export function buildFilterParams(filters: AnalyticsFilters): URLSearchParams {
   }
   
   if (filters.tumourType) params.append("tumourTypeIds", filters.tumourType);
+  if (filters.dateFrom) params.append("from", filters.dateFrom);
+  if (filters.dateTo) params.append("to", filters.dateTo);
   // Note: ageGroup, sex, status, breed, and clinic filters need backend support to be functional
   return params;
 }
