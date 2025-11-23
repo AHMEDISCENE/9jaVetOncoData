@@ -24,8 +24,7 @@ import { useSidebar } from "@/contexts/sidebar-context";
 export default function Sidebar() {
   const [location] = useLocation();
   const { user, clinic, logout } = useAuth();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const { isCollapsed, setIsCollapsed } = useSidebar();
+  const { isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen } = useSidebar();
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },

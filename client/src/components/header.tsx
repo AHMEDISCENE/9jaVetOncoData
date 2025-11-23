@@ -8,7 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiRequest } from "@/lib/queryClient";
 import type { Notification } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Menu } from "lucide-react";
+import { useSidebar } from "@/contexts/sidebar-context";
 
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
@@ -27,6 +28,7 @@ export default function Header() {
   const [isDark, setIsDark] = useState(false);
   const pageTitle = pageTitles[location] || "9ja VetOncoData";
   const queryClient = useQueryClient();
+  const { isMobileOpen, setIsMobileOpen } = useSidebar();
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
@@ -75,8 +77,18 @@ export default function Header() {
 
   return (
     <header className="glass border-b">
-      <div className="flex items-center justify-between h-16 px-12 sm:px-4 md:px-6">
-        <div className="flex items-center space-x-3 sm:space-x-2 min-w-0 flex-1">
+      <div className="flex items-center justify-between h-16 px-2 sm:px-4 md:px-6">
+        <div className="flex items-center space-x-2 min-w-0 flex-1">
+          {/* Mobile Hamburger Menu */}
+          <button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            className="lg:hidden text-muted-foreground hover:text-foreground p-2 hover:bg-muted/50 rounded-lg transition-colors flex-shrink-0"
+            data-testid="button-toggle-mobile-sidebar"
+            title="Toggle menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          
           <h1 className="text-sm sm:text-base md:text-xl font-semibold text-foreground truncate" data-testid="text-page-title">
             {pageTitle}
           </h1>
