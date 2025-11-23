@@ -111,11 +111,11 @@
   }
 
   .nav-item {
-    @apply flex items-center py-2.5 lg:py-3.5 text-xs lg:text-sm font-medium text-muted-foreground rounded-lg lg:rounded-xl transition-all duration-200 hover:bg-muted hover:text-foreground;
+    @apply flex items-center px-4 py-3 text-sm font-medium text-muted-foreground rounded-lg transition-all hover:bg-muted hover:text-foreground;
   }
   
   .nav-item.active {
-    @apply bg-primary bg-opacity-20 text-primary border-l-4 border-primary hover:bg-opacity-25 font-semibold;
+    @apply bg-primary text-primary-foreground hover:bg-primary hover:opacity-90;
   }
   
   .nav-item i {
