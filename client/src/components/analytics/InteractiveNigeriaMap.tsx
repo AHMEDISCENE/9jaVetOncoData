@@ -204,10 +204,10 @@ export function InteractiveNigeriaMap({
                     
                     {/* Hover tooltip */}
                     {isHovered && stateData && (
-                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-3 py-1.5 rounded-md shadow-xl text-xs whitespace-nowrap z-20 pointer-events-none">
+                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-card text-card-foreground border border-border px-3 py-1.5 rounded-md shadow-xl text-xs whitespace-nowrap z-20 pointer-events-none">
                         <div className="font-semibold">{stateName.replace(/_/g, " ")}</div>
                         <div>{stateData.caseCount} cases • {zone.replace(/_/g, " ")}</div>
-                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent" style={{ borderTopColor: "var(--card)" }}></div>
                       </div>
                     )}
                   </button>

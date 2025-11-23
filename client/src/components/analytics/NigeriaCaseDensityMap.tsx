@@ -175,7 +175,7 @@ export function NigeriaCaseDensityMap({
                   )}
                 </div>
                 {isHovered && statData && (
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-900 text-white px-2 py-1 rounded text-xs whitespace-nowrap z-10">
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-card text-card-foreground border border-border px-2 py-1 rounded text-xs whitespace-nowrap z-10 shadow-lg">
                     {stateName.replace(/_/g, " ")}: {statData.caseCount} cases
                   </div>
                 )}
