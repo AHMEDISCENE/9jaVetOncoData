@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/export";
-import { useCasesByLocation } from "@/hooks/useCasesByLocation";
+import { useCasesLocationData } from "@/hooks/useCasesLocationData";
 import { InteractiveNigeriaMap } from "@/components/analytics/InteractiveNigeriaMap";
 import { FilterBar } from "@/components/analytics/FilterBar";
 import { MetricDrilldown } from "@/components/analytics/MetricDrilldown";
@@ -71,10 +71,7 @@ export default function Analytics() {
     isLoading: isLocationLoading,
     error: locationError,
     refetch: refetchLocation
-  } = useCasesByLocation({
-    startDate: '2000-01-01',
-    endDate: new Date().toISOString().split('T')[0],
-  });
+  } = useCasesLocationData();
 
   if (isLoading) {
     return (
