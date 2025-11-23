@@ -74,6 +74,7 @@ export default function BulkUploadWizard() {
   const [importId, setImportId] = useState<string | null>(null);
   const [pollingStatus, setPollingStatus] = useState(false);
   const [selectedJobErrors, setSelectedJobErrors] = useState<Array<{row: number; error: string}> | null>(null);
+  const [historyCleared, setHistoryCleared] = useState(false);
 
   // Fetch import jobs history
   const { data: importJobs, isLoading: jobsLoading } = useQuery<ImportJob[]>({
@@ -460,11 +461,39 @@ export default function BulkUploadWizard() {
 
       {/* Import History */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle>Recent Imports</CardTitle>
+          {!historyCleared && importJobs && importJobs.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setHistoryCleared(true);
+                toast({
+                  title: "History cleared",
+                  description: "Import history has been hidden from view",
+                });
+              }}
+              data-testid="button-clear-history"
+            >
+              Clear History
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
-          {jobsLoading ? (
+          {historyCleared ? (
+            <div className="text-center py-8 space-y-4">
+              <p className="text-muted-foreground">Import history has been cleared from view</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHistoryCleared(false)}
+                data-testid="button-show-history"
+              >
+                Show History
+              </Button>
+            </div>
+          ) : jobsLoading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex items-center space-x-4">
