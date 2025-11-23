@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -68,6 +69,7 @@ export default function Dashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [zone, setZone] = useState<string>("");
   const [species, setSpecies] = useState<string>("");
+  const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -626,13 +628,18 @@ export default function Dashboard() {
           ) : recentFeedPosts && recentFeedPosts.length > 0 ? (
             <div className="space-y-4">
               {recentFeedPosts.map((post) => (
-                <div key={post.id} className="flex items-start space-x-3" data-testid={`activity-feed-${post.id}`}>
-                  <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center mt-1">
+                <div 
+                  key={post.id} 
+                  className="flex items-start space-x-3 cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors" 
+                  onClick={() => setSelectedPost(post)}
+                  data-testid={`activity-feed-${post.id}`}
+                >
+                  <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center mt-1 flex-shrink-0">
                     <Rss className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground">
-                      <span className="font-medium">{post.title}</span>
+                    <p className="text-sm text-foreground font-medium truncate">
+                      {post.title}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(post.createdAt).toLocaleDateString()}
@@ -652,6 +659,54 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Post Detail Dialog */}
+      <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          {selectedPost && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedPost.title}</DialogTitle>
+                <DialogDescription>
+                  Posted on {new Date(selectedPost.createdAt).toLocaleDateString()} at {new Date(selectedPost.createdAt).toLocaleTimeString()}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  {selectedPost.body.split('\n').map((paragraph, index) => (
+                    <p key={index} className="mb-2 last:mb-0 text-foreground text-sm leading-relaxed">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+                
+                {selectedPost.tags && selectedPost.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPost.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary">
+                        #{tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-4 border-t">
+                  <Button 
+                    onClick={() => {
+                      setSelectedPost(null);
+                      setLocation("/feeds");
+                    }}
+                    className="w-full"
+                    data-testid="button-view-full-post"
+                  >
+                    View Full Post
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
