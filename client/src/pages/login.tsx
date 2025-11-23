@@ -27,7 +27,7 @@ const registerSchema = z.object({
   clinicName: z.string().min(1, "Clinic name is required"),
   clinicState: z.string().min(1, "State is required"),
   clinicCity: z.string().min(1, "City is required"),
-  role: z.enum(["MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]).default("CLINICIAN"),
+  role: z.enum(["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]).default("CLINICIAN"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -402,6 +402,7 @@ export default function Login() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
+                                <SelectItem value="ADMIN">Administrator</SelectItem>
                                 <SelectItem value="MANAGER">Manager</SelectItem>
                                 <SelectItem value="CLINICIAN">Clinician</SelectItem>
                                 <SelectItem value="RESEARCHER">Researcher</SelectItem>

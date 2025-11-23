@@ -1,0 +1,102 @@
+You are an expert full-stack JavaScript developer working inside a Replit project called “VetOncoData”.
+
+Context:
+- Tech stack: Node.js + Express backend, PostgreSQL for persistence, React front-end.
+- The project already has user accounts with login and registration.
+- Do NOT rewrite the whole project. Make minimal, well-structured changes and keep existing functionality working.
+
+Goal:
+Implement a secure admin user-management system so that ONLY admin accounts can:
+- View all users
+- Delete (soft-delete) user accounts
+- Restrict/suspend and unrestrict accounts
+- Promote or demote users to/from admin
+- Handle any other reasonable admin-only user controls
+
+Requirements:
+
+1. Data model
+- Locate the existing User model/schema and the PostgreSQL setup.
+- If there is no admin indicator yet, add:
+  - EITHER a boolean column: is_admin BOOLEAN NOT NULL DEFAULT FALSE
+  - OR a role column: role TEXT NOT NULL DEFAULT 'user'
+- Add a status column to users if it does not exist yet, for example:
+  - status TEXT NOT NULL DEFAULT 'active'  -- allowed values: 'active', 'suspended', 'deleted'
+- Write and apply a migration or schema update for PostgreSQL.
+- Make sure all existing user creation code sets sensible defaults (non-admin, active).
+
+2. Auth and authorisation
+- Find the existing authentication logic (login, register, token/session handling).
+- Ensure the auth token/session payload includes:
+  - user id
+  - is_admin or role
+- If there is a generic auth middleware, reuse it. If not, create:
+  - requireAuth middleware: checks that the user is logged in and attaches the user to req.user.
+  - requireAdmin middleware: uses requireAuth and then checks:
+    - req.user.is_admin === true OR req.user.role === 'admin'
+    - If not admin, respond with 403 JSON: { error: 'Not authorised' }.
+- Apply requireAdmin to all admin-only API routes.
+
+3. Admin API routes
+Under an /api/admin/users route group, create REST endpoints:
+
+- GET /api/admin/users
+  - Return a paginated list of users with: id, name, email, is_admin/role, status, created_at.
+- PATCH /api/admin/users/:id/status
+  - Body: { status: 'active' | 'suspended' }
+  - Update the user’s status, with validation.
+- PATCH /api/admin/users/:id/admin
+  - Body: { is_admin: boolean } OR { role: 'admin' | 'user' }
+  - Promote or demote a user.
+- DELETE /api/admin/users/:id
+  - Soft-delete the user by setting status = 'deleted' and optionally deleted_at timestamp, rather than truly removing the row.
+
+Rules:
+- All above endpoints must use requireAdmin.
+- Validate URL params and body input.
+- Prevent an admin from deleting or demoting the last remaining admin account. There should always be at least one admin in the system.
+- Return clear JSON responses for success and errors.
+
+4. Login restriction for suspended/deleted
+- In the login flow, after verifying credentials:
+  - Check the user’s status.
+  - If status is 'suspended' or 'deleted', block login and return a clear message like:
+    - "Your account is suspended. Please contact support."
+- Ensure suspended or deleted users cannot access any protected routes.
+
+5. Front-end admin UI
+- In the React front-end, create an "Admin > User Management" page, e.g. src/pages/admin/Users.tsx or whatever path fits the existing router.
+- On this page, when an admin is logged in:
+  - Call GET /api/admin/users to fetch the user list.
+  - Display a table with: Name, Email, Role / Admin flag, Status, CreatedAt, and actions.
+- Add action buttons:
+  - Suspend / Unsuspend (calls PATCH /status)
+  - Make Admin / Remove Admin (calls PATCH /admin)
+  - Delete (soft-delete) user (calls DELETE)
+- Use confirmation dialogs (window.confirm or a nicer UI) before destructive actions.
+- Disable or hide actions that would:
+  - Demote or delete the currently logged-in admin in a way that would leave zero admins.
+- If a non-admin somehow navigates to this page:
+  - Do not call the admin API.
+  - Show a friendly "403 Not authorised" message.
+
+- Navigation:
+  - Show an "Admin" or "User Management" menu link only if the currently logged-in user is admin.
+  - Use the auth state/token (is_admin or role) to control this.
+
+6. Security and general quality
+- Do not expose sensitive data such as password hashes in any response.
+- All admin actions must be protected by both authentication and requireAdmin.
+- Make sure CORS and existing middleware remain consistent.
+- Return consistent JSON structures with success and error messages so the front-end can show toasts/alerts.
+
+7. Implementation process
+- First, scan the existing codebase and print a short summary of:
+  - Where the User model/schema is defined.
+  - How auth is currently implemented (JWT, sessions, etc.).
+  - How the React routing is structured (where to add the admin page).
+- Then outline the specific files you will create or modify.
+- Implement the changes step by step, explaining briefly what you are changing before showing each major code block.
+- Keep changes as minimal and idiomatic as possible for this codebase.
+
+Now, apply all of the above to this Replit project “VetOncoData” and implement the complete admin-only user management system (backend + frontend) without breaking existing features.

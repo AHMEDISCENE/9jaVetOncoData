@@ -29,7 +29,7 @@ const registerSchema = z.object({
   clinicName: z.string().min(1),
   clinicState: z.string().min(1),
   clinicCity: z.string().min(1),
-  role: z.enum(["MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]).default("CLINICIAN"),
+  role: z.enum(["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]).default("CLINICIAN"),
 });
 
 const inviteSchema = z.object({
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Clinic setup route for Google OAuth users
-  app.post("/api/auth/setup-clinic", requireAuth, preventAdminRoleInBody, async (req, res) => {
+  app.post("/api/auth/setup-clinic", requireAuth, async (req, res) => {
     try {
       const userId = (req.session as any).userId;
       const { clinicName, clinicState, clinicCity, role } = req.body;
@@ -281,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auth routes
-  app.post("/api/auth/register", preventAdminRoleInBody, async (req, res) => {
+  app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, name, password, clinicName, clinicState, clinicCity, role } = registerSchema.parse(req.body);
       
@@ -343,6 +343,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isValid = await bcrypt.compare(password, user.password);
       if (!isValid) {
         return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check user status
+      if (user.userStatus === "SUSPENDED") {
+        return res.status(403).json({ message: "Your account has been suspended. Please contact your clinic administrator." });
+      }
+
+      if (!user.isActive) {
+        return res.status(403).json({ message: "Your account is inactive. Please contact your clinic administrator." });
       }
       
       // Update last login
@@ -1537,6 +1546,154 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       res.json(followUps);
     } catch (error) {
       res.status(500).json({ message: "Failed to get upcoming follow-ups" });
+    }
+  });
+
+  // Admin user management routes
+  app.get("/api/admin/users", requireAuth, requireRole("ADMIN"), async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const users = await storage.getUsersByClinic(clinicId);
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/role", requireAuth, requireRole("ADMIN"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      const actorId = (req.session as any).userId;
+      const clinicId = (req.session as any).clinicId;
+
+      // Validate role
+      if (!["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      // Check if user exists and belongs to same clinic
+      const targetUser = await storage.getUserById(id);
+      if (!targetUser || targetUser.clinicId !== clinicId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Prevent demoting the last admin
+      if (targetUser.role === "ADMIN" && role !== "ADMIN") {
+        const clinicUsers = await storage.getUsersByClinic(clinicId);
+        const adminCount = clinicUsers.filter(u => u.role === "ADMIN").length;
+        if (adminCount <= 1) {
+          return res.status(400).json({ message: "Cannot demote the last administrator" });
+        }
+      }
+
+      const updatedUser = await storage.updateUser(id, { role: role as any });
+
+      await storage.createAuditLog({
+        actorId,
+        clinicId,
+        entityType: 'USER',
+        entityId: id,
+        action: 'UPDATE',
+        details: { field: 'role', oldValue: targetUser.role, newValue: role },
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update role" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/status", requireAuth, requireRole("ADMIN"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userStatus } = req.body;
+      const actorId = (req.session as any).userId;
+      const clinicId = (req.session as any).clinicId;
+
+      // Validate status
+      if (!["ACTIVE", "SUSPENDED", "RESTRICTED"].includes(userStatus)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+
+      // Check if user exists and belongs to same clinic
+      const targetUser = await storage.getUserById(id);
+      if (!targetUser || targetUser.clinicId !== clinicId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Prevent suspending the last admin
+      if (userStatus !== "ACTIVE" && targetUser.role === "ADMIN") {
+        const clinicUsers = await storage.getUsersByClinic(clinicId);
+        const activeAdminCount = clinicUsers.filter(u => u.role === "ADMIN" && u.userStatus === "ACTIVE").length;
+        if (activeAdminCount <= 1) {
+          return res.status(400).json({ message: "Cannot suspend the last active administrator" });
+        }
+      }
+
+      const updatedUser = await storage.updateUser(id, { userStatus: userStatus as any });
+
+      await storage.createAuditLog({
+        actorId,
+        clinicId,
+        entityType: 'USER',
+        entityId: id,
+        action: 'UPDATE',
+        details: { field: 'userStatus', oldValue: targetUser.userStatus, newValue: userStatus },
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update status" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", requireAuth, requireRole("ADMIN"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const actorId = (req.session as any).userId;
+      const clinicId = (req.session as any).clinicId;
+
+      // Check if user exists and belongs to same clinic
+      const targetUser = await storage.getUserById(id);
+      if (!targetUser || targetUser.clinicId !== clinicId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Prevent deleting self
+      if (id === actorId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      // Prevent deleting the last admin
+      if (targetUser.role === "ADMIN") {
+        const clinicUsers = await storage.getUsersByClinic(clinicId);
+        const adminCount = clinicUsers.filter(u => u.role === "ADMIN").length;
+        if (adminCount <= 1) {
+          return res.status(400).json({ message: "Cannot delete the last administrator" });
+        }
+      }
+
+      // Soft delete by setting status to SUSPENDED and isActive to false
+      await storage.updateUser(id, { userStatus: "SUSPENDED", isActive: false });
+
+      await storage.createAuditLog({
+        actorId,
+        clinicId,
+        entityType: 'USER',
+        entityId: id,
+        action: 'DELETE',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to delete user" });
     }
   });
 

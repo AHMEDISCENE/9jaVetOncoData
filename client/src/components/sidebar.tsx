@@ -16,7 +16,8 @@ import {
   Settings,
   Stethoscope,
   X,
-  Menu
+  Menu,
+  Users
 } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
 
@@ -36,6 +37,13 @@ export default function Sidebar() {
     { name: "Calendar", href: "/calendar", icon: Calendar },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
+
+  // Admin-only navigation
+  const adminNavigation = user?.role === "ADMIN" ? [
+    { name: "User Management", href: "/admin/users", icon: Users },
+  ] : [];
+
+  const allNavigation = [...navigation, ...adminNavigation];
 
   const isActive = (href: string) => {
     if (href === "/dashboard" && (location === "/" || location === "/dashboard")) {
@@ -111,7 +119,7 @@ export default function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-2">
-            {navigation.map((item) => {
+            {allNavigation.map((item) => {
               const Icon = item.icon;
               return (
                 <Link 

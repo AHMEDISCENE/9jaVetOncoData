@@ -20,6 +20,7 @@ import Header from "@/components/header";
 import { useAuth } from "@/hooks/use-auth";
 import SetupClinic from "@/pages/setup-clinic";
 import Settings from "@/pages/settings";
+import UserManagement from "@/pages/user-management";
 import { SidebarProvider, useSidebar } from "@/contexts/sidebar-context";
 
 function AuthenticatedLayout() {
@@ -43,6 +44,7 @@ function AuthenticatedLayout() {
             <Route path="/feeds" component={Feeds} />
             <Route path="/calendar" component={Calendar} />
             <Route path="/settings" component={Settings} />
+            <Route path="/admin/users" component={UserManagement} />
             <Route component={NotFound} />
           </Switch>
         </main>

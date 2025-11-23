@@ -12,6 +12,7 @@ export const outcomeEnum = pgEnum("outcome", ["REMISSION", "MORTALITY", "EUTHANA
 export const attachmentKindEnum = pgEnum("attachment_kind", ["IMAGE", "PDF", "LAB"]);
 export const reportStatusEnum = pgEnum("report_status", ["PENDING", "RUNNING", "COMPLETED", "FAILED"]);
 export const feedStatusEnum = pgEnum("feed_status", ["DRAFT", "PUBLISHED", "MODERATION"]);
+export const userStatusEnum = pgEnum("user_status", ["ACTIVE", "SUSPENDED", "RESTRICTED"]);
 export const geoPoliticalZoneEnum = pgEnum("geo_political_zone", [
   "NORTH_CENTRAL", "NORTH_EAST", "NORTH_WEST", 
   "SOUTH_EAST", "SOUTH_SOUTH", "SOUTH_WEST"
@@ -67,6 +68,7 @@ export const users = pgTable("users", {
   clinicId: uuid("clinic_id").references(() => clinics.id),
   emailVerified: timestamp("email_verified"),
   isActive: boolean("is_active").default(true).notNull(),
+  userStatus: userStatusEnum("user_status").notNull().default("ACTIVE"),
   lastLoginAt: timestamp("last_login_at"),
   preferences: jsonb("preferences").$type<{
     language?: string;
