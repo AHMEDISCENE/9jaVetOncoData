@@ -888,7 +888,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const zones = normalizeToArray(filters.zone);
-      console.log('[getCases] Request - zones param:', zones);
       
       // Shared reads - all authenticated users see all cases
       const cases = await storage.getCases(undefined, {
@@ -1148,19 +1147,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         apiFilters.clinicIds = [clinicId];
       }
 
-      // Get cases with filters
-      const cases = await storage.getSharedCases(apiFilters);
+      // Get cases with full details
+      const cases = await storage.getCases(undefined, apiFilters);
 
       if (format === 'xlsx') {
-        const wsData = cases.map(c => ({
+        const wsData = cases.map((c: any) => ({
           'Case ID': c.caseNumber,
           'Upload Date': c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
           'Patient Name': c.patientName || '',
           'Species': c.species || '',
           'Breed': c.breed || '',
           'Age': (c.ageYears ? `${c.ageYears}y` : '') + (c.ageMonths ? ` ${c.ageMonths}m` : ''),
-          'Tumour Type': c.tumourTypeCustom || '',
-          'Anatomical Site': c.anatomicalSiteCustom || '',
+          'Tumour Type': c.tumourType?.name || c.tumourTypeCustom || '',
+          'Anatomical Site': c.anatomicalSite?.name || c.anatomicalSiteCustom || '',
+          'State': c.state || '',
+          'Clinic': c.clinic?.name || '',
           'Status': c.status || '',
           'Outcome': c.outcome || '',
           'Diagnosis Date': c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : '',
@@ -1211,7 +1212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Table rows
         doc.setFont(undefined, 'normal');
-        cases.forEach(c => {
+        cases.forEach((c: any) => {
           if (yPosition > pageHeight - 15) {
             doc.addPage();
             yPosition = 20;
@@ -1221,7 +1222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           doc.text(c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '', margin + 25, yPosition);
           doc.text(c.patientName || '', margin + 50, yPosition);
           doc.text(c.species || '', margin + 85, yPosition);
-          doc.text((c.tumourTypeCustom || '').substring(0, 20), margin + 115, yPosition);
+          doc.text(((c.tumourType?.name || c.tumourTypeCustom) || '').substring(0, 20), margin + 115, yPosition);
           
           yPosition += lineHeight;
         });
