@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface ReportTemplate {
   id: string;
@@ -13,6 +20,12 @@ interface ReportTemplate {
   lastRun?: string;
   status: string;
 }
+
+const scheduleSchema = z.object({
+  frequency: z.enum(["weekly", "monthly", "quarterly"]),
+  format: z.enum(["pdf", "xlsx", "csv"]),
+  email: z.string().email("Please enter a valid email"),
+});
 
 const mockTemplates: ReportTemplate[] = [
   {
@@ -72,6 +85,19 @@ const mockReportHistory = [
 
 export default function Reports() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [runningReportId, setRunningReportId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const scheduleForm = useForm({
+    resolver: zodResolver(scheduleSchema),
+    defaultValues: {
+      frequency: "weekly",
+      format: "pdf",
+      email: "",
+    },
+  });
 
   // Mock query - would fetch real data in production
   const { data: templates, isLoading } = useQuery({
@@ -83,6 +109,71 @@ export default function Reports() {
     queryKey: ["/api/reports/history"],
     queryFn: () => Promise.resolve(mockReportHistory),
   });
+
+  const runReportMutation = useMutation({
+    mutationFn: async (templateId: string) => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return {
+        success: true,
+        filename: `report_${Date.now()}.pdf`,
+      };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Report Generated",
+        description: `Report has been generated successfully as ${data.filename}`,
+      });
+      setRunningReportId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/history"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to generate the report. Please try again.",
+        variant: "destructive",
+      });
+      setRunningReportId(null);
+    },
+  });
+
+  const scheduleReportMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof scheduleSchema>) => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: "Report Scheduled",
+        description: "Your report has been scheduled for automated delivery",
+      });
+      setScheduleDialogOpen(false);
+      scheduleForm.reset();
+      setSelectedTemplate(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to schedule the report. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRunReport = (templateId: string) => {
+    setRunningReportId(templateId);
+    runReportMutation.mutate(templateId);
+  };
+
+  const handleScheduleClick = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    setScheduleDialogOpen(true);
+  };
+
+  const onScheduleSubmit = (data: z.infer<typeof scheduleSchema>) => {
+    scheduleReportMutation.mutate(data);
+  };
 
   if (isLoading) {
     return (
@@ -139,13 +230,17 @@ export default function Reports() {
                       size="sm" 
                       className="flex-1"
                       data-testid={`button-run-report-${template.id}`}
+                      onClick={() => handleRunReport(template.id)}
+                      disabled={runningReportId === template.id}
                     >
-                      <i className="fas fa-play mr-2"></i>Run Report
+                      <i className="fas fa-play mr-2"></i>
+                      {runningReportId === template.id ? "Generating..." : "Run Report"}
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
                       data-testid={`button-schedule-report-${template.id}`}
+                      onClick={() => handleScheduleClick(template.id)}
                     >
                       <i className="fas fa-clock mr-2"></i>Schedule
                     </Button>
@@ -225,6 +320,102 @@ export default function Reports() {
           )}
         </CardContent>
       </Card>
+
+      {/* Schedule Report Dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule Report Delivery</DialogTitle>
+            <DialogDescription>
+              Set up automated report generation and delivery
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...scheduleForm}>
+            <form onSubmit={scheduleForm.handleSubmit(onScheduleSubmit)} className="space-y-4">
+              <FormField
+                control={scheduleForm.control}
+                name="frequency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Frequency</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-frequency">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={scheduleForm.control}
+                name="format"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Format</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-format">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF</SelectItem>
+                        <SelectItem value="xlsx">Excel</SelectItem>
+                        <SelectItem value="csv">CSV</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={scheduleForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <input
+                        type="email"
+                        placeholder="your@email.com"
+                        {...field}
+                        className="w-full px-3 py-2 border border-input rounded-md text-sm"
+                        data-testid="input-email"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setScheduleDialogOpen(false)}
+                  data-testid="button-cancel-schedule"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={scheduleReportMutation.isPending}
+                  data-testid="button-confirm-schedule"
+                >
+                  {scheduleReportMutation.isPending ? "Scheduling..." : "Schedule"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
