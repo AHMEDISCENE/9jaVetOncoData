@@ -20,6 +20,7 @@ import {
   Users
 } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
+import doodleImage from "@assets/generated_images/doodle_art_of_dog_cat_breeds_and_vet_materials.png";
 
 export default function Sidebar() {
   const [location] = useLocation();
@@ -75,10 +76,16 @@ export default function Sidebar() {
         </div>
       )}
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 glass border-r transform transition-all duration-200 ease-in-out lg:translate-x-0 ${
-        isMobileOpen ? "translate-x-0" : "-translate-x-full"
-      } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64`}>
-        <div className="flex flex-col h-full">
+      <div 
+        className={`fixed inset-y-0 left-0 z-50 border-r transform transition-all duration-200 ease-in-out lg:translate-x-0 ${
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64`}
+        style={{ backgroundImage: `url(${doodleImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+        {/* Background overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white/92 to-white/88 dark:from-gray-950/95 dark:via-gray-950/92 dark:to-gray-950/88 pointer-events-none" />
+        
+        <div className="relative flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-border">
             <div className="flex items-center space-x-2 overflow-hidden">
