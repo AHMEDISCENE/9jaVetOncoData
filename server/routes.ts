@@ -1389,6 +1389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/zone-stats", requireAuth, async (req, res) => {
     try {
       const zone = req.query.zone as string;
+      const speciesFilter = req.query.species as string;
       if (!zone) {
         return res.status(400).json({ error: "Zone parameter required" });
       }
@@ -1398,6 +1399,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       
       const filters: any = { geoZones: [zone] };
+      
+      if (speciesFilter && speciesFilter !== "both") {
+        filters.species = [speciesFilter];
+      }
       
       // For non-SUPER_ADMIN users, restrict to their clinic
       if (user?.role !== "SUPER_ADMIN") {
@@ -1423,6 +1428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/state-stats", requireAuth, async (req, res) => {
     try {
       const state = req.query.state as string;
+      const speciesFilter = req.query.species as string;
       if (!state) {
         return res.status(400).json({ error: "State parameter required" });
       }
@@ -1432,6 +1438,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       
       const filters: any = { states: [state] };
+      
+      if (speciesFilter && speciesFilter !== "both") {
+        filters.species = [speciesFilter];
+      }
       
       // For non-SUPER_ADMIN users, restrict to their clinic
       if (user?.role !== "SUPER_ADMIN") {

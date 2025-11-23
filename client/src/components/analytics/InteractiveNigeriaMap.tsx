@@ -62,28 +62,31 @@ export function InteractiveNigeriaMap({
   const [zoneLoading, setZoneLoading] = useState(false);
   const [stateStats, setStateStats] = useState<any>(null);
   const [stateLoading, setStateLoading] = useState(false);
+  const [speciesFilter, setSpeciesFilter] = useState<"both" | "dog" | "cat">("both");
 
   useEffect(() => {
     if (selectedState?.zone) {
       setZoneLoading(true);
-      fetch(`/api/analytics/zone-stats?zone=${selectedState.zone}`)
+      const speciesParam = speciesFilter !== "both" ? `&species=${speciesFilter}` : "";
+      fetch(`/api/analytics/zone-stats?zone=${selectedState.zone}${speciesParam}`)
         .then(res => res.json())
         .then(data => setZoneStats(data))
         .catch(err => console.error('Failed to fetch zone stats:', err))
         .finally(() => setZoneLoading(false));
     }
-  }, [selectedState?.zone]);
+  }, [selectedState?.zone, speciesFilter]);
 
   useEffect(() => {
     if (selectedState?.state) {
       setStateLoading(true);
-      fetch(`/api/analytics/state-stats?state=${selectedState.state}`)
+      const speciesParam = speciesFilter !== "both" ? `&species=${speciesFilter}` : "";
+      fetch(`/api/analytics/state-stats?state=${selectedState.state}${speciesParam}`)
         .then(res => res.json())
         .then(data => setStateStats(data))
         .catch(err => console.error('Failed to fetch state stats:', err))
         .finally(() => setStateLoading(false));
     }
-  }, [selectedState?.state]);
+  }, [selectedState?.state, speciesFilter]);
 
   if (isLoading) {
     return (
@@ -284,6 +287,46 @@ export function InteractiveNigeriaMap({
                   {ZONE_COLORS[selectedState.zone]?.name || selectedState.zone.replace(/_/g, " ")} Zone
                 </p>
               </DialogHeader>
+
+              {/* Species Filter */}
+              <div className="flex gap-3 items-center pb-4 border-b">
+                <span className="text-sm font-medium">Filter by Species:</span>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="species"
+                      value="both"
+                      checked={speciesFilter === "both"}
+                      onChange={(e) => setSpeciesFilter(e.target.value as "both" | "dog" | "cat")}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Both</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="species"
+                      value="dog"
+                      checked={speciesFilter === "dog"}
+                      onChange={(e) => setSpeciesFilter(e.target.value as "both" | "dog" | "cat")}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Dog</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="species"
+                      value="cat"
+                      checked={speciesFilter === "cat"}
+                      onChange={(e) => setSpeciesFilter(e.target.value as "both" | "dog" | "cat")}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Cat</span>
+                  </label>
+                </div>
+              </div>
 
               <div className="space-y-6">
                 {/* Key Metrics */}

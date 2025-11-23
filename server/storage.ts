@@ -1681,6 +1681,7 @@ export class DatabaseStorage implements IStorage {
   async getZoneStats(filters: {
     clinicIds?: string[];
     geoZones?: string[];
+    species?: string[];
   } = {}): Promise<{
     tumours: Array<{ name: string; count: number; percentage: number }>;
     species: Array<{ name: string; count: number; percentage: number }>;
@@ -1697,6 +1698,10 @@ export class DatabaseStorage implements IStorage {
 
       if (filters.geoZones && filters.geoZones.length > 0) {
         query = query.where(inArray(cases.geoZone, filters.geoZones));
+      }
+
+      if (filters.species && filters.species.length > 0) {
+        query = query.where(inArray(cases.species, filters.species));
       }
 
       const zoneCases = await query;
@@ -1777,6 +1782,7 @@ export class DatabaseStorage implements IStorage {
   async getStateStats(filters: {
     clinicIds?: string[];
     states?: string[];
+    species?: string[];
   } = {}): Promise<{
     tumours: Array<{ name: string; count: number; percentage: number }>;
     species: Array<{ name: string; count: number; percentage: number }>;
@@ -1792,6 +1798,10 @@ export class DatabaseStorage implements IStorage {
 
       if (filters.states && filters.states.length > 0) {
         query = query.where(inArray(cases.state, filters.states));
+      }
+
+      if (filters.species && filters.species.length > 0) {
+        query = query.where(inArray(cases.species, filters.species));
       }
 
       const stateCases = await query;
