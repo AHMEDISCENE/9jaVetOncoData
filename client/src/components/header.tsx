@@ -111,7 +111,7 @@ export default function Header() {
               data-testid="button-new-case"
               onClick={handleNewCaseClick}
             >
-              <a href="/cases/new">
+              <a href="/cases/new" className="pl-[10px] pr-[10px] pt-[0px] pb-[0px] ml-[0px] mr-[0px] text-left font-semibold">
                 <i className="fas fa-plus mr-1.5 sm:mr-2"></i>
                 <span className="text-sm sm:text-base">New Case</span>
               </a>
