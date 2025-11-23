@@ -35,9 +35,7 @@ export default function Header() {
   });
 
   const markAsReadMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/notifications/${id}/mark-read`, {
-      method: "POST",
-    }),
+    mutationFn: (id: string) => apiRequest("POST", `/api/notifications/${id}/mark-read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
@@ -45,9 +43,7 @@ export default function Header() {
   });
 
   const markAllAsReadMutation = useMutation({
-    mutationFn: () => apiRequest("/api/notifications/mark-all-read", {
-      method: "POST",
-    }),
+    mutationFn: () => apiRequest("POST", "/api/notifications/mark-all-read"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
