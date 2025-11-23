@@ -1690,20 +1690,25 @@ export class DatabaseStorage implements IStorage {
     totalCases: number;
   }> {
     try {
-      let query = db.select().from(cases).$dynamic();
+      let conditions: any[] = [];
 
       if (filters.clinicIds && filters.clinicIds.length > 0) {
-        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+        conditions.push(inArray(cases.clinicId, filters.clinicIds));
       }
 
       if (filters.geoZones && filters.geoZones.length > 0) {
-        query = query.where(inArray(cases.geoZone, filters.geoZones));
+        conditions.push(inArray(cases.geoZone, filters.geoZones));
       }
 
       if (filters.species && filters.species.length > 0) {
         // Capitalize species names to match database format (Cat, Dog, etc)
         const capitalizedSpecies = filters.species.map(s => s.charAt(0).toUpperCase() + s.slice(1));
-        query = query.where(inArray(cases.species, capitalizedSpecies));
+        conditions.push(inArray(cases.species, capitalizedSpecies));
+      }
+
+      let query = db.select().from(cases);
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
       }
 
       const zoneCases = await query;
@@ -1792,20 +1797,25 @@ export class DatabaseStorage implements IStorage {
     totalCases: number;
   }> {
     try {
-      let query = db.select().from(cases).$dynamic();
+      let conditions: any[] = [];
 
       if (filters.clinicIds && filters.clinicIds.length > 0) {
-        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+        conditions.push(inArray(cases.clinicId, filters.clinicIds));
       }
 
       if (filters.states && filters.states.length > 0) {
-        query = query.where(inArray(cases.state, filters.states));
+        conditions.push(inArray(cases.state, filters.states));
       }
 
       if (filters.species && filters.species.length > 0) {
         // Capitalize species names to match database format (Cat, Dog, etc)
         const capitalizedSpecies = filters.species.map(s => s.charAt(0).toUpperCase() + s.slice(1));
-        query = query.where(inArray(cases.species, capitalizedSpecies));
+        conditions.push(inArray(cases.species, capitalizedSpecies));
+      }
+
+      let query = db.select().from(cases);
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
       }
 
       const stateCases = await query;
