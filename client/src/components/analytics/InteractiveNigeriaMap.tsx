@@ -135,6 +135,35 @@ export function InteractiveNigeriaMap({
     return `rgba(${r}, ${g}, ${b}, ${0.4 + intensity * 0.6})`;
   };
 
+  // Determine if background color is light or dark for text contrast
+  const getTextColor = (stateName: string) => {
+    const zone = STATE_TO_ZONE[stateName];
+    if (!zone) return "text-slate-900 dark:text-slate-100";
+
+    const stateData = stateDataMap.get(stateName);
+    const zoneColor = ZONE_COLORS[zone];
+
+    // For states with data, calculate luminance of the base color
+    if (stateData) {
+      const hex = zoneColor.base.replace("#", "");
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      
+      // Use white text for darker backgrounds, black for lighter backgrounds
+      return luminance > 0.5 ? "text-slate-900" : "text-white";
+    }
+
+    // For states without data (light colored tiles), always use dark text for visibility
+    return "text-slate-900";
+  };
+
+  const getNoDataTextColor = (stateName: string) => {
+    // "No data" text should always be visible - use darker gray that works on light tiles
+    return "text-slate-700 dark:text-slate-500";
+  };
+
   const zoneAggregates: Record<string, { total: number; states: number }> = {};
   data.forEach((item) => {
     if (!zoneAggregates[item.zone]) {
@@ -188,16 +217,16 @@ export function InteractiveNigeriaMap({
                     }}
                     data-testid={`state-${stateName}`}
                   >
-                    <div className="text-[10px] md:text-xs font-bold text-slate-900 dark:text-slate-100 uppercase leading-tight text-center px-1">
+                    <div className={`text-[10px] md:text-xs font-bold uppercase leading-tight text-center px-1 ${getTextColor(stateName)}`}>
                       {stateName.replace(/_/g, " ")}
                     </div>
                     {stateData && (
-                      <div className="text-lg font-extrabold text-slate-900 dark:text-white">
+                      <div className={`text-lg font-extrabold ${getTextColor(stateName)}`}>
                         {stateData.caseCount}
                       </div>
                     )}
                     {!stateData && (
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                      <div className={`text-xs ${getNoDataTextColor(stateName)}`}>
                         No data
                       </div>
                     )}
