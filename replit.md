@@ -16,7 +16,12 @@ The frontend follows a mobile-first design approach with responsive layouts opti
 ## Backend Architecture  
 The server is built with Express.js and TypeScript, serving both API endpoints and static files. The application uses PostgreSQL as the primary database with Drizzle ORM for database operations and migrations. Session management is implemented using express-session with PostgreSQL session storage via connect-pg-simple.
 
-The backend follows a RESTful API design with role-based access control (RBAC) supporting four user roles: ADMIN, MANAGER, CLINICIAN, and RESEARCHER. Authentication supports both email/password and planned Google OAuth integration.
+The backend follows a RESTful API design with role-based access control (RBAC) supporting six user roles in hierarchical order: SUPER_ADMIN, ADMIN, MANAGER, CLINICIAN, RESEARCHER, and STUDENT. Authentication supports both email/password and Google OAuth integration.
+
+**Dual-Level Administration System:**
+- **SUPER_ADMIN**: Platform-wide administrator with access to all users across all clinics. Can perform global user management including promoting users to SUPER_ADMIN.
+- **ADMIN**: Clinic-level administrator with access only to users within their own clinic. Can manage clinic users (promote, demote, suspend, delete) but cannot promote to SUPER_ADMIN.
+- Both admin levels have access to the User Management interface, with SUPER_ADMIN seeing all users platform-wide and ADMIN seeing only their clinic's users.
 
 ## Database Design
 The database schema includes comprehensive entities for clinics, users, cases, tumour types, anatomical sites, attachments, feed posts, follow-ups, and audit logs. The schema uses PostgreSQL enums for standardized data like Nigerian states, user roles, and case outcomes. Relationships are properly defined with foreign keys and cascading rules to maintain data integrity.

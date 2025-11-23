@@ -38,8 +38,8 @@ export default function Sidebar() {
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
-  // Admin-only navigation
-  const adminNavigation = user?.role === "ADMIN" ? [
+  // Admin-only navigation (both ADMIN and SUPER_ADMIN)
+  const adminNavigation = (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") ? [
     { name: "User Management", href: "/admin/users", icon: Users },
   ] : [];
 

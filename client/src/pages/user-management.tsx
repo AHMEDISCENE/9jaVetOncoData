@@ -39,7 +39,15 @@ interface User {
   role: string;
   userStatus: string;
   isActive: boolean;
+  clinicId: string | null;
   createdAt: string;
+}
+
+interface UserWithClinic extends User {
+  clinic?: {
+    id: string;
+    name: string;
+  };
 }
 
 export default function UserManagement() {
@@ -55,7 +63,7 @@ export default function UserManagement() {
 
   // Redirect non-admin users to dashboard
   useEffect(() => {
-    if (currentUser && currentUser.role !== "ADMIN") {
+    if (currentUser && currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN") {
       toast({
         title: "Access Denied",
         description: "You need administrator privileges to access that page.",
@@ -65,9 +73,11 @@ export default function UserManagement() {
     }
   }, [currentUser, setLocation, toast]);
 
-  const { data: users = [], isLoading } = useQuery<User[]>({
+  const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
+
+  const { data: users = [], isLoading } = useQuery<UserWithClinic[]>({
     queryKey: ["/api/admin/users"],
-    enabled: currentUser?.role === "ADMIN",
+    enabled: currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN",
   });
 
   const updateRoleMutation = useMutation({

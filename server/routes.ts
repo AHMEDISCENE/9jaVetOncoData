@@ -94,7 +94,7 @@ const requireAuth = (req: any, res: any, next: any) => {
 };
 
 const requireRole = (minRole: string) => (req: any, res: any, next: any) => {
-  const roleHierarchy = ["STUDENT", "RESEARCHER", "CLINICIAN", "MANAGER", "ADMIN"];
+  const roleHierarchy = ["STUDENT", "RESEARCHER", "CLINICIAN", "MANAGER", "ADMIN", "SUPER_ADMIN"];
   const userRoleIndex = roleHierarchy.indexOf(req.session?.userRole || "");
   const minRoleIndex = roleHierarchy.indexOf(minRole);
   
@@ -1562,15 +1562,21 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
   // Admin user management routes
   app.get("/api/admin/users", requireAuth, requireRole("ADMIN"), async (req, res) => {
     try {
+      const userRole = (req.session as any).userRole;
       const clinicId = (req.session as any).clinicId;
       
-      // Ensure admin has a clinic (prevent cross-clinic data leakage)
-      if (!clinicId) {
-        return res.status(403).json({ message: "Admin must belong to a clinic" });
+      // Super admins can see all users, clinic admins see only their clinic's users
+      if (userRole === "SUPER_ADMIN") {
+        const allUsers = await storage.getAllUsers();
+        res.json(allUsers);
+      } else {
+        // Regular admin must have a clinic
+        if (!clinicId) {
+          return res.status(403).json({ message: "Admin must belong to a clinic" });
+        }
+        const users = await storage.getUsersByClinic(clinicId);
+        res.json(users);
       }
-      
-      const users = await storage.getUsersByClinic(clinicId);
-      res.json(users);
     } catch (error) {
       res.status(500).json({ message: "Failed to get users" });
     }
@@ -1581,22 +1587,37 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       const { id } = req.params;
       const { role } = req.body;
       const actorId = (req.session as any).userId;
+      const userRole = (req.session as any).userRole;
       const clinicId = (req.session as any).clinicId;
 
-      // Ensure admin has a clinic (prevent cross-clinic operations)
-      if (!clinicId) {
-        return res.status(403).json({ message: "Admin must belong to a clinic" });
-      }
-
       // Validate role
-      if (!["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"].includes(role)) {
+      const validRoles = userRole === "SUPER_ADMIN" 
+        ? ["SUPER_ADMIN", "ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"]
+        : ["ADMIN", "MANAGER", "CLINICIAN", "RESEARCHER", "STUDENT"];
+      
+      if (!validRoles.includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
       }
 
-      // Check if user exists and belongs to same clinic
+      // Only super admins can promote to SUPER_ADMIN
+      if (role === "SUPER_ADMIN" && userRole !== "SUPER_ADMIN") {
+        return res.status(403).json({ message: "Only super admins can promote to SUPER_ADMIN" });
+      }
+
+      // Check if user exists
       const targetUser = await storage.getUserById(id);
-      if (!targetUser || targetUser.clinicId !== clinicId) {
+      if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
+      }
+
+      // Clinic admins can only manage users in their clinic
+      if (userRole !== "SUPER_ADMIN") {
+        if (!clinicId) {
+          return res.status(403).json({ message: "Admin must belong to a clinic" });
+        }
+        if (targetUser.clinicId !== clinicId) {
+          return res.status(404).json({ message: "User not found" });
+        }
       }
 
       // Prevent demoting the last admin
@@ -1632,22 +1653,28 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       const { id } = req.params;
       const { userStatus } = req.body;
       const actorId = (req.session as any).userId;
+      const userRole = (req.session as any).userRole;
       const clinicId = (req.session as any).clinicId;
-
-      // Ensure admin has a clinic (prevent cross-clinic operations)
-      if (!clinicId) {
-        return res.status(403).json({ message: "Admin must belong to a clinic" });
-      }
 
       // Validate status
       if (!["ACTIVE", "SUSPENDED", "RESTRICTED"].includes(userStatus)) {
         return res.status(400).json({ message: "Invalid status" });
       }
 
-      // Check if user exists and belongs to same clinic
+      // Check if user exists
       const targetUser = await storage.getUserById(id);
-      if (!targetUser || targetUser.clinicId !== clinicId) {
+      if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
+      }
+
+      // Clinic admins can only manage users in their clinic
+      if (userRole !== "SUPER_ADMIN") {
+        if (!clinicId) {
+          return res.status(403).json({ message: "Admin must belong to a clinic" });
+        }
+        if (targetUser.clinicId !== clinicId) {
+          return res.status(404).json({ message: "User not found" });
+        }
       }
 
       // Prevent suspending the last admin
@@ -1682,17 +1709,23 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
     try {
       const { id } = req.params;
       const actorId = (req.session as any).userId;
+      const userRole = (req.session as any).userRole;
       const clinicId = (req.session as any).clinicId;
 
-      // Ensure admin has a clinic (prevent cross-clinic operations)
-      if (!clinicId) {
-        return res.status(403).json({ message: "Admin must belong to a clinic" });
+      // Check if user exists
+      const targetUser = await storage.getUserById(id);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
       }
 
-      // Check if user exists and belongs to same clinic
-      const targetUser = await storage.getUserById(id);
-      if (!targetUser || targetUser.clinicId !== clinicId) {
-        return res.status(404).json({ message: "User not found" });
+      // Clinic admins can only manage users in their clinic
+      if (userRole !== "SUPER_ADMIN") {
+        if (!clinicId) {
+          return res.status(403).json({ message: "Admin must belong to a clinic" });
+        }
+        if (targetUser.clinicId !== clinicId) {
+          return res.status(404).json({ message: "User not found" });
+        }
       }
 
       // Prevent deleting self

@@ -47,6 +47,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserWithClinic(id: string): Promise<UserWithClinic | undefined>;
   getUsersByClinic(clinicId: string): Promise<User[]>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
   
@@ -280,6 +281,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.clinicId, clinicId))
       .orderBy(desc(users.createdAt));
     return clinicUsers;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const allUsers = await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt));
+    return allUsers;
   }
 
   async linkGoogleAccount(userId: string, googleId: string): Promise<void> {
