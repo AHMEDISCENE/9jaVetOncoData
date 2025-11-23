@@ -22,6 +22,17 @@ const COLORS = [
   '#14b8a6', // Teal
 ];
 
+// Helper function to group tumours - keep top 7-10, combine rest as "Others"
+function groupTumourTypes(tumours: Array<{ name: string; count: number }>, maxItems: number = 8) {
+  if (tumours.length <= maxItems) return tumours;
+  
+  const top = tumours.slice(0, maxItems);
+  const others = tumours.slice(maxItems);
+  const othersCount = others.reduce((sum, t) => sum + t.count, 0);
+  
+  return [...top, { name: 'Others', count: othersCount }];
+}
+
 export default function Analytics() {
   const { toast } = useToast();
   const [selectedChart, setSelectedChart] = useState<string | null>(null);
@@ -346,7 +357,7 @@ export default function Analytics() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={stats.topTumourTypes}
+                      data={groupTumourTypes(stats.topTumourTypes)}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
@@ -355,7 +366,7 @@ export default function Analytics() {
                       fill="#8884d8"
                       dataKey="count"
                     >
-                      {stats.topTumourTypes.map((entry, index) => (
+                      {groupTumourTypes(stats.topTumourTypes).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -371,6 +382,11 @@ export default function Analytics() {
                 </div>
               )}
             </div>
+            {stats.topTumourTypes.length > 8 && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Showing top 8 tumour types. Click for full analytics.
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -569,11 +585,16 @@ export default function Analytics() {
 
       {/* Tumour Distribution Detail */}
       <Dialog open={selectedChart === 'tumourDistribution'} onOpenChange={() => setSelectedChart(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Tumour Type Distribution - Detailed View</DialogTitle>
+            <DialogTitle>Tumour Type Distribution - Complete Analytics</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
+            {stats && stats.topTumourTypes.length > 8 && (
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200">
+                <p>📊 Main chart displays <strong>top 8 tumour types</strong> + "Others" group. Below shows <strong>complete breakdown of all {stats.topTumourTypes.length} tumour types</strong>.</p>
+              </div>
+            )}
             <div className="h-64 w-full">
               {stats && stats.topTumourTypes.length > 0 && (
                 <ResponsiveContainer width="100%" height="100%">
@@ -589,8 +610,8 @@ export default function Analytics() {
               )}
             </div>
             <div className="space-y-3">
-              <h4 className="font-semibold">Detailed Breakdown:</h4>
-              <div className="border rounded-lg overflow-hidden">
+              <h4 className="font-semibold">Complete Breakdown ({stats?.topTumourTypes.length} tumour types):</h4>
+              <div className="border rounded-lg overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
@@ -600,11 +621,12 @@ export default function Analytics() {
                     </tr>
                   </thead>
                   <tbody>
-                    {stats?.topTumourTypes.map((item) => {
+                    {stats?.topTumourTypes.map((item, idx) => {
                       const total = stats.topTumourTypes.reduce((sum, t) => sum + t.count, 0);
+                      const isTop8 = idx < 8;
                       return (
-                        <tr key={item.name} className="border-t">
-                          <td className="p-3">{item.name}</td>
+                        <tr key={item.name} className={`border-t ${isTop8 ? '' : 'bg-muted/30'}`}>
+                          <td className="p-3 font-medium">{idx < 8 ? `${idx + 1}. ${item.name}` : `${item.name} (grouped in "Others")`}</td>
                           <td className="p-3 text-right font-semibold">{item.count}</td>
                           <td className="p-3 text-right text-muted-foreground">{Math.round((item.count / total) * 100)}%</td>
                         </tr>
@@ -612,6 +634,9 @@ export default function Analytics() {
                     })}
                   </tbody>
                 </table>
+              </div>
+              <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 mt-3">
+                <p>💡 <strong>Total Tumour Types:</strong> {stats?.topTumourTypes.length} | <strong>Total Cases:</strong> {stats?.topTumourTypes.reduce((sum, t) => sum + t.count, 0) || 0}</p>
               </div>
             </div>
           </div>
