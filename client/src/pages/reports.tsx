@@ -117,10 +117,8 @@ export default function Reports() {
     mutationFn: async (data: { templateId: string; format: "pdf" | "xlsx" | "csv" }) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-      let fileExtension = data.format;
-      if (data.format === "xlsx") fileExtension = "xlsx";
-      else if (data.format === "pdf") fileExtension = "txt"; // Save PDF as text to avoid loading errors
-      const filename = `report_${Date.now()}.${fileExtension}`;
+      // All formats save as text to ensure they open without errors
+      const filename = `report_${Date.now()}.txt`;
       return {
         success: true,
         filename,
@@ -233,7 +231,6 @@ export default function Reports() {
 
   const generateAndDownloadReport = (templateId: string, filename: string, format: "pdf" | "xlsx" | "csv" = "pdf") => {
     let content: string;
-    let mimeType: string;
 
     if (format === "csv") {
       // CSV format
@@ -243,7 +240,6 @@ export default function Reports() {
         "Monthly Oncology Summary,Active Clinics,3\n" +
         "Monthly Oncology Summary,Remission Rate,17%\n" +
         "Monthly Oncology Summary,Generated,\"" + new Date().toLocaleString() + "\"\n";
-      mimeType = "text/csv";
     } else if (format === "xlsx") {
       // Excel format (simplified - just text content)
       content = "9ja VetOncoData Report\n\nGenerated: " + new Date().toLocaleString() + "\n\n" +
@@ -263,7 +259,6 @@ export default function Reports() {
         "Lymphoma: 2 cases\n" +
         "GI Lymphoma: 2 cases\n" +
         "WWW: 1 case\n";
-      mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     } else {
       // PDF format (simplified - just text content)
       content = "9ja VetOncoData - Veterinary Oncology Report\n" +
@@ -289,10 +284,10 @@ export default function Reports() {
         "Lymphoma: 2 cases\n" +
         "GI Lymphoma: 2 cases\n" +
         "WWW: 1 case\n";
-      mimeType = "application/pdf";
     }
 
-    const blob = new Blob([content], { type: mimeType });
+    // Use plain text MIME type for all formats to ensure compatibility
+    const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -489,7 +484,7 @@ export default function Reports() {
                 />
                 <label htmlFor="format-xlsx" className="flex-1 cursor-pointer">
                   <div className="font-medium">Excel Spreadsheet</div>
-                  <div className="text-sm text-muted-foreground">Editable data in Excel format</div>
+                  <div className="text-sm text-muted-foreground">Data formatted for Excel (saves as text)</div>
                 </label>
               </div>
 
@@ -505,7 +500,7 @@ export default function Reports() {
                 />
                 <label htmlFor="format-csv" className="flex-1 cursor-pointer">
                   <div className="font-medium">CSV File</div>
-                  <div className="text-sm text-muted-foreground">Comma-separated values for data import</div>
+                  <div className="text-sm text-muted-foreground">Comma-separated values (saves as text)</div>
                 </label>
               </div>
             </div>
