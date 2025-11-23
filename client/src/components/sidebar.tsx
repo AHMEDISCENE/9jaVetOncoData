@@ -74,7 +74,6 @@ export default function Sidebar() {
           <div className="absolute inset-0 bg-foreground/50"></div>
         </div>
       )}
-
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 glass border-r transform transition-all duration-200 ease-in-out lg:translate-x-0 ${
         isMobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -188,10 +187,9 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
-
       {/* Mobile menu button */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-30 p-2 rounded-md glass text-muted-foreground hover:text-foreground"
+        className="lg:hidden fixed top-4 left-4 z-30 p-2 rounded-md glass hover:text-foreground ml-[0px] mr-[0px] text-[#91bfb4]"
         onClick={toggleMobileSidebar}
         data-testid="button-open-sidebar"
       >
