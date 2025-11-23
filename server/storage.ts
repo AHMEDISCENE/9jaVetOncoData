@@ -404,52 +404,22 @@ export class DatabaseStorage implements IStorage {
     sort?: string;
     order?: string;
   } = {}): Promise<CaseWithDetails[]> {
-    const { hasNgStates } = await import('./db/capabilities');
     const { computeZoneFromState, statesForZones } = await import('./geo/nigeria-zones');
     
     const creator = alias(users, 'creator');
-    let useJoin = false;
-    
-    try {
-      useJoin = await hasNgStates();
-    } catch (error) {
-      console.error('[getCases] Error checking ng_states capability:', error);
-      useJoin = false;
-    }
     
     let query;
     
     try {
-      if (useJoin) {
-        query = db
-          .select({
-            cases: cases,
-            clinics: clinics,
-            creator: creator,
-            tumour_types: tumourTypes,
-            anatomical_sites: anatomicalSites,
-            geo_zone: sql<string>`COALESCE(ng_states.zone, '')`.as('geo_zone'),
-          })
-          .from(cases)
-          .leftJoin(clinics, eq(cases.clinicId, clinics.id))
-          .leftJoin(creator, eq(cases.createdBy, creator.id))
-          .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
-          .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
-          .leftJoin(
-            sql`ng_states`,
-            sql`LOWER(TRIM(${cases.state})) = LOWER(TRIM(ng_states.name))`
-          )
-          .$dynamic();
-      } else {
-        query = db
-          .select()
-          .from(cases)
-          .leftJoin(clinics, eq(cases.clinicId, clinics.id))
-          .leftJoin(creator, eq(cases.createdBy, creator.id))
-          .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
-          .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
-          .$dynamic();
-      }
+      // Simple query without ng_states join - we compute zones in memory
+      query = db
+        .select()
+        .from(cases)
+        .leftJoin(clinics, eq(cases.clinicId, clinics.id))
+        .leftJoin(creator, eq(cases.createdBy, creator.id))
+        .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
+        .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
+        .$dynamic();
 
       // Shared reads - filter by clinic(s) if explicitly requested
       if (filters.clinicIds && filters.clinicIds.length > 0) {
@@ -492,13 +462,7 @@ export class DatabaseStorage implements IStorage {
       
       if (sortField === 'clinic') {
         query = query.orderBy(sortOrder === 'asc' ? asc(clinics.name) : desc(clinics.name));
-      } else if (sortField === 'zone') {
-        if (useJoin) {
-          query = query.orderBy(sortOrder === 'asc' ? sql`ng_states.zone ASC` : sql`ng_states.zone DESC`);
-        } else {
-          query = query.orderBy(sortOrder === 'asc' ? asc(cases.state) : desc(cases.state));
-        }
-      } else if (sortField === 'state') {
+      } else if (sortField === 'zone' || sortField === 'state') {
         query = query.orderBy(sortOrder === 'asc' ? asc(cases.state) : desc(cases.state));
       } else if (sortField === 'case_number') {
         query = query.orderBy(sortOrder === 'asc' ? asc(cases.caseNumber) : desc(cases.caseNumber));
@@ -576,10 +540,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       return results.map(result => {
-        const geoZone = useJoin && 'geo_zone' in result
-          ? (result as any).geo_zone || computeZoneFromState(result.cases.state)
-          : computeZoneFromState(result.cases.state);
-
+        const geoZone = computeZoneFromState(result.cases.state);
         const aggregates = attachmentAggregates[result.cases.id] || { count: 0 };
 
         return {
