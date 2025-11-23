@@ -757,6 +757,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.query.from) filters.from = req.query.from as string;
       if (req.query.to) filters.to = req.query.to as string;
       
+      // Debug: log the filters being applied
+      console.log("[Dashboard Stats] Filters applied:", JSON.stringify(filters, null, 2));
+      
       // Use shared stats with optional filters
       const stats = await storage.getSharedDashboardStats(filters);
       res.json(stats);
