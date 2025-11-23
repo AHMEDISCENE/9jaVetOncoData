@@ -183,6 +183,36 @@ export default function Analytics() {
     }
   };
 
+  const outcomeRows = stats.treatmentOutcomes.map((item) => ({
+    status: item.name,
+    count: item.count,
+  }));
+  const hasOutcomeData = outcomeRows.length > 0;
+
+  const handleOutcomeExport = () => {
+    if (!hasOutcomeData) {
+      return;
+    }
+
+    try {
+      exportToCsv({
+        rows: outcomeRows,
+        headers: [
+          { key: "status", label: "status" },
+          { key: "count", label: "count" },
+        ],
+        filename: "treatment-outcomes",
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: "We couldn't export the Treatment Outcomes data. Please try again.",
+      });
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6">
       {/* Header */}
@@ -398,19 +428,58 @@ export default function Analytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Treatment Outcomes</CardTitle>
-            <Button variant="outline" size="sm" data-testid="button-export-outcomes-chart">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="button-export-outcomes-chart"
+              onClick={handleOutcomeExport}
+              disabled={!hasOutcomeData}
+              aria-label={
+                hasOutcomeData
+                  ? "Export Treatment Outcomes as CSV"
+                  : "No treatment outcomes data to export"
+              }
+            >
               <i className="fas fa-download mr-2"></i>Export
             </Button>
           </CardHeader>
           <CardContent>
             <div className="h-80">
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <i className="fas fa-heart text-4xl mb-2"></i>
-                  <p>Outcome analysis coming soon</p>
-                  <p className="text-sm">Data processing in progress</p>
+              {stats.treatmentOutcomes.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.treatmentOutcomes}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="count"
+                    >
+                      {stats.treatmentOutcomes.map((entry, index) => {
+                        // Color code by status
+                        const statusColors: Record<string, string> = {
+                          'DRAFT': '#9ca3af',      // Gray
+                          'ACTIVE': '#3b82f6',     // Blue
+                          'COMPLETED': '#10b981',  // Green
+                          'ARCHIVED': '#f59e0b'    // Amber
+                        };
+                        return <Cell key={`cell-${index}`} fill={statusColors[entry.name] || COLORS[index % COLORS.length]} />;
+                      })}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <i className="fas fa-heart text-4xl mb-2"></i>
+                    <p>No treatment outcome data available</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>

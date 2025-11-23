@@ -6,6 +6,7 @@ export interface DashboardStats {
   casesByMonth: Array<{month: string; count: number}>;
   topTumourTypes: Array<{name: string; count: number}>;
   casesBySpecies: Array<{name: string; count: number}>;
+  treatmentOutcomes: Array<{name: string; count: number}>;
   casesByState: Array<{state: string; count: number}>;
   recentActivity: Array<{
     id: string;

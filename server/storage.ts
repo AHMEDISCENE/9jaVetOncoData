@@ -1429,6 +1429,17 @@ export class DatabaseStorage implements IStorage {
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 
+      // Treatment outcomes by status
+      const statusCounts = new Map<string, number>();
+      allCases.forEach(c => {
+        if (c.status) {
+          statusCounts.set(c.status, (statusCounts.get(c.status) || 0) + 1);
+        }
+      });
+      const treatmentOutcomes = Array.from(statusCounts.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
       return {
         totalCases,
         newThisMonth,
@@ -1437,6 +1448,7 @@ export class DatabaseStorage implements IStorage {
         casesByMonth,
         topTumourTypes,
         casesBySpecies,
+        treatmentOutcomes,
         casesByState: [],
         recentActivity: [],
       };
@@ -1450,6 +1462,7 @@ export class DatabaseStorage implements IStorage {
         casesByMonth: [],
         topTumourTypes: [],
         casesBySpecies: [],
+        treatmentOutcomes: [],
         casesByState: [],
         recentActivity: [],
       };
