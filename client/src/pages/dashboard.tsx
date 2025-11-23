@@ -355,7 +355,7 @@ export default function Dashboard() {
                 </p>
               </div>
               <div className="h-14 w-14 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
-                <i className="fas fa-folder-medical text-blue-600 dark:text-blue-300 text-xl"></i>
+                <i className="fas fa-clipboard-list text-blue-600 dark:text-blue-300 text-xl"></i>
               </div>
             </div>
             <p className="text-xs font-medium text-blue-600 dark:text-blue-300 mt-2">
