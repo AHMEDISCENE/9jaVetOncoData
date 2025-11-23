@@ -1802,6 +1802,53 @@ Feline,Persian,Kano,2025-01-20,Whiskers,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
     }
   });
 
+  // Notifications
+  app.get("/api/notifications", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      
+      const notifications = await storage.getNotifications(userId, limit);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to fetch notifications" });
+    }
+  });
+
+  app.get("/api/notifications/unread-count", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      
+      const count = await storage.getUnreadNotificationCount(userId);
+      res.json({ count });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to fetch notification count" });
+    }
+  });
+
+  app.post("/api/notifications/:id/mark-read", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const { id } = req.params;
+      
+      await storage.markNotificationAsRead(id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to mark notification as read" });
+    }
+  });
+
+  app.post("/api/notifications/mark-all-read", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      
+      await storage.markAllNotificationsAsRead(userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to mark all notifications as read" });
+    }
+  });
+
   // Ensure unmatched API routes return JSON instead of falling back to the SPA HTML.
   app.use('/api', (_req, res) => {
     return res.status(404).json({ success: false, error: 'API route not found' });
