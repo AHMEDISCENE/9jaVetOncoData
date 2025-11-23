@@ -1702,12 +1702,24 @@ export class DatabaseStorage implements IStorage {
       const zoneCases = await query;
       const totalCases = zoneCases.length;
 
-      // Aggregate tumours
-      const tumourMap = new Map<string, number>();
+      // Get tumour type names
+      const allTumourTypes = await db.select().from(tumourTypes);
+      const tumourNameMap = new Map(allTumourTypes.map(t => [t.id, t.name]));
+
+      // Aggregate tumours by ID, then map to names
+      const tumourIdMap = new Map<string, number>();
       zoneCases.forEach(c => {
         if (c.tumourTypeId) {
-          tumourMap.set(c.tumourTypeId, (tumourMap.get(c.tumourTypeId) || 0) + 1);
+          tumourIdMap.set(c.tumourTypeId, (tumourIdMap.get(c.tumourTypeId) || 0) + 1);
         }
+      });
+
+      // Convert tumour IDs to names with counts
+      const tumourNameCounts = new Map<string, number>();
+      tumourIdMap.forEach((count, id) => {
+        const name = tumourNameMap.get(id) || 'Unknown Tumour';
+        const current = tumourNameCounts.get(name) || 0;
+        tumourNameCounts.set(name, current + count);
       });
 
       // Aggregate species
@@ -1744,7 +1756,7 @@ export class DatabaseStorage implements IStorage {
           .sort((a, b) => b.count - a.count);
 
       return {
-        tumours: formatData(tumourMap, 'name').map(t => ({ name: t.name, count: t.count, percentage: t.percentage })),
+        tumours: formatData(tumourNameCounts, 'name').map(t => ({ name: t.name, count: t.count, percentage: t.percentage })),
         species: formatData(speciesMap, 'name').map(s => ({ name: s.name, count: s.count, percentage: s.percentage })),
         statuses: formatData(statusMap, 'status').map(s => ({ status: s.status, count: s.count, percentage: s.percentage })),
         breeds: formatData(breedMap, 'name').map(b => ({ name: b.name, count: b.count, percentage: b.percentage })),
