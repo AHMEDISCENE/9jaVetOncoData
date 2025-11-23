@@ -27,7 +27,7 @@ const caseSchema = z.object({
   patientName: z.string().optional(),
   species: z.string().min(1, "Species is required"),
   breed: z.string().min(1, "Breed is required"),
-  sex: z.enum(["MALE_NEUTERED", "MALE_INTACT", "FEMALE_SPAYED", "FEMALE_INTACT"]).optional(),
+  sex: z.string().transform(val => val === "" ? undefined : val).optional(),
   ageYears: z.number().min(0).max(30).optional(),
   ageMonths: z.number().min(0).max(11).optional(),
   diagnosisDate: z.string().min(1, "Diagnosis date is required"),
@@ -35,12 +35,12 @@ const caseSchema = z.object({
   tumourTypeCustom: z.string().transform(val => val === "" ? undefined : val).optional(),
   anatomicalSiteId: z.string().transform(val => val === "" ? undefined : val).optional(),
   anatomicalSiteCustom: z.string().transform(val => val === "" ? undefined : val).optional(),
-  laterality: z.string().optional(),
+  laterality: z.string().transform(val => val === "" ? undefined : val).optional(),
   stage: z.string().optional(),
   diagnosisMethod: z.string().optional(),
   treatmentPlan: z.string().optional(),
   treatmentStart: z.string().transform(val => val === "" ? undefined : val).optional(),
-  outcome: z.enum(["REMISSION", "MORTALITY", "EUTHANASIA", "TREATMENT_ONGOING", "MANAGEMENT"]).optional().transform(val => val === "" ? undefined : val),
+  outcome: z.string().transform(val => val === "" ? undefined : val).optional(),
   notes: z.string().optional(),
 });
 
@@ -310,8 +310,6 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
   };
 
   const onSubmit = (data: CaseFormData) => {
-    console.log("[CaseWizard] Form submitted with data:", data);
-    console.log("[CaseWizard] Form errors:", form.formState.errors);
     caseMutation.mutate(data);
   };
 
@@ -1071,17 +1069,6 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                   type="submit"
                   disabled={caseMutation.isPending}
                   data-testid="button-submit-case"
-                  onClick={async (e) => {
-                    console.log("[DEBUG] Create Case button clicked");
-                    console.log("[DEBUG] Form values:", form.getValues());
-                    console.log("[DEBUG] Form errors:", form.formState.errors);
-                    const isValid = await form.trigger();
-                    console.log("[DEBUG] Form is valid:", isValid);
-                    if (!isValid) {
-                      e.preventDefault();
-                      console.log("[DEBUG] Form validation failed, errors:", form.formState.errors);
-                    }
-                  }}
                 >
                   {caseMutation.isPending ? (
                     <>
