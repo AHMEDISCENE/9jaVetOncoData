@@ -391,7 +391,7 @@ export default function Cases() {
     setCurrentPage(1);
   };
 
-  const handleExport = async (format: 'pdf' | 'xlsx') => {
+  const handleExport = async (format: 'csv' | 'pdf' | 'xlsx') => {
     try {
       setIsExporting(true);
       const response = await apiRequest('POST', '/api/cases/export', {
@@ -401,6 +401,10 @@ export default function Cases() {
           state: filters.state,
           clinicId: filters.clinicId,
           tumourTypeId: filters.tumourTypeId,
+          species: filters.species,
+          outcome: filters.outcome,
+          startDate: filters.startDate,
+          endDate: filters.endDate,
         }
       });
 
@@ -605,11 +609,11 @@ export default function Cases() {
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start"
-                  onClick={() => handleExport('pdf')}
+                  onClick={() => handleExport('csv')}
                   disabled={isExporting}
-                  data-testid="export-pdf"
+                  data-testid="export-csv"
                 >
-                  <i className="fas fa-file-pdf mr-2"></i>Export as PDF
+                  <i className="fas fa-file-csv mr-2"></i>Export as CSV
                 </Button>
                 <Button
                   variant="ghost"
@@ -620,6 +624,16 @@ export default function Cases() {
                   data-testid="export-xlsx"
                 >
                   <i className="fas fa-file-excel mr-2"></i>Export as Excel
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => handleExport('pdf')}
+                  disabled={isExporting}
+                  data-testid="export-pdf"
+                >
+                  <i className="fas fa-file-pdf mr-2"></i>Export as PDF
                 </Button>
               </div>
             </PopoverContent>

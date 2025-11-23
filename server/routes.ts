@@ -1154,11 +1154,11 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       const clinicId = (req.session as any).clinicId;
       const { format, filters } = req.body;
 
-      if (!format || !['pdf', 'xlsx'].includes(format)) {
-        return res.status(400).json({ message: "Invalid format. Use 'pdf' or 'xlsx'" });
+      if (!format || !['csv', 'pdf', 'xlsx'].includes(format)) {
+        return res.status(400).json({ message: "Invalid format. Use 'csv', 'pdf' or 'xlsx'" });
       }
 
-      // Parse filters
+      // Parse filters - map frontend filter names to API filter names
       const apiFilters: any = {};
       if (filters) {
         if (filters.zone && filters.zone.length) apiFilters.zones = filters.zone;
@@ -1169,15 +1169,58 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           apiFilters.clinicIds = [clinicId];
         }
         if (filters.tumourTypeId && filters.tumourTypeId.length) apiFilters.tumourTypeIds = filters.tumourTypeId;
+        // Add support for species, outcome, and dates
+        if (filters.species) apiFilters.species = filters.species;
+        if (filters.outcome) apiFilters.outcome = filters.outcome;
+        if (filters.startDate) apiFilters.startDate = filters.startDate;
+        if (filters.endDate) apiFilters.endDate = filters.endDate;
       } else if (clinicId) {
         apiFilters.clinicIds = [clinicId];
       }
 
-      // Get cases with full details
-      const cases = await storage.getCases(undefined, apiFilters);
+      // Get cases with full details - fetch all matching cases without pagination for export
+      const casesForExport = await storage.getCases(undefined, { ...apiFilters, limit: 10000, offset: 0 });
 
-      if (format === 'xlsx') {
-        const wsData = cases.map((c: any) => ({
+      if (format === 'csv') {
+        // Build CSV content manually for reliable export
+        const headers = ['Case ID', 'Upload Date', 'Patient Name', 'Species', 'Breed', 'Age', 'Sex', 'Tumour Type', 'Anatomical Site', 'State', 'Clinic', 'Status', 'Outcome', 'Diagnosis Date'];
+        
+        const rows = casesForExport.map((c: any) => [
+          c.caseNumber || '',
+          c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
+          c.patientName || '',
+          c.species || '',
+          c.breed || '',
+          (c.ageYears ? `${c.ageYears}y` : '') + (c.ageMonths ? ` ${c.ageMonths}m` : ''),
+          c.sex || '',
+          c.tumourType?.name || c.tumourTypeCustom || '',
+          c.anatomicalSite?.name || c.anatomicalSiteCustom || '',
+          c.state || '',
+          c.clinic?.name || '',
+          c.status || '',
+          c.outcome || '',
+          c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : ''
+        ]);
+
+        // Escape CSV values
+        const escapeCsvValue = (value: string): string => {
+          if (!value) return '';
+          const needsQuotes = /[",\n\r]/.test(value);
+          const escaped = value.replace(/"/g, '""');
+          return needsQuotes ? `"${escaped}"` : escaped;
+        };
+
+        const csvContent = [
+          headers.map(h => escapeCsvValue(h)).join(','),
+          ...rows.map(row => row.map(v => escapeCsvValue(String(v))).join(','))
+        ].join('\r\n');
+
+        const blobContent = `\ufeff${csvContent}`;
+        res.setHeader('Content-Type', 'text/csv;charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.csv"`);
+        res.send(blobContent);
+      } else if (format === 'xlsx') {
+        const wsData = casesForExport.map((c: any) => ({
           'Case ID': c.caseNumber,
           'Upload Date': c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
           'Patient Name': c.patientName || '',
@@ -1212,7 +1255,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         doc.setFontSize(10);
         doc.setTextColor(100);
         doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 25);
-        doc.text(`Total Cases: ${cases.length}`, 14, 32);
+        doc.text(`Total Cases: ${casesForExport.length}`, 14, 32);
         doc.setTextColor(0);
 
         // Add simple table with case data
@@ -1238,7 +1281,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         
         // Table rows
         doc.setFont(undefined, 'normal');
-        cases.forEach((c: any) => {
+        casesForExport.forEach((c: any) => {
           if (yPosition > pageHeight - 15) {
             doc.addPage();
             yPosition = 20;
