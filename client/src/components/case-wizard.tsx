@@ -1071,6 +1071,17 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                   type="submit"
                   disabled={caseMutation.isPending}
                   data-testid="button-submit-case"
+                  onClick={async (e) => {
+                    console.log("[DEBUG] Create Case button clicked");
+                    console.log("[DEBUG] Form values:", form.getValues());
+                    console.log("[DEBUG] Form errors:", form.formState.errors);
+                    const isValid = await form.trigger();
+                    console.log("[DEBUG] Form is valid:", isValid);
+                    if (!isValid) {
+                      e.preventDefault();
+                      console.log("[DEBUG] Form validation failed, errors:", form.formState.errors);
+                    }
+                  }}
                 >
                   {caseMutation.isPending ? (
                     <>
