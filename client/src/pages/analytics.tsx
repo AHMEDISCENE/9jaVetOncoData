@@ -263,39 +263,39 @@ export default function Analytics() {
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
           <CardContent className="p-6 text-center">
-            <div className="text-3xl font-bold text-primary mb-2" data-testid="metric-total-cases">
+            <div className="text-4xl font-bold text-blue-600 dark:text-blue-300 mb-2" data-testid="metric-total-cases">
               {stats.totalCases.toLocaleString()}
             </div>
-            <p className="text-sm text-muted-foreground">Total Cases</p>
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-200">Total Cases</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
           <CardContent className="p-6 text-center">
-            <div className="text-3xl font-bold text-accent mb-2" data-testid="metric-new-cases">
+            <div className="text-4xl font-bold text-purple-600 dark:text-purple-300 mb-2" data-testid="metric-new-cases">
               {stats.newThisMonth.toLocaleString()}
             </div>
-            <p className="text-sm text-muted-foreground">New This Month</p>
+            <p className="text-sm font-medium text-purple-700 dark:text-purple-200">New This Month</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
           <CardContent className="p-6 text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2" data-testid="metric-remission-rate">
+            <div className="text-4xl font-bold text-green-600 dark:text-green-300 mb-2" data-testid="metric-remission-rate">
               {stats.remissionRate}%
             </div>
-            <p className="text-sm text-muted-foreground">Remission Rate</p>
+            <p className="text-sm font-medium text-green-700 dark:text-green-200">Remission Rate</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800">
           <CardContent className="p-6 text-center">
-            <div className="text-3xl font-bold text-secondary-foreground mb-2" data-testid="metric-active-clinics">
+            <div className="text-4xl font-bold text-amber-600 dark:text-amber-300 mb-2" data-testid="metric-active-clinics">
               {stats.activeClinics}
             </div>
-            <p className="text-sm text-muted-foreground">Active Clinics</p>
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-200">Active Clinics</p>
           </CardContent>
         </Card>
       </div>
