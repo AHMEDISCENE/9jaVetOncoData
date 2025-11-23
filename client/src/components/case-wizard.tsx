@@ -377,7 +377,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>State *</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
                               <SelectTrigger data-testid="select-state">
                                 <SelectValue placeholder="Select State" />
@@ -464,7 +464,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Species *</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
                               <SelectTrigger data-testid="select-species">
                                 <SelectValue placeholder="Select Species" />
@@ -515,7 +515,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Sex</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
                               <SelectTrigger data-testid="select-sex">
                                 <SelectValue placeholder="Select Sex" />
@@ -716,7 +716,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Laterality</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
                               <SelectTrigger data-testid="select-laterality">
                                 <SelectValue placeholder="Select laterality" />
