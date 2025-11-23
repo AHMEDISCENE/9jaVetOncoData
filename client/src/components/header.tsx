@@ -89,7 +89,7 @@ export default function Header() {
             <Menu className="h-5 w-5" />
           </button>
           
-          <h1 className="text-sm sm:text-base md:text-xl font-semibold text-foreground truncate" data-testid="text-page-title">
+          <h1 className="sm:text-base md:text-xl text-foreground truncate ml-[25px] mr-[25px] font-extrabold text-[18px]" data-testid="text-page-title">
             {pageTitle}
           </h1>
         </div>
