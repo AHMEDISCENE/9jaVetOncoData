@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -44,12 +45,25 @@ interface User {
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newRole, setNewRole] = useState("");
   const [newStatus, setNewStatus] = useState("");
+
+  // Redirect non-admin users to dashboard
+  useEffect(() => {
+    if (currentUser && currentUser.role !== "ADMIN") {
+      toast({
+        title: "Access Denied",
+        description: "You need administrator privileges to access that page.",
+        variant: "destructive",
+      });
+      setLocation("/dashboard");
+    }
+  }, [currentUser, setLocation, toast]);
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -148,20 +162,22 @@ export default function UserManagement() {
     }
   };
 
-  if (currentUser?.role !== "ADMIN") {
+  // Loading state while checking auth
+  if (!currentUser) {
     return (
       <div className="container max-w-7xl mx-auto py-8">
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Lock className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium">Access Denied</p>
-            <p className="text-sm text-muted-foreground">
-              You need administrator privileges to access this page.
-            </p>
+          <CardContent className="flex justify-center py-12">
+            <p className="text-muted-foreground">Loading...</p>
           </CardContent>
         </Card>
       </div>
     );
+  }
+
+  // This should rarely show due to redirect in useEffect, but kept as failsafe
+  if (currentUser.role !== "ADMIN") {
+    return null;
   }
 
   return (
