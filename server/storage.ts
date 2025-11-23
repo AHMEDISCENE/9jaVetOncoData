@@ -471,19 +471,11 @@ export class DatabaseStorage implements IStorage {
         query = query.where(lte(cases.diagnosisDate, filters.endDate));
       }
       
-      // Zone filtering - resilient approach
+      // Zone filtering - convert zones to states and filter
       if (filters.zones && filters.zones.length > 0) {
-        if (useJoin) {
-          // Normalize zone values to uppercase for comparison
-          const normalizedZones = filters.zones.map(z => z.toUpperCase());
-          query = query.where(sql`UPPER(ng_states.zone) = ANY(ARRAY[${sql.join(normalizedZones.map(z => sql`${z}`), sql`, `)}])`);
-        } else {
-          const allowedStates = statesForZones(filters.zones);
-          if (allowedStates.length > 0) {
-            query = query.where(
-              sql`LOWER(${cases.state}) = ANY(ARRAY[${sql.join(allowedStates.map(s => sql`${s.toLowerCase()}`), sql`, `)}])`
-            );
-          }
+        const allowedStates = statesForZones(filters.zones);
+        if (allowedStates.length > 0) {
+          query = query.where(inArray(cases.state, allowedStates as any));
         }
       }
       
