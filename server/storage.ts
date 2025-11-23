@@ -119,6 +119,15 @@ export interface IStorage {
   getClinicsList(): Promise<Array<{ id: string; name: string }>>;
   getAllClinics(): Promise<Array<{ id: string; name: string; state: string; city: string }>>;
   getTumourTypesList(): Promise<Array<{ id: string; name: string }>>;
+  getCasesByLocation(filters: {
+    clinicIds?: string[];
+    geoZones?: string[];
+    states?: string[];
+    species?: string;
+    tumourTypeIds?: string[];
+    from?: string;
+    to?: string;
+  }): Promise<Array<{ zone: string; state: string; caseCount: number }>>;
   
   // Attachments
   createAttachment(attachment: InsertAttachment): Promise<Attachment>;
@@ -1604,6 +1613,69 @@ export class DatabaseStorage implements IStorage {
         eq(notifications.userId, userId),
         eq(notifications.isRead, false)
       ));
+  }
+
+  async getCasesByLocation(filters: {
+    clinicIds?: string[];
+    geoZones?: string[];
+    states?: string[];
+    species?: string;
+    tumourTypeIds?: string[];
+    from?: string;
+    to?: string;
+  } = {}): Promise<Array<{ zone: string; state: string; caseCount: number }>> {
+    try {
+      let query = db.select().from(cases).$dynamic();
+
+      if (filters.clinicIds && filters.clinicIds.length > 0) {
+        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+      }
+
+      if (filters.states && filters.states.length > 0) {
+        query = query.where(inArray(cases.state, filters.states));
+      }
+
+      if (filters.geoZones && filters.geoZones.length > 0) {
+        query = query.where(inArray(cases.geoZone, filters.geoZones));
+      }
+
+      if (filters.species) {
+        query = query.where(eq(cases.species, filters.species));
+      }
+
+      if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+        query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+      }
+
+      if (filters.from) {
+        query = query.where(gte(cases.diagnosisDate, new Date(filters.from)));
+      }
+
+      if (filters.to) {
+        query = query.where(lte(cases.diagnosisDate, new Date(filters.to)));
+      }
+
+      const allCases = await query;
+
+      // Aggregate by state and zone
+      const stateMap = new Map<string, { zone: string; count: number }>();
+      allCases.forEach(c => {
+        if (c.state && c.geoZone) {
+          const key = c.state;
+          const current = stateMap.get(key) || { zone: c.geoZone, count: 0 };
+          stateMap.set(key, { zone: current.zone, count: current.count + 1 });
+        }
+      });
+
+      return Array.from(stateMap.entries()).map(([state, data]) => ({
+        state,
+        zone: data.zone,
+        caseCount: data.count,
+      }));
+    } catch (error) {
+      console.error("[ERROR] getCasesByLocation failed:", error);
+      return [];
+    }
   }
 }
 

@@ -1338,6 +1338,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics - Cases by location (geographic distribution)
+  app.get("/api/analytics/cases-by-location", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const userId = (req.session as any).userId;
+      const user = await storage.getUser(userId);
+      
+      // Build filters from query params
+      const filters: any = {};
+      
+      if (req.query.startDate) filters.from = req.query.startDate as string;
+      if (req.query.endDate) filters.to = req.query.endDate as string;
+      if (req.query.species) filters.species = req.query.species as string;
+      if (req.query.tumourType) filters.tumourTypeId = (req.query.tumourType as string).split(',');
+      
+      // For non-SUPER_ADMIN users, restrict to their clinic
+      if (user?.role !== "SUPER_ADMIN") {
+        filters.clinicIds = [clinicId];
+      } else if (req.query.clinicId) {
+        // SUPER_ADMIN can filter by specific clinic(s)
+        const clinicIds = typeof req.query.clinicId === 'string' 
+          ? req.query.clinicId.split(',')
+          : Array.isArray(req.query.clinicId) ? req.query.clinicId : [];
+        if (clinicIds.length > 0) filters.clinicIds = clinicIds;
+      }
+      
+      const locationData = await storage.getCasesByLocation(filters);
+      
+      const totalCases = locationData.reduce((sum, d) => sum + d.caseCount, 0);
+      
+      res.json({
+        data: locationData,
+        meta: {
+          totalCases,
+          generatedAt: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error("[ERROR] cases-by-location failed:", error);
+      res.status(500).json({ 
+        data: [],
+        meta: { totalCases: 0, generatedAt: new Date().toISOString() },
+        error: "Failed to fetch location data"
+      });
+    }
+  });
+
   // Import/Bulk upload routes
   app.post("/api/imports/upload", requireAuth, requireRole("MANAGER"), bulkUpload.single('file'), async (req, res) => {
     try {

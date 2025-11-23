@@ -18,6 +18,20 @@ export interface DashboardStats {
   }>;
 }
 
+export interface LocationCaseStat {
+  zone: string;
+  state: string;
+  caseCount: number;
+}
+
+export interface CasesByLocationResponse {
+  data: LocationCaseStat[];
+  meta: {
+    totalCases: number;
+    generatedAt: string;
+  };
+}
+
 export interface CaseFilters {
   species?: string;
   tumourType?: string;

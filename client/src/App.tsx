@@ -22,6 +22,7 @@ import SetupClinic from "@/pages/setup-clinic";
 import Settings from "@/pages/settings";
 import UserManagement from "@/pages/user-management";
 import { SidebarProvider, useSidebar } from "@/contexts/sidebar-context";
+import { AnalyticsDateRangeProvider } from "@/contexts/analytics-date-range-context";
 
 function AuthenticatedLayout() {
   const { isCollapsed } = useSidebar();
@@ -97,9 +98,11 @@ function Router() {
   }
 
   return (
-    <SidebarProvider>
-      <AuthenticatedLayout />
-    </SidebarProvider>
+    <AnalyticsDateRangeProvider>
+      <SidebarProvider>
+        <AuthenticatedLayout />
+      </SidebarProvider>
+    </AnalyticsDateRangeProvider>
   );
 }
 

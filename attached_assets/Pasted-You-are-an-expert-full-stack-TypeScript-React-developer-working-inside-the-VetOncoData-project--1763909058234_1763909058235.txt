@@ -1,0 +1,153 @@
+You are an expert full-stack TypeScript/React developer working inside the “VetOncoData” project.
+
+Context:
+- Frontend: React + TypeScript + Tailwind (analytics page already exists at something like client/src/pages/analytics.tsx).
+- Backend: Node.js + Express + PostgreSQL.
+- There is already an analytics date-range context and API calls for dashboard stats. Do NOT break these; extend them.
+
+Goal:
+Implement a **geographic map of Nigeria** that shows **cancer case density** by:
+- Geo-political zone
+- State
+(and is structured so we could later extend to LGA).
+
+This map will appear as a new widget on the Analytics page and must integrate with the existing date-range and filters.
+
+------------------------------------------------
+1. Data model & backend aggregation
+------------------------------------------------
+1.1. Find where case records are stored in PostgreSQL (the cases table / model).
+Make sure each case has at least:
+- state: TEXT (e.g. "Kwara", "Lagos")
+- zone: TEXT (e.g. "North Central", "South West")
+
+If these columns do not exist, add them with a migration and ensure any case-creation logic sets them appropriately.
+
+1.2. Create a reusable SQL query or repository function to aggregate case counts by location with date filtering:
+- Input:
+  - startDate
+  - endDate
+  - optional filters: species, tumourType, clinicId, etc. (re-use existing analytics filter pattern if present)
+- Output example:
+  [
+    { zone: "North Central", state: "Kwara", case_count: 42 },
+    { zone: "South West",   state: "Lagos", case_count: 130 },
+    ...
+  ]
+
+1.3. Add a new Express route for this endpoint, for example:
+GET /api/analytics/cases-by-location
+- Accept query params: startDate, endDate, species, tumourType, etc.
+- Use the aggregation function above.
+- Return JSON in a structure that is friendly for the frontend, e.g.:
+
+{
+  "data": [
+    {
+      "zone": "North Central",
+      "state": "Kwara",
+      "caseCount": 42
+    },
+    ...
+  ],
+  "meta": {
+    "totalCases": 500,
+    "generatedAt": "2025-11-23T12:34:56Z"
+  }
+}
+
+Handle validation (bad dates, invalid filters) and return clear error messages. Reuse any existing auth middleware so only authenticated users can call this.
+
+------------------------------------------------
+2. Frontend: Nigeria map component
+------------------------------------------------
+2.1. Choose a simple map library that works well with React and TypeScript, such as:
+- react-simple-maps (preferred)
+or another lightweight library if already used in the project.
+
+2.2. Create a dedicated component for the map, e.g.:
+client/src/components/analytics/NigeriaCaseDensityMap.tsx
+
+Responsibilities:
+- Fetch location data from /api/analytics/cases-by-location.
+- Render a **choropleth map** of Nigeria, shading each state by case density.
+- Show a legend explaining the colour scale.
+- Show tooltips on hover.
+
+2.3. Map rendering details:
+- Use a TopoJSON/GeoJSON of Nigeria’s states.
+- Join each state polygon with the API data via state name (normalize names so they match exactly).
+- Use a colour scale (e.g. light to dark) based on caseCount, with 4–5 buckets.
+- For states with no data, show a neutral “no data” colour.
+- On hover:
+  - Highlight the state boundary.
+  - Show a tooltip with:
+    - State name
+    - Zone name
+    - Case count
+    - % of total cases (if possible).
+
+2.4. Loading and error states:
+- While fetching: show a skeleton/placeholder block with “Loading case density map…”.
+- On error: show a friendly error message and a retry button.
+
+2.5. Responsiveness:
+- Make the map responsive so it looks good on:
+  - Desktop (wide)
+  - Tablet
+  - Narrow screens
+- Use viewBox / preserveAspectRatio so SVG scales naturally.
+- Ensure the legend and title collapse nicely on small screens.
+
+------------------------------------------------
+3. Integration with Analytics page & filters
+------------------------------------------------
+3.1. On the existing Analytics page, add a new section titled something like:
+“Geographic Distribution of Cases – Nigeria”
+
+Insert the NigeriaCaseDensityMap component there.
+
+3.2. Wire the map into the existing analytics date-range context and filters:
+- Use the same date range the other charts use (e.g. last 30 days / last 12 months).
+- If there is a global analytics filter context (species, clinic, tumour type), listen to it and forward those values as query params to /api/analytics/cases-by-location, so the map always reflects the currently selected cohort.
+
+3.3. Cross-interaction (simple level):
+- When the user clicks a state on the map, optionally:
+  - Show a side panel or small popover with:
+    - Case count
+    - Breakdown by species or tumour type (if data is easy to fetch).
+  - Consider emitting a callback (e.g. onStateSelected) that other charts can use later, but do not over-engineer it now.
+
+------------------------------------------------
+4. TypeScript, code quality & structure
+------------------------------------------------
+4.1. Use proper TypeScript types for:
+- API response (CasesByLocationResponse)
+- Individual records (LocationCaseStat)
+
+4.2. Keep concerns separated:
+- API call in a small hook or helper file, e.g. useCasesByLocationQuery.ts
+- Pure presentational map component separate from data fetching where possible.
+
+4.3. Do not leak sensitive data; only aggregate counts are returned.
+4.4. Follow existing linting/Tailwind patterns in the project.
+
+------------------------------------------------
+5. Implementation steps
+------------------------------------------------
+5.1. First, scan the repo and briefly summarise:
+- Where cases are stored in the DB.
+- Existing analytics endpoints and filter context.
+5.2. Outline which files you will create/change.
+5.3. Implement backend aggregation + route.
+5.4. Implement frontend map component + hook.
+5.5. Integrate the map on the Analytics page.
+5.6. Manually test:
+- Different date ranges.
+- No data edge cases.
+- Mobile view (small screen).
+- Error handling.
+
+Only after confirming everything works, tidy up imports and add comments where helpful.
+
+Now implement this Nigeria case-density map feature end-to-end in the VetOncoData project.

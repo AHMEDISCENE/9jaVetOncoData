@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/export";
+import { useCasesByLocation } from "@/hooks/useCasesByLocation";
+import { NigeriaCaseDensityMap } from "@/components/analytics/NigeriaCaseDensityMap";
 import type { DashboardStats } from "@/lib/types";
 
 const COLORS = [
@@ -36,8 +38,19 @@ function groupTumourTypes(tumours: Array<{ name: string; count: number }>, maxIt
 export default function Analytics() {
   const { toast } = useToast();
   const [selectedChart, setSelectedChart] = useState<string | null>(null);
+  
   const { data: stats, isLoading, error } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
+  });
+
+  const { 
+    data: locationData,
+    isLoading: isLocationLoading,
+    error: locationError,
+    refetch: refetchLocation
+  } = useCasesByLocation({
+    startDate: '2025-01-01',
+    endDate: new Date().toISOString().split('T')[0],
   });
 
   if (isLoading) {
@@ -504,6 +517,28 @@ export default function Analytics() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Geographic Distribution Map */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Geographic Distribution of Cases – Nigeria</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {locationData ? (
+            <NigeriaCaseDensityMap
+              data={locationData.data}
+              isLoading={isLocationLoading}
+              error={locationError}
+              onRetry={() => refetchLocation()}
+              totalCases={locationData.meta.totalCases}
+            />
+          ) : (
+            <div className="text-center p-8 text-muted-foreground">
+              <p>Loading geographic data...</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Summary Insights */}
       <Card>
