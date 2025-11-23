@@ -623,6 +623,12 @@ export class DatabaseStorage implements IStorage {
       if (filters.endDate) {
         query = query.where(lte(cases.diagnosisDate, filters.endDate));
       }
+      if (filters.zones && filters.zones.length > 0) {
+        const allowedStates = statesForZones(filters.zones);
+        if (allowedStates.length > 0) {
+          query = query.where(inArray(cases.state, allowedStates as any));
+        }
+      }
       if (filters.states && filters.states.length > 0) {
         query = query.where(inArray(cases.state, filters.states as any));
       }
