@@ -99,16 +99,6 @@ export default function Header() {
     <header className="glass border-b">
       <div className="flex items-center justify-between h-16 px-2 sm:px-4 md:px-6">
         <div className="flex items-center space-x-3 sm:space-x-2 min-w-0 flex-1">
-          {/* Mobile Hamburger Menu */}
-          <button
-            onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className="lg:hidden text-muted-foreground hover:text-foreground p-2 hover:bg-muted/50 rounded-lg transition-colors flex-shrink-0"
-            data-testid="button-toggle-mobile-sidebar"
-            title="Toggle menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          
           <h1 className="flex-1 text-center sm:text-left sm:flex-none sm:text-base md:text-xl text-foreground text-[18px] font-extrabold" data-testid="text-page-title">
             {pageTitle}
           </h1>
