@@ -43,7 +43,6 @@ export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.image || null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return document.documentElement.classList.contains("dark");
@@ -108,8 +107,7 @@ export default function Settings() {
       }
       return response.json();
     },
-    onSuccess: (data) => {
-      setAvatarPreview(data.imageUrl);
+    onSuccess: () => {
       toast({ description: "Avatar uploaded successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },
@@ -180,22 +178,8 @@ export default function Settings() {
       return;
     }
 
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setAvatarPreview(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-
     // Upload
     uploadAvatarMutation.mutate(file);
-  };
-
-  const handleRemoveAvatar = () => {
-    setAvatarPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const handleClinicSubmit = (data: ClinicFormData) => {
@@ -272,7 +256,7 @@ export default function Settings() {
                     <h3 className="text-base font-semibold">Profile Picture</h3>
                     <div className="flex items-center gap-4">
                       <Avatar className="h-20 w-20" data-testid="avatar-preview">
-                        <AvatarImage src={avatarPreview || undefined} alt="Profile" />
+                        <AvatarImage src={user?.image || undefined} alt="Profile" />
                         <AvatarFallback>
                           {user?.name?.split(" ").map(n => n[0]).join("") || "U"}
                         </AvatarFallback>
@@ -297,12 +281,16 @@ export default function Settings() {
                           <Upload className="h-4 w-4 mr-2" />
                           {uploadAvatarMutation.isPending ? "Uploading..." : "Upload Photo"}
                         </Button>
-                        {avatarPreview && (
+                        {user?.image && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={handleRemoveAvatar}
+                            onClick={() => {
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = "";
+                              }
+                            }}
                             data-testid="button-remove-avatar"
                           >
                             <X className="h-4 w-4 mr-2" />
