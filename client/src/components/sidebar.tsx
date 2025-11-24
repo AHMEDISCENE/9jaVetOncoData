@@ -209,14 +209,22 @@ export default function Sidebar() {
             {isCollapsed ? (
               <div className="flex flex-col items-center space-y-2">
                 <motion.div 
-                  className="h-10 w-10 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center shadow-md ring-2 ring-primary/20" 
+                  className="h-10 w-10 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center shadow-md ring-2 ring-primary/20 overflow-hidden flex-shrink-0 relative" 
                   title={user?.name || "Unknown User"}
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  <span className="text-xs font-bold text-primary-foreground" data-testid="text-user-initials">
-                    {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
-                  </span>
+                  {(user as any)?.image ? (
+                    <img 
+                      src={`${window.location.origin}${(user as any).image}?t=${Date.now()}`}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs font-bold text-primary-foreground" data-testid="text-user-initials">
+                      {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
+                    </span>
+                  )}
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
                   <Link 
@@ -246,13 +254,21 @@ export default function Sidebar() {
               <>
                 <div className="flex items-center space-x-2 p-1.5 rounded-lg bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm border border-white/20 dark:border-gray-700/20">
                   <motion.div 
-                    className="h-10 w-10 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-primary/20"
+                    className="h-10 w-10 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-primary/20 overflow-hidden relative"
                     whileHover={{ scale: 1.05 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   >
-                    <span className="text-xs font-bold text-primary-foreground" data-testid="text-user-initials">
-                      {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
-                    </span>
+                    {(user as any)?.image ? (
+                      <img 
+                        src={`${window.location.origin}${(user as any).image}?t=${Date.now()}`}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-bold text-primary-foreground" data-testid="text-user-initials">
+                        {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
+                      </span>
+                    )}
                   </motion.div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-foreground truncate" data-testid="text-user-name">
