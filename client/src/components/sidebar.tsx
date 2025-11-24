@@ -157,75 +157,92 @@ export default function Sidebar() {
 
           {/* User Profile */}
           <motion.div 
-            className="border-t border-border p-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-t-lg"
+            className="border-t border-border/40 p-4 bg-gradient-to-t from-primary/5 via-white/40 to-white/30 dark:from-primary/10 dark:via-gray-900/40 dark:to-gray-900/30 backdrop-blur-md"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
           >
             {isCollapsed ? (
-              <div className="flex flex-col items-center space-y-2">
-                <div className="h-10 w-10 bg-primary/80 rounded-full flex items-center justify-center shadow-md" title={user?.name || "Unknown User"}>
-                  <span className="text-sm font-bold text-primary-foreground" data-testid="text-user-initials">
+              <div className="flex flex-col items-center space-y-3">
+                <motion.div 
+                  className="h-12 w-12 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center shadow-lg ring-2 ring-primary/20" 
+                  title={user?.name || "Unknown User"}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <span className="text-xs font-bold text-primary-foreground" data-testid="text-user-initials">
                     {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                   </span>
-                </div>
-                <Link 
-                  href="/settings"
-                  className="w-full px-2 py-2 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
-                  data-testid="link-settings"
-                  onClick={() => setIsMobileOpen(false)}
-                  title="Settings"
-                >
-                  <Settings className="h-4 w-4" />
-                </Link>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  className="w-full px-2" 
-                  onClick={handleLogout}
-                  data-testid="button-logout"
-                  title="Logout"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                  <Link 
+                    href="/settings"
+                    className="w-full px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary dark:text-primary-foreground dark:hover:text-primary-foreground transition-all duration-200 flex items-center justify-center border border-primary/20 hover:border-primary/40"
+                    data-testid="link-settings"
+                    onClick={() => setIsMobileOpen(false)}
+                    title="Settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Link>
+                </motion.div>
+                <motion.div className="w-full" whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="w-full px-2 font-semibold shadow-md hover:shadow-lg transition-all duration-200" 
+                    onClick={handleLogout}
+                    data-testid="button-logout"
+                    title="Logout"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </motion.div>
               </div>
             ) : (
               <>
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="h-10 w-10 bg-primary/80 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                    <span className="text-sm font-bold text-primary-foreground" data-testid="text-user-initials">
+                <div className="flex items-center space-x-3 mb-4 p-2 rounded-lg bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm border border-white/20 dark:border-gray-700/20">
+                  <motion.div 
+                    className="h-12 w-12 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-primary/20"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <span className="text-xs font-bold text-primary-foreground" data-testid="text-user-initials">
                       {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                     </span>
-                  </div>
+                  </motion.div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-foreground truncate" data-testid="text-user-name">
                       {user?.name || "Unknown User"}
                     </p>
-                    <p className="text-xs font-semibold text-foreground/80 truncate" data-testid="text-clinic-name">
+                    <p className="text-xs font-medium text-foreground/70 truncate" data-testid="text-clinic-name">
                       {clinic?.name || "No Clinic"}
                     </p>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Link 
-                    href="/settings"
-                    className="nav-item gap-2 font-semibold justify-center py-2 rounded-md hover:bg-muted transition-colors"
-                    data-testid="link-settings"
-                    onClick={() => setIsMobileOpen(false)}
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span className="text-sm font-semibold">Settings</span>
-                  </Link>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="w-full font-semibold" 
-                    onClick={handleLogout}
-                    data-testid="button-logout"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                    <Link 
+                      href="/settings"
+                      className="nav-item gap-2 font-semibold justify-start py-2 px-3 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary dark:text-primary-foreground dark:hover:text-primary-foreground transition-all duration-200 border border-primary/20 hover:border-primary/40"
+                      data-testid="link-settings"
+                      onClick={() => setIsMobileOpen(false)}
+                    >
+                      <Settings className="h-4 w-4" />
+                      <span className="text-sm font-semibold">Settings</span>
+                    </Link>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="w-full font-semibold shadow-md hover:shadow-lg transition-all duration-200" 
+                      onClick={handleLogout}
+                      data-testid="button-logout"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </motion.div>
                 </div>
               </>
             )}
