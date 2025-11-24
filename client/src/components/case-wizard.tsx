@@ -116,7 +116,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
     if (isEditing && caseData && Object.keys(caseData).length > 0) {
       form.reset({
         state: caseData.geoZone ? Object.keys(NIGERIA_STATES).find(s => getZoneForState(s) === caseData.geoZone) || "" : "",
-        clinicId: caseData.clinic?.id || userClinic?.id || "",
+        clinicId: caseData.clinic?.name || caseData.clinic?.id || userClinic?.id || "",
         patientName: caseData.patientName || "",
         species: caseData.species || "",
         breed: caseData.breed || "",
@@ -409,32 +409,22 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                     <FormField
                       control={form.control}
                       name="clinicId"
-                      render={({ field }) => {
-                        const selectedClinic = clinics?.find(c => c.id === field.value);
-                        // When editing, prioritize the clinic name from case data
-                        const clinicName = isEditing && caseData?.clinic?.name 
-                          ? caseData.clinic.name
-                          : selectedClinic?.name || field.value || "";
-                        return (
-                          <FormItem>
-                            <FormLabel>Clinic *</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Enter clinic name" 
-                                data-testid="input-clinic-name"
-                                value={clinicName}
-                                onChange={(e) => {
-                                  field.onChange(e.target.value);
-                                }}
-                              />
-                            </FormControl>
-                            <FormDescription className="text-xs">
-                              You can edit this to customize the clinic name for this case
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Clinic *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter clinic name" 
+                              data-testid="input-clinic-name"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription className="text-xs">
+                            You can edit this to customize the clinic name for this case
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
 
