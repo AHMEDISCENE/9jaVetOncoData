@@ -537,6 +537,9 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         return res.status(404).json({ message: "User not found" });
       }
       
+      // Update session role in case it was changed in the database (for role promotions)
+      (req.session as any).userRole = userWithClinic.role;
+      
       res.json({ 
         user: { 
           id: userWithClinic.id, 
