@@ -144,7 +144,7 @@ export default function Sidebar() {
           </div>
 
           {/* Desktop Collapse Toggle */}
-          <div className="hidden lg:px-4 lg:flex lg:py-1">
+          <div className="hidden lg:px-4 lg:flex lg:py-1 bg-[#0000001c]">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-foreground/60 hover:text-foreground hover:bg-primary/8 dark:hover:bg-primary/15 transition-colors"
