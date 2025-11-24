@@ -108,20 +108,22 @@ export default function Sidebar() {
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2 lg:gap-3 overflow-hidden flex-1">
               {!isCollapsed && (
-                <>
+                <motion.div 
+                  className="flex items-center gap-2 lg:gap-3 whitespace-nowrap"
+                  animate={{ x: ["0px", "-60px", "0px"] }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                >
                   <img 
                     src={logoImage} 
                     alt="VetOncoData Logo"
                     className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0 object-contain"
                   />
-                  <motion.span 
-                    className="text-primary whitespace-nowrap tracking-tight text-lg lg:text-[26px] font-extrabold"
-                    animate={{ x: ["0px", "-60px", "0px"] }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                  <span 
+                    className="text-primary tracking-tight text-lg lg:text-[26px] font-extrabold"
                   >
                     9ja VetOncoData
-                  </motion.span>
-                </>
+                  </span>
+                </motion.div>
               )}
               {isCollapsed && (
                 <img 
