@@ -193,18 +193,20 @@
   }
   
   .nav-item.active {
-    @apply text-primary dark:text-primary-foreground font-extrabold;
+    @apply font-extrabold;
+    color: hsl(157 47.4% 26.5%);
     @apply border-l-4 border-primary dark:border-primary-foreground pl-3 pr-4;
-    background: linear-gradient(135deg, hsl(165.65 26.44% 65.88% / 0.35), hsl(165.65 26.44% 65.88% / 0.18));
+    background: linear-gradient(135deg, hsl(165.65 26.44% 65.88% / 0.45), hsl(165.65 26.44% 65.88% / 0.28));
     border-radius: 0 0.75rem 0.75rem 0;
-    box-shadow: 0 6px 16px hsl(165.65 26.44% 65.88% / 0.25);
+    box-shadow: 0 6px 16px hsl(165.65 26.44% 65.88% / 0.35);
     transform: translateX(0px);
     border-left-width: 6px;
   }
   
   .dark .nav-item.active {
-    background: linear-gradient(135deg, hsl(203.7736 87.6033% 52.5490% / 0.4), hsl(203.7736 87.6033% 52.5490% / 0.2));
-    box-shadow: 0 6px 16px hsl(203.7736 87.6033% 52.5490% / 0.3);
+    @apply text-primary-foreground;
+    background: linear-gradient(135deg, hsl(203.7736 87.6033% 52.5490% / 0.5), hsl(203.7736 87.6033% 52.5490% / 0.3));
+    box-shadow: 0 6px 16px hsl(203.7736 87.6033% 52.5490% / 0.4);
   }
   
   .nav-item svg {
