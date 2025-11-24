@@ -1272,60 +1272,124 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.xlsx"`);
         res.send(buffer);
       } else if (format === 'pdf') {
-        const doc = new jsPDF();
+        const outcomeLabels: Record<string, string> = {
+          'REMISSION': 'Remission',
+          'TREATMENT_ONGOING': 'Ongoing Treatment',
+          'MORTALITY': 'Mortality',
+          'EUTHANASIA': 'Euthanasia',
+          'MANAGEMENT': 'Management',
+          'DECEASED': 'Deceased',
+          'LOST_TO_FOLLOWUP': 'Lost to Follow-up',
+        };
+
+        const doc = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4',
+        });
         
         // Add title
-        doc.setFontSize(16);
-        doc.text('Veterinary Cases Report', 14, 15);
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('Veterinary Oncology Cases Report', 14, 15);
         
         // Add metadata
         doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
         doc.setTextColor(100);
-        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 25);
-        doc.text(`Total Cases: ${casesForExport.length}`, 14, 32);
+        doc.text(`Generated: ${new Date().toLocaleDateString()} | Total Cases: ${casesForExport.length}`, 14, 22);
         doc.setTextColor(0);
 
-        // Add simple table with case data
-        let yPosition = 45;
+        // Prepare table data
+        const tableRows = casesForExport.map((c: any) => [
+          c.caseNumber || '',
+          c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
+          (c.patientName || '').substring(0, 15),
+          c.species || '',
+          c.breed || '',
+          c.sex || '',
+          (c.tumourType?.name || c.tumourTypeCustom || '').substring(0, 15),
+          (c.anatomicalSite?.name || c.anatomicalSiteCustom || '').substring(0, 15),
+          c.stage || '',
+          c.state || '',
+          c.clinic?.name || '',
+          outcomeLabels[c.outcome as string] || c.outcome || '',
+        ]);
+
+        // Create table
+        let yStart = 30;
         const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 14;
-        const lineHeight = 6;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 10;
+        const maxWidth = pageWidth - 2 * margin;
         
-        // Table headers
-        doc.setFontSize(9);
+        // Column headers
+        const headers = ['Case ID', 'Date', 'Patient', 'Species', 'Breed', 'Sex', 'Tumour Type', 'Site', 'Stage', 'State', 'Clinic', 'Status'];
+        const colWidths = [12, 14, 15, 13, 13, 8, 15, 15, 10, 12, 15, 18];
+        
+        // Draw header row
         doc.setFont(undefined, 'bold');
-        doc.text('Case ID', margin, yPosition);
-        doc.text('Upload Date', margin + 25, yPosition);
-        doc.text('Patient', margin + 50, yPosition);
-        doc.text('Species', margin + 85, yPosition);
-        doc.text('Tumour Type', margin + 115, yPosition);
-        yPosition += lineHeight;
+        doc.setFillColor(200, 200, 200);
+        doc.setFontSize(8);
+        let xPos = margin;
+        headers.forEach((header, idx) => {
+          doc.rect(xPos, yStart, colWidths[idx], 6, 'F');
+          doc.text(header, xPos + 1, yStart + 4, { maxWidth: colWidths[idx] - 2 });
+          xPos += colWidths[idx];
+        });
         
-        // Draw line
-        doc.setDrawColor(150);
-        doc.line(margin, yPosition, 196, yPosition);
-        yPosition += lineHeight;
-        
-        // Table rows
+        // Draw data rows
         doc.setFont(undefined, 'normal');
-        casesForExport.forEach((c: any) => {
-          if (yPosition > pageHeight - 15) {
+        doc.setFontSize(7);
+        let currentY = yStart + 6;
+        
+        tableRows.forEach((row: any, rowIdx: number) => {
+          // Check if we need a new page
+          if (currentY > pageHeight - 10) {
             doc.addPage();
-            yPosition = 20;
+            currentY = margin;
+            
+            // Redraw header on new page
+            doc.setFont(undefined, 'bold');
+            doc.setFillColor(200, 200, 200);
+            doc.setFontSize(8);
+            let xPosHeader = margin;
+            headers.forEach((header, idx) => {
+              doc.rect(xPosHeader, currentY, colWidths[idx], 6, 'F');
+              doc.text(header, xPosHeader + 1, currentY + 4, { maxWidth: colWidths[idx] - 2 });
+              xPosHeader += colWidths[idx];
+            });
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(7);
+            currentY += 6;
           }
           
-          doc.text(c.caseNumber, margin, yPosition);
-          doc.text(c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '', margin + 25, yPosition);
-          doc.text(c.patientName || '', margin + 50, yPosition);
-          doc.text(c.species || '', margin + 85, yPosition);
-          doc.text(((c.tumourType?.name || c.tumourTypeCustom) || '').substring(0, 20), margin + 115, yPosition);
+          // Draw alternating row background
+          if (rowIdx % 2 === 0) {
+            doc.setFillColor(245, 245, 245);
+            doc.rect(margin, currentY, maxWidth, 5, 'F');
+          }
           
-          yPosition += lineHeight;
+          // Draw row data
+          xPos = margin;
+          row.forEach((cell: any, colIdx: number) => {
+            doc.text(String(cell), xPos + 1, currentY + 3, { 
+              maxWidth: colWidths[colIdx] - 2,
+              overflow: 'hidden'
+            });
+            xPos += colWidths[colIdx];
+          });
+          
+          currentY += 5;
         });
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.pdf"`);
-        res.send(doc.output('arraybuffer'));
+        
+        // Convert to buffer and send
+        const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+        res.send(pdfBuffer);
       }
     } catch (error) {
       console.error("[ERROR] Cases export failed:", error);
