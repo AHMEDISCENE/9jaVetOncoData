@@ -49,8 +49,6 @@ The application includes a complete password reset flow with the following featu
 - **Password Visibility Toggles**: Eye/EyeOff icons in all password fields for easy visibility toggling
 
 ## Recent Changes (November 24, 2025)
-- **Sidebar UI/UX Revamp**: Completely redesigned sidebar with improved typography, better icons (Home, BarChart3, FileText, MessageCircle, CalendarDays, Gear), enhanced visual hierarchy, glassmorphism effects, hover animations, description text on nav items, active state indicators, and refined user profile section - maintains doodle background
-- **Session Role Sync Fix**: `/api/auth/me` endpoint now syncs `req.session.userRole` from database on every call, ensuring role changes immediately reflect in UI after page reload
 - **SUPER_ADMIN Setup Endpoint**: Added `/api/admin/setup-super-admin` endpoint for initializing the first platform SUPER_ADMIN. Endpoint checks if any SUPER_ADMIN exists; if not, allows setup via email. Only works once - prevents unauthorized promotions.
 - **Gmail integration for password resets**: Connected Gmail API via Replit connector for sending actual password reset emails
 - **Email service implementation**: Created `server/email.ts` with OAuth2 authentication for Gmail, handles token expiration and refresh
