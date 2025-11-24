@@ -436,7 +436,7 @@ export default function Analytics() {
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground">Analytics & Insights</h2>
-        <p className="text-muted-foreground">Comprehensive analysis of veterinary oncology data</p>
+        <p className="text-lg font-semibold text-foreground">Comprehensive analysis of veterinary oncology data</p>
       </div>
 
       {/* Key Metrics Cards */}

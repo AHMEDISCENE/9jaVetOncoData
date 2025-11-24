@@ -252,7 +252,7 @@ export default function Feeds() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Feeds & Updates</h2>
-          <p className="text-muted-foreground">Latest news, research, and announcements</p>
+          <p className="text-lg font-semibold text-foreground">Latest news, research, and announcements</p>
         </div>
         {canCreatePost && (
           <Button 

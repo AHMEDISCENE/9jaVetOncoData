@@ -265,7 +265,7 @@ export default function Dashboard() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-lg font-semibold text-foreground">
               {myClinicOnly
                 ? "Viewing your clinic's data"
                 : "Viewing shared data from all clinics"}

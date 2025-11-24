@@ -197,7 +197,7 @@ export default function UserManagement() {
           <Users className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold">User Management</h1>
         </div>
-        <p className="text-muted-foreground">
+        <p className="text-lg font-semibold text-foreground">
           Manage clinic users, roles, and permissions.
         </p>
       </div>

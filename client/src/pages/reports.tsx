@@ -364,7 +364,7 @@ export default function Reports() {
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground">Reports & Analytics</h2>
-        <p className="text-muted-foreground">Generate comprehensive reports and schedule automated deliveries</p>
+        <p className="text-lg font-semibold text-foreground">Generate comprehensive reports and schedule automated deliveries</p>
       </div>
 
       {/* Report Templates */}

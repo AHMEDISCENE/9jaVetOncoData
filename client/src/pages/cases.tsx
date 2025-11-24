@@ -583,7 +583,7 @@ export default function Cases() {
       {/* Cases Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <p className="text-muted-foreground">Manage and view all veterinary oncology cases</p>
+          <p className="text-lg font-semibold text-foreground">Manage and view all veterinary oncology cases</p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-2">
           <Button asChild data-testid="button-new-case">

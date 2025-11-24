@@ -158,7 +158,7 @@ export default function Calendar() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Calendar & Follow-ups</h2>
-          <p className="text-muted-foreground">Manage scheduled follow-ups and reminders</p>
+          <p className="text-lg font-semibold text-foreground">Manage scheduled follow-ups and reminders</p>
         </div>
         
         <div className="mt-4 sm:mt-0 flex items-center gap-3">
