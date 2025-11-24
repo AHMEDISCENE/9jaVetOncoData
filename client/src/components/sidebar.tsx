@@ -124,17 +124,22 @@ export default function Sidebar() {
           </div>
 
           {/* Desktop Collapse Toggle */}
-          <div className="hidden lg:flex px-4 py-3">
+          <div className="hidden lg:px-4 lg:flex lg:py-2">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-primary/8 dark:hover:bg-primary/15 transition-colors group"
               data-testid="button-toggle-sidebar"
               title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {isCollapsed ? (
-                <ChevronRight className="h-5 w-5" />
+                <>
+                  <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                </>
               ) : (
-                <ChevronLeft className="h-5 w-5" />
+                <>
+                  <ChevronLeft className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">Collapse</span>
+                </>
               )}
             </button>
           </div>
