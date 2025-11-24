@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
 import doodleImage from "@assets/generated_images/doodle_art_of_dog_cat_breeds_and_vet_materials.png";
+import logoImage from "@assets/image_1763987419993.png";
 
 export default function Sidebar() {
   const [location] = useLocation();
@@ -105,18 +106,29 @@ export default function Sidebar() {
         <div className="relative flex flex-col h-full">
           {/* Logo Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <div className="flex items-center gap-3 overflow-hidden flex-1">
+            <div className="flex items-center gap-2 lg:gap-3 overflow-hidden flex-1">
               {!isCollapsed && (
-                <motion.span 
-                  className="text-primary whitespace-nowrap tracking-tight text-[26px] font-extrabold"
-                  animate={{ x: ["0px", "-60px", "0px"] }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                >
-                  9ja VetOncoData
-                </motion.span>
+                <>
+                  <img 
+                    src={logoImage} 
+                    alt="VetOncoData Logo"
+                    className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0 object-contain"
+                  />
+                  <motion.span 
+                    className="text-primary whitespace-nowrap tracking-tight text-lg lg:text-[26px] font-extrabold"
+                    animate={{ x: ["0px", "-60px", "0px"] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                  >
+                    9ja VetOncoData
+                  </motion.span>
+                </>
               )}
               {isCollapsed && (
-                <span className="text-xl font-black text-primary">9ja</span>
+                <img 
+                  src={logoImage} 
+                  alt="VetOncoData Logo"
+                  className="h-8 w-8 flex-shrink-0 object-contain"
+                />
               )}
             </div>
             {/* Mobile Close Button */}

@@ -51,6 +51,10 @@ The application includes a complete password reset flow with the following featu
 ## Recent Changes (November 24, 2025)
 
 ### Sidebar & UI Improvements
+- **Logo image addition**: Added veterinary caduceus logo (Nigeria map with medical symbol) before "9ja VetOncoData" text
+  - Logo displays in header when sidebar is expanded
+  - Logo shows alone when sidebar is collapsed
+  - Responsive sizing: h-8 w-8 on mobile, h-10 w-10 on desktop
 - **Logo animation**: Added smooth scrolling animation to "9ja VetOncoData" text to reveal full brand name on mobile devices
 - **Collapse button redesign**: Moved collapse toggle below header with compact styling and "Collapse" label
 - **Mobile header adjustment**: Added margin to close button to prevent text overlap
