@@ -194,7 +194,7 @@ export default function Reports() {
     },
     onSuccess: (data) => {
       // Generate and trigger download with real data
-      generateAndDownloadReport(data.templateId, data.filename, data.format, data.reportData);
+      generateAndDownloadReport(data.templateId, data.filename, data.format, data.reportData, data.customization);
       
       toast({
         title: "Report Generated & Downloaded",
@@ -314,12 +314,27 @@ export default function Reports() {
     scheduleReportMutation.mutate(data as z.infer<typeof scheduleSchema>);
   };
 
-  const generateAndDownloadReport = (templateId: string, filename: string, format: "pdf" | "xlsx" | "csv" = "pdf", reportData: any = {}) => {
+  const generateAndDownloadReport = (templateId: string, filename: string, format: "pdf" | "xlsx" | "csv" = "pdf", reportData: any = {}, customization: any = {}) => {
     const data = reportData?.data || {};
+    
+    // Format duration for display
+    const durationMap: Record<string, string> = {
+      week: "Last 7 Days",
+      month: "Last 30 Days",
+      quarter: "Last 90 Days",
+      year: "Last 12 Months",
+      custom: "Custom Date Range"
+    };
+    const timePeriodText = durationMap[customization?.duration] || "All Time";
+    const dataTypesText = customization?.dataTypes?.length > 0 ? customization.dataTypes.join(", ") : "All Data Types";
     
     if (format === "csv") {
       // CSV format - dynamic based on template
       let content = "Metric,Value\n";
+      content += `Report Generated,${new Date().toLocaleString()}\n`;
+      content += `Time Period,${timePeriodText}\n`;
+      content += `Data Types Included,${dataTypesText}\n`;
+      content += "\n";
       
       if (templateId === "1") {
         content += `Total Cases,${data.totalCases || 0}\n`;
@@ -351,8 +366,6 @@ export default function Reports() {
         content += `Number of Clinics,${data.clinicsCount || 0}\n`;
       }
       
-      content += `Generated,${new Date().toLocaleString()}\n`;
-      
       const blob = new Blob([content], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -370,6 +383,8 @@ export default function Reports() {
         ["9ja VetOncoData Report"],
         ["Generated: " + new Date().toLocaleString()],
         ["Template: " + templateId],
+        ["Time Period: " + timePeriodText],
+        ["Data Types: " + dataTypesText],
         [],
       ];
       
@@ -437,7 +452,13 @@ export default function Reports() {
       doc.text("Generated: " + new Date().toLocaleString(), 20, yPosition);
       yPosition += 6;
       doc.text("Report Type: " + templateId, 20, yPosition);
+      yPosition += 6;
+      doc.setFontSize(9);
+      doc.text("Time Period: " + timePeriodText, 20, yPosition);
+      yPosition += 5;
+      doc.text("Data Types: " + dataTypesText, 20, yPosition);
       yPosition += 10;
+      doc.setFontSize(10);
       
       if (templateId === "1") {
         doc.setFontSize(12);
