@@ -555,8 +555,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       
       try {
         // Try to send email via Gmail
-        const resetLink = `${process.env.APP_URL || 'http://localhost:5000'}/reset-password?token=${token}`;
-        await sendPasswordResetEmail(email, token, resetLink);
+        await sendPasswordResetEmail(email, token);
         res.json({ message: "If email exists, reset link has been sent" });
       } catch (emailError) {
         console.error("[ERROR] Failed to send email, returning token for development:", emailError);

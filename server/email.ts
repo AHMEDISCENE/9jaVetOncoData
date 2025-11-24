@@ -49,19 +49,24 @@ async function getGmailClient() {
   return google.gmail({ version: 'v1', auth: oauth2Client });
 }
 
-export async function sendPasswordResetEmail(toEmail: string, resetToken: string, resetLink: string) {
+export async function sendPasswordResetEmail(toEmail: string, resetToken: string) {
   try {
     const gmail = await getGmailClient();
+    
+    // Generate reset link
+    const appUrl = process.env.APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000');
+    const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
     
     const emailContent = `
 Hello,
 
 You requested a password reset for your 9ja VetOncoData account. 
 
-Your password reset token is: ${resetToken}
-
-Alternatively, you can use this link to reset your password:
+Click the link below to reset your password:
 ${resetLink}
+
+Or copy and paste this token if the link doesn't work:
+${resetToken}
 
 This token will expire in 24 hours.
 
