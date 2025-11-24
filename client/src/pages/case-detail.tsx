@@ -51,6 +51,7 @@ interface CaseWithDetails {
   notes?: string;
   outcome?: string;
   createdBy: { 
+    id: string;
     name: string;
     title?: string;
     jobTitle?: string;
