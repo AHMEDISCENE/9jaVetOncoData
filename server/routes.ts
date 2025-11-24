@@ -758,15 +758,26 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         return res.status(400).json({ message: "No file provided" });
       }
 
-      // Convert to data URL
-      const base64 = req.file.buffer.toString('base64');
-      const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+      // Store avatar file locally
+      const avatarDir = path.join(process.cwd(), "uploads", "avatars");
+      await mkdir(avatarDir, { recursive: true });
       
-      // Update user with avatar data URL
-      const updatedUser = await storage.updateUser(userId, { image: dataUrl });
+      // Create a filename
+      const ext = path.extname(req.file.originalname) || '.png';
+      const filename = `${userId}${ext}`;
+      const filepath = path.join(avatarDir, filename);
+      
+      // Write file
+      await writeFile(filepath, req.file.buffer);
+      
+      // Create public URL
+      const imageUrl = `/uploads/avatars/${filename}`;
+      
+      // Update user with avatar URL
+      const updatedUser = await storage.updateUser(userId, { image: imageUrl });
       
       res.json({ 
-        imageUrl: dataUrl,
+        imageUrl,
         user: updatedUser
       });
     } catch (error) {
