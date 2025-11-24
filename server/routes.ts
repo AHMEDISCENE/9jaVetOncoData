@@ -758,51 +758,20 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         return res.status(400).json({ message: "No file provided" });
       }
 
-      // Generate storage key for avatar
-      const avatarKey = `avatars/${userId}/${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
+      // Convert to data URL
+      const base64 = req.file.buffer.toString('base64');
+      const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
       
-      // Store avatar
-      await putObject({
-        key: avatarKey,
-        buffer: req.file.buffer,
-        contentType: req.file.mimetype,
-      });
-
-      // Return accessible avatar URL
-      const imageUrl = `/api/users/${userId}/avatar-image`;
-      
-      // Update user with avatar URL and store the key for retrieval
-      const updatedUser = await storage.updateUser(userId, { image: avatarKey });
+      // Update user with avatar data URL
+      const updatedUser = await storage.updateUser(userId, { image: dataUrl });
       
       res.json({ 
-        imageUrl,
+        imageUrl: dataUrl,
         user: updatedUser
       });
     } catch (error) {
       console.error("[ERROR] Avatar upload failed:", error);
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to upload avatar" });
-    }
-  });
-
-  // Avatar retrieval route
-  app.get("/api/users/:userId/avatar-image", async (req, res) => {
-    try {
-      const { userId } = req.params;
-      
-      const user = await storage.getUser(userId);
-      if (!user || !user.image) {
-        return res.status(404).json({ message: "Avatar not found" });
-      }
-
-      // Get the avatar image from storage
-      const { buffer, contentType } = await getObject({ key: user.image });
-      
-      res.set('Content-Type', contentType);
-      res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
-      res.send(buffer);
-    } catch (error) {
-      console.error("[ERROR] Avatar retrieval failed:", error);
-      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to retrieve avatar" });
     }
   });
 
