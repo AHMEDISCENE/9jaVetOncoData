@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/export";
@@ -43,6 +45,7 @@ type MetricType = "totalCases" | "newThisMonth" | "remissionRate" | "activeClini
 
 interface SurvivalAnalysisPanelProps {
   filters: any;
+  stats: DashboardStats;
 }
 
 interface SurvivalDataPoint {
@@ -60,7 +63,10 @@ interface SurvivalAnalysisResponse {
   };
 }
 
-function SurvivalAnalysisPanel({ filters }: SurvivalAnalysisPanelProps) {
+const SPECIES_OPTIONS = ["Dog", "Cat"];
+const STAGE_OPTIONS = ["I", "II", "III", "IV", "V"];
+
+function SurvivalAnalysisPanel({ filters, stats }: SurvivalAnalysisPanelProps) {
   const [survivalFilters, setSurvivalFilters] = useState({
     species: filters.species?.[0] || "",
     stage: filters.stage?.[0] || "",
@@ -83,6 +89,9 @@ function SurvivalAnalysisPanel({ filters }: SurvivalAnalysisPanelProps) {
     enabled: showCurve,
   });
 
+  // Extract available species from stats
+  const availableSpecies = stats?.casesBySpecies?.map(s => s.name) || [];
+
   return (
     <Card className="mb-8">
       <CardHeader>
@@ -92,27 +101,52 @@ function SurvivalAnalysisPanel({ filters }: SurvivalAnalysisPanelProps) {
         <div className="space-y-4">
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">Species</label>
-              <input
-                type="text"
-                placeholder="Filter by species"
-                value={survivalFilters.species}
-                onChange={(e) => setSurvivalFilters({ ...survivalFilters, species: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
-                data-testid="input-survival-species"
-              />
+            <div className="space-y-2">
+              <Label htmlFor="survival-species" className="text-sm font-medium">Species</Label>
+              <Select 
+                value={survivalFilters.species} 
+                onValueChange={(value) => setSurvivalFilters({ ...survivalFilters, species: value })}
+              >
+                <SelectTrigger id="survival-species" className="h-9 text-sm" data-testid="select-survival-species">
+                  <SelectValue placeholder="All Species" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Species</SelectItem>
+                  {availableSpecies.length > 0 ? (
+                    availableSpecies.map(species => (
+                      <SelectItem key={species} value={species}>
+                        {species}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    SPECIES_OPTIONS.map(species => (
+                      <SelectItem key={species} value={species}>
+                        {species}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">Stage</label>
-              <input
-                type="text"
-                placeholder="Filter by stage"
-                value={survivalFilters.stage}
-                onChange={(e) => setSurvivalFilters({ ...survivalFilters, stage: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
-                data-testid="input-survival-stage"
-              />
+
+            <div className="space-y-2">
+              <Label htmlFor="survival-stage" className="text-sm font-medium">Stage</Label>
+              <Select 
+                value={survivalFilters.stage} 
+                onValueChange={(value) => setSurvivalFilters({ ...survivalFilters, stage: value })}
+              >
+                <SelectTrigger id="survival-stage" className="h-9 text-sm" data-testid="select-survival-stage">
+                  <SelectValue placeholder="All Stages" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Stages</SelectItem>
+                  {STAGE_OPTIONS.map(stage => (
+                    <SelectItem key={stage} value={stage}>
+                      Stage {stage}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -762,7 +796,7 @@ export default function Analytics() {
       </div>
 
       {/* Survival Analysis (Kaplan-Meier) */}
-      <SurvivalAnalysisPanel filters={filters} />
+      <SurvivalAnalysisPanel filters={filters} stats={stats} />
 
       {/* Geographic Distribution Map */}
       <Card className="mb-8">
