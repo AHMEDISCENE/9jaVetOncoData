@@ -293,6 +293,24 @@ export default function Cases() {
     }
   };
 
+  const canViewCase = (caseItem: CaseWithDetails) => {
+    if (!user || !clinic) return false;
+    
+    const isSuperAdmin = user.role === 'SUPER_ADMIN';
+    const isCreator = caseItem.createdBy && caseItem.createdBy.id === user.id;
+    const isSameClinic = caseItem.clinic && caseItem.clinic.id === clinic.id;
+    
+    // Allow if:
+    // 1. User is SUPER_ADMIN (can view any case across all clinics)
+    // 2. User is from the same clinic
+    // 3. User is the creator (same clinic only)
+    if (isSuperAdmin) return true;
+    if (isSameClinic) return true;
+    if (isCreator && isSameClinic) return true;
+    
+    return false;
+  };
+
   const canDeleteCase = (caseItem: CaseWithDetails) => {
     if (!user || !clinic) return false;
     
@@ -985,11 +1003,13 @@ export default function Cases() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button asChild variant="ghost" size="sm" data-testid={`view-case-${caseItem.id}`}>
-                                <Link href={`/cases/${caseItem.id}`}>
-                                  <i className="fas fa-eye mr-2"></i>View
-                                </Link>
-                              </Button>
+                              {canViewCase(caseItem) && (
+                                <Button asChild variant="ghost" size="sm" data-testid={`view-case-${caseItem.id}`}>
+                                  <Link href={`/cases/${caseItem.id}`}>
+                                    <i className="fas fa-eye mr-2"></i>View
+                                  </Link>
+                                </Button>
+                              )}
                               {canDeleteCase(caseItem) && (
                                 <Button
                                   variant="ghost"
