@@ -66,6 +66,14 @@ The application includes a complete password reset flow with the following featu
   - MANAGER: Can delete/edit cases ONLY in their own clinic
   - Case Creator: Can delete/edit their own cases (same clinic only)
 
+### Case Edit Form - Clinic Name Display Fix
+- **Clinic Field Display Issue**: Fixed broken clinic name display when editing cases
+  - **Issue**: Clinic name field was showing clinic UUID/ID instead of the actual clinic name
+  - **Root Cause**: Form initialization stored clinic ID, but display logic didn't prioritize case clinic name from loaded data
+  - **Fix**: Updated clinic field rendering in case wizard to use `caseData.clinic?.name` when editing
+  - **Logic**: When editing, prioritize clinic name from case data → fall back to clinic lookup → fall back to field value
+  - **Result**: Clinic field now correctly displays clinic name when editing cases
+
 ### Sidebar Navigation UI Update
 - **Glassmorphism Removed**: Replaced semi-transparent glassmorphic design with clean solid colors
   - Removed background image (doodle art) from sidebar

@@ -411,6 +411,10 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                       name="clinicId"
                       render={({ field }) => {
                         const selectedClinic = clinics?.find(c => c.id === field.value);
+                        // When editing, prioritize the clinic name from case data
+                        const clinicName = isEditing && caseData?.clinic?.name 
+                          ? caseData.clinic.name
+                          : selectedClinic?.name || field.value || "";
                         return (
                           <FormItem>
                             <FormLabel>Clinic *</FormLabel>
@@ -418,7 +422,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                               <Input 
                                 placeholder="Enter clinic name" 
                                 data-testid="input-clinic-name"
-                                value={selectedClinic?.name || field.value || ""}
+                                value={clinicName}
                                 onChange={(e) => {
                                   field.onChange(e.target.value);
                                 }}
