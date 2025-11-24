@@ -458,7 +458,7 @@ export default function Settings() {
                             <textarea 
                               placeholder="Tell us about yourself..." 
                               data-testid="input-bio"
-                              className="min-h-24 w-full px-3 py-2 border border-input rounded-md text-sm shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                              className="min-h-24 w-full px-3 py-2 border border-input rounded-md text-sm shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 bg-background text-foreground dark:bg-gray-900 dark:text-gray-50 dark:border-gray-700 focus:outline-none focus:ring-1 focus:ring-primary"
                               {...field} 
                             />
                           </FormControl>
