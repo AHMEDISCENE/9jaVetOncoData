@@ -107,7 +107,7 @@ export default function Sidebar() {
           <div className="flex items-center justify-between px-6 py-6 border-b border-border">
             <div className="flex items-center gap-3 overflow-hidden flex-1">
               {!isCollapsed && (
-                <span className="text-3xl font-black text-primary whitespace-nowrap leading-tight tracking-tight">9ja VetOncoData</span>
+                <span className="text-primary whitespace-nowrap tracking-tight text-[26px] bg-[#f6f9f9] font-extrabold text-justify">9ja VetOncoData</span>
               )}
               {isCollapsed && (
                 <span className="text-xl font-black text-primary">9ja</span>
