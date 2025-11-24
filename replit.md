@@ -49,6 +49,7 @@ The application includes a complete password reset flow with the following featu
 - **Password Visibility Toggles**: Eye/EyeOff icons in all password fields for easy visibility toggling
 
 ## Recent Changes (November 24, 2025)
+- **SUPER_ADMIN Setup Endpoint**: Added `/api/admin/setup-super-admin` endpoint for initializing the first platform SUPER_ADMIN. Endpoint checks if any SUPER_ADMIN exists; if not, allows setup via email. Only works once - prevents unauthorized promotions.
 - **Gmail integration for password resets**: Connected Gmail API via Replit connector for sending actual password reset emails
 - **Email service implementation**: Created `server/email.ts` with OAuth2 authentication for Gmail, handles token expiration and refresh
 - **Updated forgot-password endpoint**: Now sends emails via Gmail with fallback to development mode token display if service unavailable
@@ -57,6 +58,7 @@ The application includes a complete password reset flow with the following featu
 - **Created password_reset_tokens table**: Secure token storage with indexes for fast lookups and expiration management
 - **Added backend password reset endpoints**: Forgot password and reset password API routes with proper validation
 - **Database optimization**: Indexes on user_id, token, and expires_at for efficient queries
+- **heryourdayg9@gmail.com promoted to SUPER_ADMIN** in production
 
 # External Dependencies
 

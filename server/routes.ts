@@ -2628,6 +2628,51 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
     }
   });
 
+  // Setup first super admin (no auth required - only works if no super admin exists)
+  app.post("/api/admin/setup-super-admin", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      // Validate email
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check if any super admin already exists
+      const allUsers = await storage.getAllUsers();
+      const existingSuperAdmin = allUsers.find(u => u.role === "SUPER_ADMIN");
+      
+      if (existingSuperAdmin) {
+        return res.status(403).json({ message: "A SUPER_ADMIN already exists. This setup endpoint can only be used once." });
+      }
+
+      // Find user by email
+      const targetUser = await storage.getUserByEmail(email);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Promote to SUPER_ADMIN
+      const updatedUser = await storage.updateUser(targetUser.id, { role: "SUPER_ADMIN" as any });
+
+      // Log this action (use the user's own ID as actor since this is setup)
+      await storage.createAuditLog({
+        actorId: targetUser.id,
+        clinicId: targetUser.clinicId,
+        entityType: 'USER',
+        entityId: targetUser.id,
+        action: 'UPDATE',
+        diff: { before: { role: targetUser.role }, after: { role: 'SUPER_ADMIN' } },
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.json({ message: "Super admin setup successful", user: updatedUser });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to setup super admin" });
+    }
+  });
+
   // Notifications
   app.get("/api/notifications", requireAuth, async (req, res) => {
     try {
