@@ -14,6 +14,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ReportTemplate {
   id: string;
@@ -22,6 +23,16 @@ interface ReportTemplate {
   lastRun?: string;
   status: string;
 }
+
+const customizeReportSchema = z.object({
+  duration: z.enum(["week", "month", "quarter", "year", "custom"]),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  dataTypes: z.array(z.string()).min(1, "Select at least one data type"),
+  includeSummary: z.boolean().default(true),
+  includeCharts: z.boolean().default(true),
+  format: z.enum(["pdf", "xlsx", "csv"]).default("pdf"),
+});
 
 const scheduleSchema = z.object({
   frequency: z.enum(["weekly", "monthly", "quarterly"]),
@@ -88,6 +99,7 @@ const mockReportHistory = [
 export default function Reports() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [customizeDialogOpen, setCustomizeDialogOpen] = useState(false);
   const [formatDialogOpen, setFormatDialogOpen] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "xlsx" | "csv">("pdf");
   const [reportTemplateForFormat, setReportTemplateForFormat] = useState<string | null>(null);
@@ -104,6 +116,26 @@ export default function Reports() {
     },
   });
 
+  const customizeForm = useForm({
+    resolver: zodResolver(customizeReportSchema),
+    defaultValues: {
+      duration: "month",
+      dataTypes: ["summary", "cases", "outcomes"],
+      includeSummary: true,
+      includeCharts: true,
+      format: "pdf",
+    },
+  });
+
+  const dataTypeOptions = [
+    { id: "summary", label: "Summary Statistics" },
+    { id: "cases", label: "Case Details" },
+    { id: "tumours", label: "Tumour Analysis" },
+    { id: "outcomes", label: "Treatment Outcomes" },
+    { id: "trends", label: "Trends & Comparisons" },
+    { id: "demographics", label: "Patient Demographics" },
+  ];
+
   // Mock query - would fetch real data in production
   const { data: templates, isLoading } = useQuery({
     queryKey: ["/api/reports/templates"],
@@ -116,7 +148,18 @@ export default function Reports() {
   });
 
   const runReportMutation = useMutation({
-    mutationFn: async (data: { templateId: string; format: "pdf" | "xlsx" | "csv" }) => {
+    mutationFn: async (data: { 
+      templateId: string; 
+      format: "pdf" | "xlsx" | "csv";
+      customization?: {
+        duration: string;
+        startDate?: string;
+        endDate?: string;
+        dataTypes: string[];
+        includeSummary: boolean;
+        includeCharts: boolean;
+      };
+    }) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       let fileExtension = "txt";
@@ -129,6 +172,7 @@ export default function Reports() {
         filename,
         templateId: data.templateId,
         format: data.format,
+        customization: data.customization,
       };
     },
     onSuccess: (data) => {
@@ -179,7 +223,26 @@ export default function Reports() {
 
   const handleRunReport = (templateId: string) => {
     setReportTemplateForFormat(templateId);
-    setFormatDialogOpen(true);
+    setCustomizeDialogOpen(true);
+  };
+
+  const handleCustomizeSubmit = (data: any) => {
+    if (reportTemplateForFormat) {
+      setRunningReportId(reportTemplateForFormat);
+      runReportMutation.mutate({
+        templateId: reportTemplateForFormat,
+        format: data.format as "pdf" | "xlsx" | "csv",
+        customization: {
+          duration: data.duration as string,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          dataTypes: data.dataTypes,
+          includeSummary: data.includeSummary,
+          includeCharts: data.includeCharts,
+        },
+      });
+      setCustomizeDialogOpen(false);
+    }
   };
 
   const handleConfirmRunReport = () => {
@@ -230,8 +293,8 @@ export default function Reports() {
     });
   };
 
-  const onScheduleSubmit = (data: z.infer<typeof scheduleSchema>) => {
-    scheduleReportMutation.mutate(data);
+  const onScheduleSubmit = (data: any) => {
+    scheduleReportMutation.mutate(data as z.infer<typeof scheduleSchema>);
   };
 
   const generateAndDownloadReport = (templateId: string, filename: string, format: "pdf" | "xlsx" | "csv" = "pdf") => {
@@ -480,6 +543,193 @@ export default function Reports() {
           )}
         </CardContent>
       </Card>
+
+      {/* Customize Report Dialog */}
+      <Dialog open={customizeDialogOpen} onOpenChange={setCustomizeDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Customize Report</DialogTitle>
+            <DialogDescription>
+              Select the data types, duration, and format for your report
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...customizeForm}>
+            <form onSubmit={customizeForm.handleSubmit(handleCustomizeSubmit)} className="space-y-6">
+              {/* Duration Selection */}
+              <FormField
+                control={customizeForm.control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time Period</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-duration">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="week">Last 7 Days</SelectItem>
+                        <SelectItem value="month">Last 30 Days</SelectItem>
+                        <SelectItem value="quarter">Last 90 Days</SelectItem>
+                        <SelectItem value="year">Last 12 Months</SelectItem>
+                        <SelectItem value="custom">Custom Date Range</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              {/* Custom Date Range - Show if custom selected */}
+              {customizeForm.watch("duration") === "custom" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormItem>
+                    <FormLabel>Start Date</FormLabel>
+                    <FormControl>
+                      <input
+                        type="date"
+                        value={customizeForm.getValues("startDate") || ""}
+                        onChange={(e) => customizeForm.setValue("startDate", e.target.value)}
+                        className="w-full px-3 py-2 border border-input rounded-md text-sm"
+                        data-testid="input-start-date"
+                      />
+                    </FormControl>
+                  </FormItem>
+                  <FormItem>
+                    <FormLabel>End Date</FormLabel>
+                    <FormControl>
+                      <input
+                        type="date"
+                        value={customizeForm.getValues("endDate") || ""}
+                        onChange={(e) => customizeForm.setValue("endDate", e.target.value)}
+                        className="w-full px-3 py-2 border border-input rounded-md text-sm"
+                        data-testid="input-end-date"
+                      />
+                    </FormControl>
+                  </FormItem>
+                </div>
+              )}
+
+              {/* Data Type Selection */}
+              <FormField
+                control={customizeForm.control}
+                name="dataTypes"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Data Types to Include</FormLabel>
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      {dataTypeOptions.map((option) => (
+                        <FormField
+                          key={option.id}
+                          control={customizeForm.control}
+                          name="dataTypes"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center space-x-2">
+                              <Checkbox
+                                checked={field.value?.includes(option.id)}
+                                onCheckedChange={(checked) => {
+                                  const current = field.value || [];
+                                  if (checked) {
+                                    field.onChange([...current, option.id]);
+                                  } else {
+                                    field.onChange(current.filter((val: string) => val !== option.id));
+                                  }
+                                }}
+                                data-testid={`checkbox-${option.id}`}
+                              />
+                              <FormLabel className="!mt-0 text-sm font-normal cursor-pointer">
+                                {option.label}
+                              </FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {/* Report Options */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={customizeForm.control}
+                  name="includeSummary"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid="checkbox-summary"
+                      />
+                      <FormLabel className="!mt-0 text-sm font-normal cursor-pointer">
+                        Include Summary
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={customizeForm.control}
+                  name="includeCharts"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid="checkbox-charts"
+                      />
+                      <FormLabel className="!mt-0 text-sm font-normal cursor-pointer">
+                        Include Charts & Graphs
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Format Selection */}
+              <FormField
+                control={customizeForm.control}
+                name="format"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Report Format</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-report-format">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF Document</SelectItem>
+                        <SelectItem value="xlsx">Excel Spreadsheet</SelectItem>
+                        <SelectItem value="csv">CSV File</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              {/* Buttons */}
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCustomizeDialogOpen(false)}
+                  data-testid="button-cancel-customize"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={runningReportId === reportTemplateForFormat}
+                  data-testid="button-generate-custom-report"
+                >
+                  {runningReportId === reportTemplateForFormat ? "Generating..." : "Generate Report"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
       {/* Format Selection Dialog */}
       <Dialog open={formatDialogOpen} onOpenChange={setFormatDialogOpen}>
