@@ -1183,7 +1183,17 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
 
       if (format === 'csv') {
         // Build CSV content manually for reliable export
-        const headers = ['Case ID', 'Upload Date', 'Patient Name', 'Species', 'Breed', 'Age', 'Sex', 'Tumour Type', 'Anatomical Site', 'Stage', 'State', 'Clinic', 'Case Status', 'Outcome', 'Diagnosis Date', 'Diagnosis Method'];
+        const outcomeLabels: Record<string, string> = {
+          'REMISSION': 'Remission',
+          'TREATMENT_ONGOING': 'Ongoing Treatment',
+          'MORTALITY': 'Mortality',
+          'EUTHANASIA': 'Euthanasia',
+          'MANAGEMENT': 'Management',
+          'DECEASED': 'Deceased',
+          'LOST_TO_FOLLOWUP': 'Lost to Follow-up',
+        };
+
+        const headers = ['Case ID', 'Upload Date', 'Patient Name', 'Species', 'Breed', 'Age', 'Sex', 'Tumour Type', 'Anatomical Site', 'Stage', 'State', 'Clinic', 'Status', 'Diagnosis Date', 'Diagnosis Method'];
         
         const rows = casesForExport.map((c: any) => [
           c.caseNumber || '',
@@ -1198,8 +1208,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           c.stage || '',
           c.state || '',
           c.clinic?.name || '',
-          c.status || '',
-          c.outcome || '',
+          outcomeLabels[c.outcome as string] || c.outcome || '',
           c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : '',
           c.diagnosisMethod || ''
         ]);
@@ -1222,6 +1231,16 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.csv"`);
         res.send(blobContent);
       } else if (format === 'xlsx') {
+        const outcomeLabels: Record<string, string> = {
+          'REMISSION': 'Remission',
+          'TREATMENT_ONGOING': 'Ongoing Treatment',
+          'MORTALITY': 'Mortality',
+          'EUTHANASIA': 'Euthanasia',
+          'MANAGEMENT': 'Management',
+          'DECEASED': 'Deceased',
+          'LOST_TO_FOLLOWUP': 'Lost to Follow-up',
+        };
+
         const wsData = casesForExport.map((c: any) => ({
           'Case ID': c.caseNumber,
           'Upload Date': c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
@@ -1236,8 +1255,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           'Stage': c.stage || '',
           'State': c.state || '',
           'Clinic': c.clinic?.name || '',
-          'Case Status': c.status || '',
-          'Outcome': c.outcome || '',
+          'Status': outcomeLabels[c.outcome as string] || c.outcome || '',
           'Treatment Plan': c.treatmentPlan || '',
           'Treatment Start': c.treatmentStart ? new Date(c.treatmentStart).toLocaleDateString() : '',
           'Last Follow Up': c.lastFollowUp ? new Date(c.lastFollowUp).toLocaleDateString() : '',
