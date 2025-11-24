@@ -23,8 +23,11 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     }
 
     try {
+      // Construct WebSocket URL properly handling potential port issues
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws/notifications?userId=${encodeURIComponent(userId)}`;
+      const host = window.location.hostname;
+      const port = window.location.port || (window.location.protocol === 'https:' ? 443 : 80);
+      const wsUrl = `${protocol}//${host}:${port}/ws/notifications?userId=${encodeURIComponent(userId)}`;
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
