@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
-import { FileText, Image, Upload, X, ArrowLeft, Eye, MapPin, User, Calendar, Stethoscope, AlertCircle } from "lucide-react";
+import { FileText, Image, Upload, X, ArrowLeft, Eye, MapPin, User, Calendar, Stethoscope, AlertCircle, Download, FileJson } from "lucide-react";
 import type { CaseFile } from "@shared/schema";
+import jsPDF from "jspdf";
+import * as XLSX from "xlsx";
 
 const outcomeColors: Record<string, string> = {
   REMISSION: "bg-emerald-100 text-emerald-900",
@@ -69,6 +71,7 @@ export default function CaseDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: caseData, isLoading: caseLoading } = useQuery<CaseWithDetails>({
     queryKey: [`/api/cases/${caseId}`],
@@ -154,6 +157,152 @@ export default function CaseDetail() {
 
     setIsUploading(true);
     uploadMutation.mutate(file);
+  };
+
+  const formatData = (data: CaseWithDetails) => {
+    return {
+      "Case Number": data.caseNumber,
+      "Patient Name": data.patientName || "Unnamed Patient",
+      "Species": data.species,
+      "Breed": data.breed,
+      "Sex": data.sex ? data.sex.replace(/_/g, ' ') : "Not specified",
+      "Age": `${data.ageYears || 0}y ${data.ageMonths || 0}m`,
+      "Diagnosis Date": new Date(data.diagnosisDate).toLocaleDateString(),
+      "Diagnosis Method": data.diagnosisMethod || "Not specified",
+      "Tumour Type": data.tumourType?.name || data.tumourTypeCustom || "Not specified",
+      "Anatomical Site": data.anatomicalSite?.name || data.anatomicalSiteCustom || "Not specified",
+      "Laterality": data.laterality || "Not specified",
+      "Stage": data.stage || "Not specified",
+      "Treatment Plan": data.treatmentPlan || "Not specified",
+      "Treatment Start": data.treatmentStart ? new Date(data.treatmentStart).toLocaleDateString() : "Not specified",
+      "Outcome/Status": outcomeLabels[data.outcome!] || data.outcome || "Not specified",
+      "Notes": data.notes || "Not specified",
+      "Clinic Name": data.clinic.name,
+      "Clinic State": data.clinic.state ? data.clinic.state.replace(/_/g, ' ') : "Not specified",
+      "Clinic City": data.clinic.city || "Not specified",
+      "Clinic Address": data.clinic.address || "Not specified",
+      "Created By": `${data.createdBy.title ? data.createdBy.title + ' ' : ''}${data.createdBy.name}`,
+      "Job Title": data.createdBy.jobTitle || "Not specified",
+      "Specialty": data.createdBy.specialty || "Not specified",
+    };
+  };
+
+  const exportToPDF = async () => {
+    if (!caseData) return;
+    
+    try {
+      setIsExporting(true);
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let yPosition = 15;
+      const lineHeight = 7;
+      const margin = 15;
+      const contentWidth = pageWidth - 2 * margin;
+
+      // Title
+      doc.setFontSize(20);
+      doc.text(`Case Report: ${caseData.caseNumber}`, margin, yPosition);
+      yPosition += 12;
+
+      // Patient name
+      doc.setFontSize(14);
+      doc.text(caseData.patientName || "Unnamed Patient", margin, yPosition);
+      yPosition += 8;
+
+      const data = formatData(caseData);
+
+      // Content
+      doc.setFontSize(10);
+      Object.entries(data).forEach(([key, value]) => {
+        if (yPosition > pageHeight - 15) {
+          doc.addPage();
+          yPosition = 15;
+        }
+
+        doc.setFont(undefined, "bold");
+        doc.text(`${key}:`, margin, yPosition);
+        
+        doc.setFont(undefined, "normal");
+        const textLines = doc.splitTextToSize(String(value), contentWidth - 50);
+        doc.text(textLines, margin + 50, yPosition);
+
+        const lineCount = textLines.length;
+        yPosition += lineHeight * lineCount + 3;
+      });
+
+      doc.save(`${caseData.caseNumber}_${caseData.patientName || 'case'}.pdf`);
+      toast({
+        title: "PDF exported successfully",
+        description: `Case ${caseData.caseNumber} has been exported as PDF.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export case as PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportToExcel = async () => {
+    if (!caseData) return;
+
+    try {
+      setIsExporting(true);
+      const data = formatData(caseData);
+      const worksheet = XLSX.utils.json_to_sheet([data]);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Case Data");
+      XLSX.writeFile(workbook, `${caseData.caseNumber}_${caseData.patientName || 'case'}.xlsx`);
+      
+      toast({
+        title: "Excel exported successfully",
+        description: `Case ${caseData.caseNumber} has been exported as Excel.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export case as Excel",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportToJSON = async () => {
+    if (!caseData) return;
+
+    try {
+      setIsExporting(true);
+      const data = formatData(caseData);
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${caseData.caseNumber}_${caseData.patientName || 'case'}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "JSON exported successfully",
+        description: `Case ${caseData.caseNumber} has been exported as JSON.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export case as JSON",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (caseLoading) {
@@ -250,12 +399,50 @@ export default function CaseDetail() {
                 </CardContent>
               </Card>
 
-              {/* Edit Button */}
-              <Link href={`/cases/${caseId}/edit`}>
-                <Button className="w-full" data-testid="button-edit-case">
-                  Edit Case
-                </Button>
-              </Link>
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                <Link href={`/cases/${caseId}/edit`}>
+                  <Button className="w-full" data-testid="button-edit-case">
+                    Edit Case
+                  </Button>
+                </Link>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={exportToPDF}
+                    disabled={isExporting}
+                    data-testid="button-export-pdf"
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    PDF
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={exportToExcel}
+                    disabled={isExporting}
+                    data-testid="button-export-excel"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Excel
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={exportToJSON}
+                    disabled={isExporting}
+                    data-testid="button-export-json"
+                  >
+                    <FileJson className="h-4 w-4 mr-1" />
+                    JSON
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
