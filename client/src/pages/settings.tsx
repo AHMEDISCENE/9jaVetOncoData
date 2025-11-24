@@ -263,10 +263,13 @@ export default function Settings() {
                       {user?.image ? (
                         <img 
                           key={avatarTimestamp}
-                          src={`${user.image}?t=${avatarTimestamp}`}
+                          src={`${window.location.origin}${user.image}?t=${avatarTimestamp}`}
                           alt="Profile"
-                          className="h-20 w-20 rounded-full object-cover"
+                          className="h-20 w-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
                           data-testid="avatar-preview"
+                          onError={(e) => {
+                            console.error('Image failed to load:', (e.target as HTMLImageElement).src);
+                          }}
                         />
                       ) : (
                         <Avatar className="h-20 w-20" data-testid="avatar-preview">
