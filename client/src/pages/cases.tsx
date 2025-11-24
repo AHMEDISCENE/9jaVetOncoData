@@ -304,11 +304,11 @@ export default function Cases() {
     
     // Allow if:
     // 1. User is SUPER_ADMIN (can delete any case across all clinics)
-    // 2. User is ADMIN (can delete any case)
+    // 2. User is ADMIN from the same clinic (can delete any case in their clinic)
     // 3. User is MANAGER from the same clinic
     // 4. User is the creator from the same clinic
     if (isSuperAdmin) return true;
-    if (isAdmin) return true;
+    if (isAdmin && isSameClinic) return true;
     if (isManager && isSameClinic) return true;
     if (isCreator && isSameClinic) return true;
     
