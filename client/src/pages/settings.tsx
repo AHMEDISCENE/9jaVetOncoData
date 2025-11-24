@@ -109,7 +109,9 @@ export default function Settings() {
     },
     onSuccess: () => {
       toast({ description: "Avatar uploaded successfully" });
+      // Invalidate and refetch immediately
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
     },
     onError: (error: any) => {
       toast({ 
@@ -256,7 +258,7 @@ export default function Settings() {
                     <h3 className="text-base font-semibold">Profile Picture</h3>
                     <div className="flex items-center gap-4">
                       <Avatar className="h-20 w-20" data-testid="avatar-preview">
-                        <AvatarImage src={user?.image || undefined} alt="Profile" />
+                        <AvatarImage key={user?.image} src={user?.image || undefined} alt="Profile" />
                         <AvatarFallback>
                           {user?.name?.split(" ").map(n => n[0]).join("") || "U"}
                         </AvatarFallback>
