@@ -178,7 +178,7 @@
   
   .nav-item:hover {
     @apply text-foreground dark:text-foreground;
-    background-color: hsl(165.65 35% 55% / 0.35);
+    background-color: hsl(165.65 26.44% 65.88% / 0.2);
     border-radius: 0.75rem;
     transform: translateX(4px);
     padding-left: 1rem;
@@ -189,25 +189,22 @@
   }
   
   .dark .nav-item:hover {
-    background-color: hsl(203.7736 87.6033% 52.5490% / 0.35);
+    background-color: hsl(203.7736 87.6033% 52.5490% / 0.22);
   }
   
   .nav-item.active {
-    @apply font-extrabold;
+    @apply text-primary dark:text-primary-foreground font-extrabold;
     @apply border-l-4 border-primary dark:border-primary-foreground pl-3 pr-4;
-    color: hsl(0 0% 100%);
-    background: linear-gradient(135deg, hsl(165.65 40% 45% / 0.75), hsl(165.65 35% 50% / 0.65));
+    background: linear-gradient(135deg, hsl(165.65 26.44% 65.88% / 0.35), hsl(165.65 26.44% 65.88% / 0.18));
     border-radius: 0 0.75rem 0.75rem 0;
-    box-shadow: 0 8px 20px hsl(165.65 40% 45% / 0.4);
+    box-shadow: 0 6px 16px hsl(165.65 26.44% 65.88% / 0.25);
     transform: translateX(0px);
     border-left-width: 6px;
-    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   
   .dark .nav-item.active {
-    color: hsl(0 0% 100%);
-    background: linear-gradient(135deg, hsl(165.65 40% 45% / 0.8), hsl(165.65 35% 50% / 0.7));
-    box-shadow: 0 8px 20px hsl(165.65 40% 45% / 0.5);
+    background: linear-gradient(135deg, hsl(203.7736 87.6033% 52.5490% / 0.4), hsl(203.7736 87.6033% 52.5490% / 0.2));
+    box-shadow: 0 6px 16px hsl(203.7736 87.6033% 52.5490% / 0.3);
   }
   
   .nav-item svg {
