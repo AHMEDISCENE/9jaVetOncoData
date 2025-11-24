@@ -163,6 +163,28 @@ export default function CaseDetail() {
     uploadMutation.mutate(file);
   };
 
+  const canEditCase = () => {
+    if (!user || !clinic || !caseData) return false;
+
+    const isSuperAdmin = user.role === 'SUPER_ADMIN';
+    const isAdmin = user.role === 'ADMIN';
+    const isManager = user.role === 'MANAGER';
+    const isCreator = caseData.createdBy && caseData.createdBy.id === user.id;
+    const isSameClinic = caseData.clinic && caseData.clinic.id === clinic.id;
+
+    // Allow if:
+    // 1. User is SUPER_ADMIN (can edit any case across all clinics)
+    // 2. User is ADMIN from the same clinic (can edit any case in their clinic)
+    // 3. User is MANAGER from the same clinic
+    // 4. User is the creator from the same clinic
+    if (isSuperAdmin) return true;
+    if (isAdmin && isSameClinic) return true;
+    if (isManager && isSameClinic) return true;
+    if (isCreator && isSameClinic) return true;
+
+    return false;
+  };
+
   const formatData = (data: CaseWithDetails) => {
     return {
       "Case Number": data.caseNumber,
@@ -416,11 +438,13 @@ export default function CaseDetail() {
 
               {/* Action Buttons */}
               <div className="space-y-2">
-                <Link href={`/cases/${caseId}/edit`}>
-                  <Button className="w-full" data-testid="button-edit-case">
-                    Edit Case
-                  </Button>
-                </Link>
+                {canEditCase() && (
+                  <Link href={`/cases/${caseId}/edit`}>
+                    <Button className="w-full" data-testid="button-edit-case">
+                      Edit Case
+                    </Button>
+                  </Link>
+                )}
                 
                 <div className="flex gap-2">
                   <Button 

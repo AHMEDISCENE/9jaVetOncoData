@@ -50,17 +50,21 @@ The application includes a complete password reset flow with the following featu
 
 ## Recent Changes (November 24, 2025)
 
-### Case Management Delete Permissions Fix (CRITICAL SECURITY FIX)
+### Case Management Permissions Fixes (CRITICAL SECURITY FIXES)
 - **Delete Icon Visibility Bug**: Fixed unauthorized delete button display in case management list
   - **Issue**: ADMIN users from other clinics could see delete icons for cases outside their clinic
   - **Root Cause**: Permission check was `if (isAdmin) return true;` without clinic validation
   - **Fix**: Updated to `if (isAdmin && isSameClinic) return true;`
   - **Result**: Delete buttons now only visible to authorized users (SUPER_ADMIN, same-clinic ADMIN/MANAGER, or case creator)
-- **Permission Rules Corrected**:
-  - SUPER_ADMIN: Can delete any case across all clinics
-  - ADMIN: Can delete cases ONLY in their own clinic
-  - MANAGER: Can delete cases ONLY in their own clinic
-  - Case Creator: Can delete their own cases (same clinic only)
+- **Edit Button Visibility Bug**: Fixed unauthorized edit button display in case detail page
+  - **Issue**: ADMIN users from other clinics could see edit button for cases outside their clinic
+  - **Fix**: Added `canEditCase()` permission function to case detail page with same clinic validation
+  - **Result**: Edit button now only visible to authorized users (SUPER_ADMIN, same-clinic ADMIN/MANAGER, or case creator)
+- **Permission Rules Corrected (applies to both delete and edit)**:
+  - SUPER_ADMIN: Can delete/edit any case across all clinics
+  - ADMIN: Can delete/edit cases ONLY in their own clinic
+  - MANAGER: Can delete/edit cases ONLY in their own clinic
+  - Case Creator: Can delete/edit their own cases (same clinic only)
 
 ### Sidebar Navigation UI Update
 - **Glassmorphism Removed**: Replaced semi-transparent glassmorphic design with clean solid colors
