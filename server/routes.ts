@@ -496,7 +496,11 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         clinic: userWithClinic?.clinic 
       });
     } catch (error) {
-      res.status(400).json({ message: "Login failed" });
+      console.error("[ERROR] Login failed:", error);
+      if (error instanceof Error && error.message.includes("validation")) {
+        return res.status(400).json({ message: "Please enter a valid email and password." });
+      }
+      res.status(400).json({ message: error instanceof Error ? error.message : "Login failed" });
     }
   });
 
