@@ -2347,18 +2347,19 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       const user = await storage.getUser(userId);
       const { id } = req.params;
       
-      // Get the post to check author
+      // Get the post to check author and clinic
       const post = await storage.getFeedPostById(id);
       if (!post) {
         return res.status(404).json({ message: "Post not found" });
       }
       
-      // Author or ADMIN can delete
+      // Author, ADMIN (from same clinic), or SUPER_ADMIN can delete
       const isAuthor = post.authorId === userId;
-      const isAdmin = user?.role === 'ADMIN';
+      const isAdmin = user?.role === 'ADMIN' && user?.clinicId === post.clinicId;
+      const isSuperAdmin = user?.role === 'SUPER_ADMIN';
       
-      if (!isAuthor && !isAdmin) {
-        return res.status(403).json({ message: "Only the post author or admin can delete this post" });
+      if (!isAuthor && !isAdmin && !isSuperAdmin) {
+        return res.status(403).json({ message: "Only the post author, admin, or super admin can delete this post" });
       }
       
       await storage.deleteFeedPost(id);
