@@ -201,7 +201,7 @@ export default function Sidebar() {
 
           {/* User Profile */}
           <motion.div 
-            className="border-t border-border/40 p-3 bg-gradient-to-t from-primary/5 via-white/40 to-white/30 dark:from-primary/10 dark:via-gray-900/40 dark:to-gray-900/30 backdrop-blur-md space-y-2"
+            className="border-t border-border/40 p-3 from-primary/5 via-white/40 to-white/30 dark:from-primary/10 dark:via-gray-900/40 dark:to-gray-900/30 backdrop-blur-md space-y-2 bg-[#0000001a]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
