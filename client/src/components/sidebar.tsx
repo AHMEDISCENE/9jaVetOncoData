@@ -18,7 +18,7 @@ import {
   X,
   Menu,
   Users,
-  Gear,
+  Settings as SettingsIcon,
   Home
 } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
@@ -218,7 +218,7 @@ export default function Sidebar() {
                     onClick={() => setIsMobileOpen(false)}
                     title="Settings"
                   >
-                    <Gear className="h-5 w-5" />
+                    <SettingsIcon className="h-5 w-5" />
                   </Link>
                   <Button 
                     variant="default" 
@@ -262,7 +262,7 @@ export default function Sidebar() {
                       onClick={() => setIsMobileOpen(false)}
                     >
                       <div className="flex items-center justify-center rounded-md bg-white/10 dark:bg-gray-700/30 p-1.5 group-hover:bg-white/20 dark:group-hover:bg-gray-700/50 transition-all">
-                        <Gear className="h-4 w-4" />
+                        <SettingsIcon className="h-4 w-4" />
                       </div>
                       <span className="text-sm font-semibold">Settings</span>
                     </Link>
