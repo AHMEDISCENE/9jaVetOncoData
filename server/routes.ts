@@ -974,12 +974,12 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
   app.get("/api/cases", async (req, res) => {
     try {
       // Guard the session
-      if (!req.session?.userId) {
+      if (!(req.session as any)?.userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const userId = req.session.userId;
-      let clinicId = req.session.clinicId;
+      const userId = (req.session as any).userId;
+      let clinicId = (req.session as any).clinicId;
 
       // Always have a clinicId - auto-create if missing
       if (!clinicId) {
@@ -999,7 +999,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         await storage.updateUser(userId, { clinicId: defaultClinic.id });
         
         // Update session
-        req.session.clinicId = defaultClinic.id;
+        (req.session as any).clinicId = defaultClinic.id;
         clinicId = defaultClinic.id;
       }
       
@@ -1412,12 +1412,12 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         
         // Add title
         doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
+        doc.setFont('', 'bold');
         doc.text('Veterinary Oncology Cases Report', 14, 15);
         
         // Add metadata
         doc.setFontSize(9);
-        doc.setFont(undefined, 'normal');
+        doc.setFont('', 'normal');
         doc.setTextColor(100);
         doc.text(`Generated: ${new Date().toLocaleDateString()} | Total Cases: ${casesForExport.length}`, 14, 21);
         doc.setTextColor(0);
@@ -1442,62 +1442,62 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           doc.rect(margin, currentY, maxWidth, 38, 'FD');
 
           // Case ID and Status
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.setFontSize(10);
           doc.setTextColor(0);
           doc.text(`Case #${c.caseNumber}`, margin + 2, currentY + 5);
           
           doc.setFontSize(8);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           const statusText = outcomeLabels[c.outcome as string] || c.outcome || 'Unknown';
           doc.setTextColor(76, 175, 80);
           doc.text(statusText, pageWidth - margin - 30, currentY + 5);
 
           // Patient info
           doc.setTextColor(0);
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.setFontSize(8);
           doc.text('Patient:', margin + 2, currentY + 12);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           doc.text((c.patientName || 'N/A').substring(0, 40), margin + 20, currentY + 12);
 
           // Species and Breed
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.text('Species:', margin + 2, currentY + 18);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           doc.text(c.species || 'N/A', margin + 20, currentY + 18);
           
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.text('Breed:', margin + 75, currentY + 18);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           doc.text((c.breed || 'N/A').substring(0, 20), margin + 90, currentY + 18);
 
           // Tumour and Site
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.text('Tumour:', margin + 2, currentY + 24);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           doc.text((c.tumourType?.name || c.tumourTypeCustom || 'N/A').substring(0, 35), margin + 20, currentY + 24);
 
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.text('Site:', margin + 75, currentY + 24);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           doc.text((c.anatomicalSite?.name || c.anatomicalSiteCustom || 'N/A').substring(0, 20), margin + 90, currentY + 24);
 
           // Location and Diagnosis Date
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.text('State:', margin + 2, currentY + 30);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           doc.text(c.state || 'N/A', margin + 20, currentY + 30);
 
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.text('Clinic:', margin + 75, currentY + 30);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           doc.text((c.clinic?.name || 'N/A').substring(0, 20), margin + 90, currentY + 30);
 
           // Diagnosis info
-          doc.setFont(undefined, 'bold');
+          doc.setFont('', 'bold');
           doc.text('Diagnosis:', margin + 2, currentY + 36);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('', 'normal');
           const diagDate = c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : 'N/A';
           const diagMethod = c.diagnosisMethod || 'N/A';
           doc.text(`${diagDate} (${diagMethod})`, margin + 20, currentY + 36);
@@ -2663,7 +2663,7 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       // Log this action (use the user's own ID as actor since this is setup)
       await storage.createAuditLog({
         actorId: targetUser.id,
-        clinicId: targetUser.clinicId,
+        clinicId: targetUser.clinicId || '',
         entityType: 'USER',
         entityId: targetUser.id,
         action: 'UPDATE',
