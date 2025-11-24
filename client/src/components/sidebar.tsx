@@ -163,9 +163,10 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-4 space-y-2">
+          <nav className={`flex-1 space-y-1 ${isCollapsed ? "lg:px-2 px-4 py-4" : "px-4 py-4"}`}>
             {allNavigation.map((item, index) => {
               const Icon = item.icon;
+              const itemActive = isActive(item.href);
               return (
                 <motion.div
                   key={item.name}
@@ -175,13 +176,23 @@ export default function Sidebar() {
                 >
                   <Link 
                     href={item.href}
-                    className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "lg:justify-center lg:px-3" : ""}`}
+                    className={`nav-item group ${itemActive ? "active" : "hover:bg-opacity-100"} ${
+                      isCollapsed 
+                        ? "lg:justify-center lg:p-3 lg:rounded-md lg:w-full" 
+                        : "justify-start"
+                    }`}
                     data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
                     onClick={() => setIsMobileOpen(false)}
                     title={isCollapsed ? item.name : undefined}
                   >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
-                    <span className={`${isCollapsed ? "lg:hidden" : ""}`}>{item.name}</span>
+                    <Icon className={`flex-shrink-0 transition-all duration-200 ${
+                      isCollapsed 
+                        ? "lg:h-6 lg:w-6 h-5 w-5" 
+                        : "h-5 w-5"
+                    } ${itemActive ? "text-primary dark:text-primary-foreground" : "group-hover:text-primary dark:group-hover:text-primary"}`} />
+                    <span className={`transition-opacity duration-200 ${isCollapsed ? "lg:hidden" : ""}`}>
+                      {item.name}
+                    </span>
                   </Link>
                 </motion.div>
               );
