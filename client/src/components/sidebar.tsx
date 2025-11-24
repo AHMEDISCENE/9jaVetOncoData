@@ -125,16 +125,16 @@ export default function Sidebar() {
           {/* Desktop Collapse Toggle */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex items-center justify-center h-10 mx-2 mt-2 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 text-muted-foreground hover:text-primary transition-all duration-300 border border-primary/10 hover:border-primary/30 group"
+            className="hidden lg:flex items-center justify-center h-10 mx-2 mt-2 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
             data-testid="button-toggle-sidebar"
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {isCollapsed ? (
-              <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              <ChevronRight className="h-4 w-4" />
             ) : (
               <>
-                <ChevronLeft className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:-translate-x-0.5" />
-                <span className="text-sm font-semibold">Collapse</span>
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                <span className="text-sm">Collapse</span>
               </>
             )}
           </button>
@@ -152,7 +152,7 @@ export default function Sidebar() {
                 >
                   <Link 
                     href={item.href}
-                    className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "lg:justify-center lg:w-10 lg:h-10 lg:p-2.5 lg:mx-auto lg:pl-0 lg:pr-0" : ""}`}
+                    className={`nav-item ${isActive(item.href) ? "active" : ""} ${isCollapsed ? "lg:justify-center lg:px-3" : ""}`}
                     data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
                     onClick={() => setIsMobileOpen(false)}
                     title={isCollapsed ? item.name : undefined}
