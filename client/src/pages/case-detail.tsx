@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
-import { FileText, Image, Upload, X, ArrowLeft, Eye } from "lucide-react";
+import { FileText, Image, Upload, X, ArrowLeft, Eye, MapPin, User } from "lucide-react";
 import type { CaseFile } from "@shared/schema";
 
 const outcomeColors: Record<string, string> = {
@@ -47,8 +47,19 @@ interface CaseWithDetails {
   treatmentStart?: string;
   notes?: string;
   outcome?: string;
-  createdBy: { name: string };
-  clinic: { name: string };
+  createdBy: { 
+    name: string;
+    title?: string;
+    jobTitle?: string;
+    specialty?: string;
+    image?: string;
+  };
+  clinic: { 
+    name: string;
+    state?: string;
+    city?: string;
+    address?: string;
+  };
 }
 
 export default function CaseDetail() {
@@ -167,7 +178,7 @@ export default function CaseDetail() {
   return (
     <div className="container mx-auto py-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <Link href="/cases">
             <Button variant="ghost" size="sm" data-testid="button-back-to-cases">
@@ -177,47 +188,121 @@ export default function CaseDetail() {
           </Link>
           <h1 className="text-3xl font-bold mt-2" data-testid="text-case-number">{caseData.caseNumber}</h1>
         </div>
-        <div className="flex gap-2">
+        
+        {/* User Info Card */}
+        <div className="flex flex-col gap-2">
+          <Card className="w-64 sm:w-72">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                {caseData.createdBy.image ? (
+                  <img 
+                    src={caseData.createdBy.image} 
+                    alt={caseData.createdBy.name}
+                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <User className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm" data-testid="text-creator-name">
+                    {caseData.createdBy.title ? `${caseData.createdBy.title} ` : ""}{caseData.createdBy.name}
+                  </p>
+                  {caseData.createdBy.jobTitle && (
+                    <p className="text-xs text-muted-foreground" data-testid="text-creator-job">
+                      {caseData.createdBy.jobTitle}
+                    </p>
+                  )}
+                  {caseData.createdBy.specialty && (
+                    <p className="text-xs text-muted-foreground" data-testid="text-creator-specialty">
+                      {caseData.createdBy.specialty}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
           <Link href={`/cases/${caseId}/edit`}>
-            <Button variant="outline" data-testid="button-edit-case">
+            <Button variant="outline" className="w-full" data-testid="button-edit-case">
               Edit Case
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* Patient Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Patient Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Patient Information & Clinic Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Patient Information */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Patient Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Patient Name</p>
+                  <p className="font-medium" data-testid="text-patient-name">{caseData.patientName || "Unnamed Patient"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Species</p>
+                  <p className="font-medium" data-testid="text-species">{caseData.species}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Breed</p>
+                  <p className="font-medium" data-testid="text-breed">{caseData.breed}</p>
+                </div>
+                {caseData.sex && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Sex</p>
+                    <p className="font-medium">{caseData.sex.replace(/_/g, ' ')}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Age</p>
+                  <p className="font-medium">{caseData.ageYears || 0}y {caseData.ageMonths || 0}m</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Clinic Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Clinic Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground">Patient Name</p>
-              <p className="font-medium" data-testid="text-patient-name">{caseData.patientName || "Unnamed Patient"}</p>
+              <p className="text-sm text-muted-foreground">Clinic Name</p>
+              <p className="font-medium" data-testid="text-clinic-name">{caseData.clinic.name}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Species</p>
-              <p className="font-medium" data-testid="text-species">{caseData.species}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Breed</p>
-              <p className="font-medium" data-testid="text-breed">{caseData.breed}</p>
-            </div>
-            {caseData.sex && (
+            {caseData.clinic.state && (
               <div>
-                <p className="text-sm text-muted-foreground">Sex</p>
-                <p className="font-medium">{caseData.sex.replace(/_/g, ' ')}</p>
+                <p className="text-sm text-muted-foreground">State</p>
+                <p className="font-medium" data-testid="text-clinic-state">{caseData.clinic.state.replace(/_/g, ' ')}</p>
               </div>
             )}
-            <div>
-              <p className="text-sm text-muted-foreground">Age</p>
-              <p className="font-medium">{caseData.ageYears || 0}y {caseData.ageMonths || 0}m</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            {caseData.clinic.city && (
+              <div>
+                <p className="text-sm text-muted-foreground">City</p>
+                <p className="font-medium" data-testid="text-clinic-city">{caseData.clinic.city}</p>
+              </div>
+            )}
+            {caseData.clinic.address && (
+              <div>
+                <p className="text-sm text-muted-foreground">Address</p>
+                <p className="font-medium text-sm" data-testid="text-clinic-address">{caseData.clinic.address}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Tumour Details */}
       <Card>
