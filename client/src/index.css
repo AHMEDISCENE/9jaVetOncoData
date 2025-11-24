@@ -150,15 +150,42 @@
   }
 
   .nav-item {
-    @apply flex items-center px-4 py-3 text-sm font-medium text-muted-foreground rounded-lg transition-all hover:bg-muted hover:text-foreground;
+    @apply flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ease-in-out;
+    @apply focus-visible:outline-none focus-visible:ring-2;
+    color: hsl(0 0% 8.24% / 0.7);
+    --tw-ring-color: hsl(202.8169 89.1213% 53.1373% / 0.5);
+  }
+  
+  .dark .nav-item {
+    color: hsl(200 6.6667% 91.1765% / 0.75);
+  }
+  
+  .nav-item:hover {
+    @apply text-foreground dark:text-foreground scale-105 origin-left;
+    background-color: hsl(165.65 26.44% 65.88% / 0.15);
+  }
+  
+  .dark .nav-item:hover {
+    background-color: hsl(203.7736 87.6033% 52.5490% / 0.2);
   }
   
   .nav-item.active {
-    @apply bg-primary text-primary-foreground hover:bg-primary hover:opacity-90;
+    @apply text-primary dark:text-primary-foreground font-bold;
+    @apply border-l-4 border-primary dark:border-primary-foreground pl-3 pr-4;
+    @apply shadow-sm dark:shadow-lg;
+    background: linear-gradient(to right, hsl(165.65 26.44% 65.88% / 0.25), hsl(165.65 26.44% 65.88% / 0.15));
   }
   
-  .nav-item i {
-    @apply w-5 h-5 flex-shrink-0;
+  .dark .nav-item.active {
+    background: linear-gradient(to right, hsl(203.7736 87.6033% 52.5490% / 0.35), hsl(203.7736 87.6033% 52.5490% / 0.25));
+  }
+  
+  .nav-item svg {
+    @apply w-5 h-5 flex-shrink-0 transition-all duration-200;
+  }
+  
+  .nav-item.active svg {
+    @apply text-primary dark:text-primary-foreground;
   }
 }
 
