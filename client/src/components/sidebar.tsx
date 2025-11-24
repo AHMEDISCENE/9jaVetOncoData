@@ -105,11 +105,11 @@ export default function Sidebar() {
         
         <div className="relative flex flex-col h-full">
           {/* Logo Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <div className="flex items-center gap-2 lg:gap-3 overflow-hidden flex-1">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-border h-20">
+            <div className="flex items-center gap-2 lg:gap-3 overflow-hidden flex-1 h-full">
               {!isCollapsed && (
                 <motion.div 
-                  className="flex items-center gap-2 lg:gap-3 whitespace-nowrap"
+                  className="flex items-center gap-2 lg:gap-3 whitespace-nowrap h-full"
                   animate={{ x: ["0px", "-60px", "0px"] }}
                   transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
                 >
@@ -119,18 +119,20 @@ export default function Sidebar() {
                     className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0 object-contain"
                   />
                   <span 
-                    className="text-primary tracking-tight text-lg lg:text-[26px] font-extrabold"
+                    className="text-primary tracking-tight text-lg lg:text-[26px] font-extrabold leading-none"
                   >
                     9ja VetOncoData
                   </span>
                 </motion.div>
               )}
               {isCollapsed && (
-                <img 
-                  src={logoImage} 
-                  alt="VetOncoData Logo"
-                  className="h-8 w-8 flex-shrink-0 object-contain"
-                />
+                <div className="flex items-center justify-center w-full h-full">
+                  <img 
+                    src={logoImage} 
+                    alt="VetOncoData Logo"
+                    className="h-8 w-8 flex-shrink-0 object-contain"
+                  />
+                </div>
               )}
             </div>
             {/* Mobile Close Button */}
