@@ -483,7 +483,22 @@ export class DatabaseStorage implements IStorage {
     try {
       // Simple query without ng_states join - we compute zones in memory
       query = db
-        .select()
+        .select({
+          cases: cases,
+          clinics: clinics,
+          creator: {
+            id: creator.id,
+            name: creator.name,
+            email: creator.email,
+            role: creator.role,
+            title: creator.title,
+            jobTitle: creator.jobTitle,
+            specialty: creator.specialty,
+            image: creator.image,
+          },
+          tumour_types: tumourTypes,
+          anatomical_sites: anatomicalSites,
+        })
         .from(cases)
         .leftJoin(clinics, eq(cases.clinicId, clinics.id))
         .leftJoin(creator, eq(cases.createdBy, creator.id))
@@ -631,7 +646,22 @@ export class DatabaseStorage implements IStorage {
       
       // Fallback: simple query without zone filtering
       query = db
-        .select()
+        .select({
+          cases: cases,
+          clinics: clinics,
+          creator: {
+            id: creator.id,
+            name: creator.name,
+            email: creator.email,
+            role: creator.role,
+            title: creator.title,
+            jobTitle: creator.jobTitle,
+            specialty: creator.specialty,
+            image: creator.image,
+          },
+          tumour_types: tumourTypes,
+          anatomical_sites: anatomicalSites,
+        })
         .from(cases)
         .leftJoin(clinics, eq(cases.clinicId, clinics.id))
         .leftJoin(creator, eq(cases.createdBy, creator.id))
@@ -756,7 +786,22 @@ export class DatabaseStorage implements IStorage {
     const creator = alias(users, 'creator');
     
     const [result] = await db
-      .select()
+      .select({
+        cases: cases,
+        clinics: clinics,
+        creator: {
+          id: creator.id,
+          name: creator.name,
+          email: creator.email,
+          role: creator.role,
+          title: creator.title,
+          jobTitle: creator.jobTitle,
+          specialty: creator.specialty,
+          image: creator.image,
+        },
+        tumour_types: tumourTypes,
+        anatomical_sites: anatomicalSites,
+      })
       .from(cases)
       .leftJoin(clinics, eq(cases.clinicId, clinics.id))
       .leftJoin(creator, eq(cases.createdBy, creator.id))
