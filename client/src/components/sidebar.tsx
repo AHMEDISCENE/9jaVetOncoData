@@ -129,7 +129,7 @@ export default function Sidebar() {
                 <img 
                   src={logoImage} 
                   alt="VetOncoData Logo"
-                  className="h-8 w-8 flex-shrink-0 object-contain"
+                  className="h-8 w-8 flex-shrink-0 object-contain ml-[22px] mr-[22px]"
                 />
               )}
             </div>
