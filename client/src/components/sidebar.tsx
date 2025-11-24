@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   ChevronLeft, 
@@ -27,6 +27,16 @@ export default function Sidebar() {
   const [location] = useLocation();
   const { user, clinic, logout } = useAuth();
   const { isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen } = useSidebar();
+  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -86,7 +96,7 @@ export default function Sidebar() {
         } w-64`}
         style={{ backgroundImage: `url(${doodleImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}
         initial={{ x: -300 }}
-        animate={{ x: isMobileOpen || typeof window === 'undefined' || window.innerWidth >= 1024 ? 0 : -300 }}
+        animate={{ x: isMobileOpen || isDesktop ? 0 : -300 }}
         transition={{ type: "spring", damping: 20, stiffness: 100, duration: 0.4 }}
       >
         {/* Background overlay for text readability - subtle like header */}
