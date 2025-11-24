@@ -260,16 +260,21 @@ export default function Settings() {
                   <div className="space-y-4 border-b pb-4">
                     <h3 className="text-base font-semibold">Profile Picture</h3>
                     <div className="flex items-center gap-4">
-                      <Avatar className="h-20 w-20" data-testid="avatar-preview">
-                        <AvatarImage 
-                          key={avatarTimestamp} 
-                          src={user?.image ? `${user.image}?t=${avatarTimestamp}` : undefined} 
-                          alt="Profile" 
+                      {user?.image ? (
+                        <img 
+                          key={avatarTimestamp}
+                          src={`${user.image}?t=${avatarTimestamp}`}
+                          alt="Profile"
+                          className="h-20 w-20 rounded-full object-cover"
+                          data-testid="avatar-preview"
                         />
-                        <AvatarFallback>
-                          {user?.name?.split(" ").map(n => n[0]).join("") || "U"}
-                        </AvatarFallback>
-                      </Avatar>
+                      ) : (
+                        <Avatar className="h-20 w-20" data-testid="avatar-preview">
+                          <AvatarFallback>
+                            {user?.name?.split(" ").map(n => n[0]).join("") || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
                       <div className="flex flex-col gap-2">
                         <input
                           ref={fileInputRef}
