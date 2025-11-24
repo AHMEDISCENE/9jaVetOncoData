@@ -103,41 +103,40 @@ export default function Sidebar() {
         <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white/90 to-white/85 dark:from-gray-950/95 dark:via-gray-950/90 dark:to-gray-950/85 pointer-events-none" />
         
         <div className="relative flex flex-col h-full">
-          {/* Logo */}
+          {/* Logo Header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-            <div className="flex items-center space-x-2 overflow-hidden">
-              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                <Stethoscope className="h-4 w-4 text-primary-foreground" />
+            <div className="flex items-center gap-3 overflow-hidden flex-1">
+              <div className="h-10 w-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                <Stethoscope className="h-5 w-5 text-primary-foreground" />
               </div>
               {!isCollapsed && (
-                <span className="text-lg font-bold text-foreground whitespace-nowrap">9ja VetOncoData</span>
+                <span className="text-2xl font-bold text-foreground whitespace-nowrap">9ja VetOncoData</span>
               )}
             </div>
-            <button 
-              className="lg:hidden text-muted-foreground hover:text-foreground"
-              onClick={toggleMobileSidebar}
-              data-testid="button-close-sidebar"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Desktop Collapse Arrow Button */}
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="hidden lg:flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors"
+                data-testid="button-toggle-sidebar"
+                title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="h-5 w-5" />
+                ) : (
+                  <ChevronLeft className="h-5 w-5" />
+                )}
+              </button>
+              {/* Mobile Close Button */}
+              <button 
+                className="lg:hidden flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors"
+                onClick={toggleMobileSidebar}
+                data-testid="button-close-sidebar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-
-          {/* Desktop Collapse Toggle */}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex items-center justify-center h-10 mx-2 mt-2 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            data-testid="button-toggle-sidebar"
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <>
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                <span className="text-sm">Collapse</span>
-              </>
-            )}
-          </button>
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-2">
