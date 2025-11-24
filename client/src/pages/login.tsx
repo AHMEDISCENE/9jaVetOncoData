@@ -122,17 +122,22 @@ export default function Login() {
         body: JSON.stringify({ email: forgotPasswordEmail }),
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
         toast({
           title: "Email sent",
-          description: "Check your email for password reset instructions",
+          description: data.devMessage || "Check your email for password reset instructions",
         });
         setForgotPasswordStep("reset");
+        // Auto-fill token in development mode for testing
+        if (data.token) {
+          setResetToken(data.token);
+        }
       } else {
-        const error = await response.json();
         toast({
           title: "Error",
-          description: error.message || "Failed to send reset email",
+          description: data.message || "Failed to send reset email",
           variant: "destructive",
         });
       }

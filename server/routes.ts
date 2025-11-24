@@ -550,11 +550,16 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
 
       const token = await storage.createPasswordResetToken(user.id);
       
-      // TODO: In production, send email with reset link containing token
-      // For now, we'll just return success and the token can be obtained from logs or dev tools
       console.log(`[PASSWORD_RESET] Reset token for ${email}: ${token}`);
       
-      res.json({ message: "If email exists, reset link has been sent" });
+      // In development, return the token for testing. In production, send via email
+      const response: any = { message: "If email exists, reset link has been sent" };
+      if (process.env.NODE_ENV === 'development') {
+        response.token = token;
+        response.devMessage = "Development mode: token included for testing";
+      }
+      
+      res.json(response);
     } catch (error) {
       console.error("[ERROR] Forgot password failed:", error);
       res.status(500).json({ message: "Failed to process password reset request" });
