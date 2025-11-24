@@ -126,7 +126,7 @@ export default function Header() {
       {/* Overlay for text readability */}
       <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/90 to-white/85 dark:from-gray-950/95 dark:via-gray-950/90 dark:to-gray-950/85 pointer-events-none" />
       
-      <div className="relative flex items-center justify-between h-14 sm:h-16 md:h-20 px-3 sm:px-6 md:px-10">
+      <div className="relative flex items-center justify-between h-14 sm:h-16 md:h-20 px-3 sm:px-6 md:px-10 bg-[#0000001c]">
         <div className="flex items-center space-x-2 min-w-0 flex-1">
           {/* Mobile Menu Button */}
           <button
