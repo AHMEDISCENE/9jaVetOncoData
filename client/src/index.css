@@ -198,8 +198,13 @@
     @apply text-foreground dark:text-foreground;
     background-color: hsl(165.65 26.44% 65.88% / 0.2);
     border-radius: 0.75rem;
-    transform: translateX(4px);
-    padding-left: 1rem;
+  }
+
+  @media (min-width: 1024px) {
+    .nav-item:hover {
+      transform: translateX(4px);
+      padding-left: 1rem;
+    }
   }
   
   .nav-item:hover::before {
