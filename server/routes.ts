@@ -2770,7 +2770,7 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       // Generate report data based on template type
       let reportData: any = {};
       
-      if (templateId === "monthly-summary") {
+      if (templateId === "1") {
         const totalCases = allCases.length;
         const remissionCases = allCases.filter(c => c.outcome === "REMISSION").length;
         const remissionRate = totalCases > 0 ? Math.round((remissionCases / totalCases) * 100) : 0;
@@ -2790,7 +2790,7 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
           casesByMonth,
           avgCasesPerMonth: totalCases > 0 ? Math.round(totalCases / Object.keys(casesByMonth).length) : 0,
         };
-      } else if (templateId === "tumour-incidence") {
+      } else if (templateId === "2") {
         // Group by tumour type
         const tumourCounts: Record<string, number> = {};
         allCases.forEach(c => {
@@ -2810,7 +2810,7 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
           speciesDistribution: speciesCounts,
           topTumours: Object.entries(tumourCounts).sort((a, b) => b[1] - a[1]).slice(0, 5),
         };
-      } else if (templateId === "treatment-outcomes") {
+      } else if (templateId === "3") {
         const outcomeData: Record<string, number> = {};
         allCases.forEach(c => {
           const outcome = c.outcome || "Unknown";
@@ -2827,7 +2827,7 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
           progressionRate: totalWithOutcome > 0 ? Math.round(((outcomeData["PROGRESSION"] || 0) / totalWithOutcome) * 100) : 0,
           deceasedRate: totalWithOutcome > 0 ? Math.round(((outcomeData["DECEASED"] || 0) / totalWithOutcome) * 100) : 0,
         };
-      } else if (templateId === "clinic-performance") {
+      } else if (templateId === "4") {
         // Fetch from all clinics (for SUPER_ADMIN/broad overview)
         const allClinicsCases = await storage.getCases(undefined, {
           startDate: dateStart,

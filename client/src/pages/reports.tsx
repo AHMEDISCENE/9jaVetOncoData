@@ -321,7 +321,7 @@ export default function Reports() {
       // CSV format - dynamic based on template
       let content = "Metric,Value\n";
       
-      if (templateId === "monthly-summary") {
+      if (templateId === "1") {
         content += `Total Cases,${data.totalCases || 0}\n`;
         content += `Remission Cases,${data.remissionCases || 0}\n`;
         content += `Progression Cases,${data.progressionCases || 0}\n`;
@@ -329,7 +329,7 @@ export default function Reports() {
         Object.entries(data.casesByMonth || {}).forEach(([month, count]: any) => {
           content += `${month},${count}\n`;
         });
-      } else if (templateId === "tumour-incidence") {
+      } else if (templateId === "2") {
         content += `Total Cases,${data.totalCases || 0}\n`;
         Object.entries(data.tumourIncidence || {}).forEach(([type, count]: any) => {
           content += `Tumour Type: ${type},${count}\n`;
@@ -338,7 +338,7 @@ export default function Reports() {
         Object.entries(data.speciesDistribution || {}).forEach(([species, count]: any) => {
           content += `${species},${count}\n`;
         });
-      } else if (templateId === "treatment-outcomes") {
+      } else if (templateId === "3") {
         content += `Total Cases,${data.totalCases || 0}\n`;
         content += `Success Rate,${data.successRate || 0}%\n`;
         content += `Progression Rate,${data.progressionRate || 0}%\n`;
@@ -346,7 +346,7 @@ export default function Reports() {
         Object.entries(data.outcomes || {}).forEach(([outcome, count]: any) => {
           content += `${outcome},${count}\n`;
         });
-      } else if (templateId === "clinic-performance") {
+      } else if (templateId === "4") {
         content += `Total Cases,${data.totalCases || 0}\n`;
         content += `Number of Clinics,${data.clinicsCount || 0}\n`;
       }
@@ -373,7 +373,7 @@ export default function Reports() {
         [],
       ];
       
-      if (templateId === "monthly-summary") {
+      if (templateId === "1") {
         summaryData.push(["Monthly Oncology Summary"]);
         summaryData.push(["Metric", "Value"]);
         summaryData.push(["Total Cases", data.totalCases || 0]);
@@ -386,7 +386,7 @@ export default function Reports() {
         Object.entries(data.casesByMonth || {}).forEach(([month, count]: any) => {
           summaryData.push([month, count]);
         });
-      } else if (templateId === "tumour-incidence") {
+      } else if (templateId === "2") {
         summaryData.push(["Tumour Incidence Analysis"]);
         summaryData.push(["Total Cases", data.totalCases || 0]);
         summaryData.push([]);
@@ -399,7 +399,7 @@ export default function Reports() {
         Object.entries(data.speciesDistribution || {}).forEach(([species, count]: any) => {
           summaryData.push([species, count]);
         });
-      } else if (templateId === "treatment-outcomes") {
+      } else if (templateId === "3") {
         summaryData.push(["Treatment Outcomes Report"]);
         summaryData.push(["Total Cases", data.totalCases || 0]);
         summaryData.push(["Success Rate", `${data.successRate || 0}%`]);
@@ -410,7 +410,7 @@ export default function Reports() {
         Object.entries(data.outcomes || {}).forEach(([outcome, count]: any) => {
           summaryData.push([outcome, count]);
         });
-      } else if (templateId === "clinic-performance") {
+      } else if (templateId === "4") {
         summaryData.push(["Clinic Performance Dashboard"]);
         summaryData.push(["Total Cases", data.totalCases || 0]);
         summaryData.push(["Number of Clinics", data.clinicsCount || 0]);
@@ -439,7 +439,7 @@ export default function Reports() {
       doc.text("Report Type: " + templateId, 20, yPosition);
       yPosition += 10;
       
-      if (templateId === "monthly-summary") {
+      if (templateId === "1") {
         doc.setFontSize(12);
         doc.text("MONTHLY ONCOLOGY SUMMARY", 20, yPosition);
         yPosition += 10;
@@ -451,7 +451,7 @@ export default function Reports() {
         doc.text(`Progression Cases: ${data.progressionCases || 0}`, 20, yPosition);
         yPosition += 6;
         doc.text(`Remission Rate: ${data.remissionRate || 0}%`, 20, yPosition);
-      } else if (templateId === "tumour-incidence") {
+      } else if (templateId === "2") {
         doc.setFontSize(12);
         doc.text("TUMOUR INCIDENCE ANALYSIS", 20, yPosition);
         yPosition += 10;
@@ -464,7 +464,7 @@ export default function Reports() {
           doc.text(`${type}: ${count}`, 25, yPosition);
           yPosition += 6;
         });
-      } else if (templateId === "treatment-outcomes") {
+      } else if (templateId === "3") {
         doc.setFontSize(12);
         doc.text("TREATMENT OUTCOMES", 20, yPosition);
         yPosition += 10;
