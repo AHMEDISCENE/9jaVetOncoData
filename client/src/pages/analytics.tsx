@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/export";
 import { useCasesLocationData } from "@/hooks/useCasesLocationData";
@@ -13,6 +13,7 @@ import { FilterBar } from "@/components/analytics/FilterBar";
 import { MetricDrilldown } from "@/components/analytics/MetricDrilldown";
 import { useAnalyticsFilters, buildFilterParams } from "@/contexts/analytics-filters-context";
 import type { DashboardStats } from "@/lib/types";
+import { apiRequest } from "@/lib/queryClient";
 
 const COLORS = [
   '#3b82f6', // Blue
@@ -39,6 +40,171 @@ function groupTumourTypes(tumours: Array<{ name: string; count: number }>, maxIt
 }
 
 type MetricType = "totalCases" | "newThisMonth" | "remissionRate" | "activeClinics" | null;
+
+interface SurvivalAnalysisPanelProps {
+  filters: any;
+}
+
+interface SurvivalDataPoint {
+  time: number;
+  survival: number;
+}
+
+interface SurvivalAnalysisResponse {
+  data: SurvivalDataPoint[];
+  meta: {
+    nAtRisk: number;
+    nEvents: number;
+    nCensored: number;
+    totalCases: number;
+  };
+}
+
+function SurvivalAnalysisPanel({ filters }: SurvivalAnalysisPanelProps) {
+  const [survivalFilters, setSurvivalFilters] = useState({
+    species: filters.species?.[0] || "",
+    stage: filters.stage?.[0] || "",
+  });
+  const [showCurve, setShowCurve] = useState(false);
+
+  const buildSurvivalUrl = () => {
+    const params = new URLSearchParams();
+    if (survivalFilters.species) params.append("species", survivalFilters.species);
+    if (survivalFilters.stage) params.append("stage", survivalFilters.stage);
+    if (filters.dateRange?.from) params.append("startDate", filters.dateRange.from);
+    if (filters.dateRange?.to) params.append("endDate", filters.dateRange.to);
+    if (filters.clinicIds?.[0]) params.append("clinicId", filters.clinicIds[0]);
+    return `/api/analytics/survival${params.toString() ? `?${params.toString()}` : ""}`;
+  };
+
+  const survivalUrl = buildSurvivalUrl();
+  const { data: survivalData, isLoading: isSurvivalLoading } = useQuery<SurvivalAnalysisResponse>({
+    queryKey: [survivalUrl],
+    enabled: showCurve,
+  });
+
+  return (
+    <Card className="mb-8">
+      <CardHeader>
+        <CardTitle>Survival Analysis (Kaplan–Meier Curves)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">Species</label>
+              <input
+                type="text"
+                placeholder="Filter by species"
+                value={survivalFilters.species}
+                onChange={(e) => setSurvivalFilters({ ...survivalFilters, species: e.target.value })}
+                className="w-full px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
+                data-testid="input-survival-species"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">Stage</label>
+              <input
+                type="text"
+                placeholder="Filter by stage"
+                value={survivalFilters.stage}
+                onChange={(e) => setSurvivalFilters({ ...survivalFilters, stage: e.target.value })}
+                className="w-full px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
+                data-testid="input-survival-stage"
+              />
+            </div>
+          </div>
+
+          {/* Update Button */}
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowCurve(true)}
+              className="bg-primary hover:bg-primary/90"
+              data-testid="button-update-survival-curve"
+            >
+              {isSurvivalLoading ? "Loading..." : "Update Curve"}
+            </Button>
+          </div>
+
+          {/* Chart */}
+          {showCurve && (
+            <div className="space-y-4 mt-6">
+              <div className="h-80 w-full">
+                {isSurvivalLoading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <Skeleton className="h-full w-full" />
+                  </div>
+                ) : survivalData?.data && survivalData.data.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={survivalData.data}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                      <XAxis dataKey="time" label={{ value: "Time (days)", position: "insideBottomRight", offset: -5 }} />
+                      <YAxis label={{ value: "Survival (%)", angle: -90, position: "insideLeft" }} domain={[0, 100]} />
+                      <Tooltip 
+                        formatter={(value) => [`${(value as number).toFixed(1)}%`, "Survival"]}
+                        labelFormatter={(label) => `Day ${label}`}
+                        contentStyle={{ 
+                          backgroundColor: "rgba(255,255,255,0.95)", 
+                          border: "1px solid #ccc",
+                          borderRadius: "4px"
+                        }}
+                      />
+                      <Line 
+                        type="stepAfter" 
+                        dataKey="survival" 
+                        stroke="#10b981" 
+                        strokeWidth={2}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <p>No sufficient data for survival analysis with current filters</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Metadata */}
+              {survivalData?.meta && (
+                <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div className="text-center">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">N at Risk (baseline)</p>
+                    <p className="text-lg font-bold text-foreground" data-testid="text-survival-n-at-risk">
+                      {survivalData.meta.nAtRisk}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Events</p>
+                    <p className="text-lg font-bold text-red-600" data-testid="text-survival-events">
+                      {survivalData.meta.nEvents}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Censored</p>
+                    <p className="text-lg font-bold text-green-600" data-testid="text-survival-censored">
+                      {survivalData.meta.nCensored}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!showCurve && (
+            <div className="p-4 text-center text-muted-foreground text-sm">
+              <p>Click "Update Curve" to calculate Kaplan–Meier survival estimates for the selected cohort.</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Analytics() {
   const { toast } = useToast();
@@ -594,6 +760,9 @@ export default function Analytics() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Survival Analysis (Kaplan-Meier) */}
+      <SurvivalAnalysisPanel filters={filters} />
 
       {/* Geographic Distribution Map */}
       <Card className="mb-8">

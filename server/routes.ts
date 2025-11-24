@@ -1794,6 +1794,125 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
     }
   });
 
+  // Analytics - Survival Analysis (Kaplan-Meier)
+  app.get("/api/analytics/survival", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const userId = (req.session as any).userId;
+      const user = await storage.getUser(userId);
+
+      // Build filters
+      const filters: any = { statuses: ["ACTIVE", "COMPLETED"] };
+      
+      if (req.query.species) {
+        filters.species = Array.isArray(req.query.species) ? req.query.species : [req.query.species];
+      }
+      if (req.query.tumourType) {
+        const tt = Array.isArray(req.query.tumourType) ? req.query.tumourType[0] : req.query.tumourType;
+        if (tt) filters.tumourTypeIds = [tt];
+      }
+      if (req.query.stage) {
+        filters.stages = Array.isArray(req.query.stage) ? req.query.stage : [req.query.stage];
+      }
+      
+      // Date range filtering
+      if (req.query.startDate) {
+        filters.startDate = new Date(req.query.startDate as string);
+      }
+      if (req.query.endDate) {
+        filters.endDate = new Date(req.query.endDate as string);
+      }
+
+      // For non-SUPER_ADMIN users, restrict to their clinic
+      if (user?.role !== "SUPER_ADMIN") {
+        filters.clinicIds = [clinicId];
+      } else if (req.query.clinicId) {
+        const clinicIds = Array.isArray(req.query.clinicId) ? req.query.clinicId : [req.query.clinicId];
+        if (clinicIds.length > 0) filters.clinicIds = clinicIds;
+      }
+
+      // Get all matching cases
+      const cases = await storage.getCases(filters);
+
+      // Filter for cases with both diagnosis date and follow-up/outcome info
+      const validCases = cases.filter(c => 
+        c.diagnosisDate && (c.lastFollowUp || c.outcome)
+      );
+
+      if (validCases.length === 0) {
+        return res.json({
+          data: [],
+          meta: { nAtRisk: 0, nEvents: 0, nCensored: 0 }
+        });
+      }
+
+      // Calculate survival times (in days) and events
+      const survivalData = validCases.map(c => {
+        const diagDate = new Date(c.diagnosisDate).getTime();
+        const followUpDate = c.lastFollowUp ? new Date(c.lastFollowUp).getTime() : new Date().getTime();
+        const timeDays = Math.ceil((followUpDate - diagDate) / (1000 * 60 * 60 * 24));
+        
+        // Event = 1 if mortality/euthanasia, 0 if censored
+        const isEvent = c.outcome === "MORTALITY" || c.outcome === "EUTHANASIA" ? 1 : 0;
+        
+        return {
+          time: Math.max(1, timeDays), // At least 1 day
+          event: isEvent,
+          outcome: c.outcome
+        };
+      });
+
+      // Sort by time
+      survivalData.sort((a, b) => a.time - b.time);
+
+      // Calculate Kaplan-Meier curve
+      let nAtRisk = survivalData.length;
+      let cumSurvival = 1;
+      const kmCurve: Array<{ time: number; survival: number }> = [];
+      const uniqueTimes = new Set(survivalData.map(d => d.time));
+
+      for (const timePoint of Array.from(uniqueTimes).sort((a, b) => a - b)) {
+        const pointData = survivalData.filter(d => d.time === timePoint);
+        const nEvents = pointData.filter(d => d.event === 1).length;
+        
+        if (nAtRisk > 0) {
+          cumSurvival *= (1 - nEvents / nAtRisk);
+          kmCurve.push({ 
+            time: timePoint, 
+            survival: cumSurvival * 100 
+          });
+        }
+        
+        nAtRisk -= pointData.length;
+      }
+
+      // Add starting point
+      if (kmCurve.length > 0) {
+        kmCurve.unshift({ time: 0, survival: 100 });
+      }
+
+      const nEvents = survivalData.filter(d => d.event === 1).length;
+      const nCensored = validCases.length - nEvents;
+
+      res.json({
+        data: kmCurve,
+        meta: {
+          nAtRisk: validCases.length,
+          nEvents,
+          nCensored,
+          totalCases: validCases.length
+        }
+      });
+    } catch (error) {
+      console.error("[ERROR] survival analysis failed:", error);
+      res.status(500).json({ 
+        error: "Failed to calculate survival analysis",
+        data: [],
+        meta: { nAtRisk: 0, nEvents: 0, nCensored: 0 }
+      });
+    }
+  });
+
   // Import/Bulk upload routes
   app.post("/api/imports/upload", requireAuth, requireRole("MANAGER"), bulkUpload.single('file'), async (req, res) => {
     try {
