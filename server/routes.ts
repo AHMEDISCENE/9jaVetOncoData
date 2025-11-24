@@ -2737,6 +2737,140 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
     }
   });
 
+  // Report generation with real data based on customization
+  app.post("/api/reports/generate", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const userId = (req.session as any).userId;
+      const { templateId, duration, startDate, endDate, dataTypes, format } = req.body;
+
+      // Calculate date range
+      let dateStart = new Date();
+      let dateEnd = new Date();
+      
+      if (duration === "week") {
+        dateStart.setDate(dateEnd.getDate() - 7);
+      } else if (duration === "month") {
+        dateStart.setMonth(dateEnd.getMonth() - 1);
+      } else if (duration === "quarter") {
+        dateStart.setMonth(dateEnd.getMonth() - 3);
+      } else if (duration === "year") {
+        dateStart.setFullYear(dateEnd.getFullYear() - 1);
+      } else if (duration === "custom" && startDate && endDate) {
+        dateStart = new Date(startDate);
+        dateEnd = new Date(endDate);
+      }
+
+      // Fetch cases within date range for clinic
+      const allCases = await storage.getCases(clinicId, {
+        startDate: dateStart,
+        endDate: dateEnd,
+      });
+
+      // Generate report data based on template type
+      let reportData: any = {};
+      
+      if (templateId === "monthly-summary") {
+        const totalCases = allCases.length;
+        const remissionCases = allCases.filter(c => c.outcome === "REMISSION").length;
+        const remissionRate = totalCases > 0 ? Math.round((remissionCases / totalCases) * 100) : 0;
+        
+        // Group by month
+        const casesByMonth: Record<string, number> = {};
+        allCases.forEach(c => {
+          const monthKey = new Date(c.diagnosisDate).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+          casesByMonth[monthKey] = (casesByMonth[monthKey] || 0) + 1;
+        });
+
+        reportData = {
+          totalCases,
+          remissionRate,
+          remissionCases,
+          progressionCases: allCases.filter(c => c.outcome === "PROGRESSION").length,
+          casesByMonth,
+          avgCasesPerMonth: totalCases > 0 ? Math.round(totalCases / Object.keys(casesByMonth).length) : 0,
+        };
+      } else if (templateId === "tumour-incidence") {
+        // Group by tumour type
+        const tumourCounts: Record<string, number> = {};
+        allCases.forEach(c => {
+          const tumourType = c.tumourTypeCustom || c.tumourType?.name || "Unknown";
+          tumourCounts[tumourType] = (tumourCounts[tumourType] || 0) + 1;
+        });
+
+        // Group by species
+        const speciesCounts: Record<string, number> = {};
+        allCases.forEach(c => {
+          speciesCounts[c.species] = (speciesCounts[c.species] || 0) + 1;
+        });
+
+        reportData = {
+          totalCases: allCases.length,
+          tumourIncidence: tumourCounts,
+          speciesDistribution: speciesCounts,
+          topTumours: Object.entries(tumourCounts).sort((a, b) => b[1] - a[1]).slice(0, 5),
+        };
+      } else if (templateId === "treatment-outcomes") {
+        const outcomeData: Record<string, number> = {};
+        allCases.forEach(c => {
+          const outcome = c.outcome || "Unknown";
+          outcomeData[outcome] = (outcomeData[outcome] || 0) + 1;
+        });
+
+        const totalWithOutcome = Object.values(outcomeData).reduce((a, b) => a + b, 0);
+        const successRate = totalWithOutcome > 0 ? Math.round(((outcomeData["REMISSION"] || 0) / totalWithOutcome) * 100) : 0;
+
+        reportData = {
+          totalCases: allCases.length,
+          outcomes: outcomeData,
+          successRate,
+          progressionRate: totalWithOutcome > 0 ? Math.round(((outcomeData["PROGRESSION"] || 0) / totalWithOutcome) * 100) : 0,
+          deceasedRate: totalWithOutcome > 0 ? Math.round(((outcomeData["DECEASED"] || 0) / totalWithOutcome) * 100) : 0,
+        };
+      } else if (templateId === "clinic-performance") {
+        // Fetch from all clinics (for SUPER_ADMIN/broad overview)
+        const allClinicsCases = await storage.getCases(undefined, {
+          startDate: dateStart,
+          endDate: dateEnd,
+        });
+
+        const clinicData: Record<string, any> = {};
+        allClinicsCases.forEach(c => {
+          if (!clinicData[c.clinicId]) {
+            clinicData[c.clinicId] = { total: 0, outcomes: {} };
+          }
+          clinicData[c.clinicId].total += 1;
+          const outcome = c.outcome || "Unknown";
+          clinicData[c.clinicId].outcomes[outcome] = (clinicData[c.clinicId].outcomes[outcome] || 0) + 1;
+        });
+
+        // Calculate success rates per clinic
+        const clinicPerformance = Object.entries(clinicData).map(([cId, data]: any) => ({
+          clinicId: cId,
+          totalCases: data.total,
+          successRate: data.total > 0 ? Math.round(((data.outcomes["REMISSION"] || 0) / data.total) * 100) : 0,
+          outcomes: data.outcomes,
+        }));
+
+        reportData = {
+          totalCases: allClinicsCases.length,
+          clinicsCount: Object.keys(clinicData).length,
+          clinicPerformance,
+        };
+      }
+
+      res.json({
+        templateId,
+        duration,
+        dateRange: { start: dateStart, end: dateEnd },
+        format,
+        data: reportData,
+      });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to generate report" });
+    }
+  });
+
   // Ensure unmatched API routes return JSON instead of falling back to the SPA HTML.
   app.use('/api', (_req, res) => {
     return res.status(404).json({ success: false, error: 'API route not found' });

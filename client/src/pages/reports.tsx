@@ -160,24 +160,41 @@ export default function Reports() {
         includeCharts: boolean;
       };
     }) => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call backend to generate real report data
+      const response = await fetch("/api/reports/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: data.templateId,
+          duration: data.customization?.duration || "month",
+          startDate: data.customization?.startDate,
+          endDate: data.customization?.endDate,
+          dataTypes: data.customization?.dataTypes || [],
+          format: data.format,
+        }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to generate report");
+      const reportData = await response.json();
+      
       let fileExtension = "txt";
       if (data.format === "pdf") fileExtension = "pdf";
       else if (data.format === "xlsx") fileExtension = "xlsx";
       else if (data.format === "csv") fileExtension = "csv";
       const filename = `report_${Date.now()}.${fileExtension}`;
+      
       return {
         success: true,
         filename,
         templateId: data.templateId,
         format: data.format,
         customization: data.customization,
+        reportData,
       };
     },
     onSuccess: (data) => {
-      // Generate and trigger download
-      generateAndDownloadReport(data.templateId, data.filename, data.format);
+      // Generate and trigger download with real data
+      generateAndDownloadReport(data.templateId, data.filename, data.format, data.reportData);
       
       toast({
         title: "Report Generated & Downloaded",
@@ -297,15 +314,44 @@ export default function Reports() {
     scheduleReportMutation.mutate(data as z.infer<typeof scheduleSchema>);
   };
 
-  const generateAndDownloadReport = (templateId: string, filename: string, format: "pdf" | "xlsx" | "csv" = "pdf") => {
+  const generateAndDownloadReport = (templateId: string, filename: string, format: "pdf" | "xlsx" | "csv" = "pdf", reportData: any = {}) => {
+    const data = reportData?.data || {};
+    
     if (format === "csv") {
-      // CSV format - plain text
-      const content = "Report Template,Metric,Value\n" +
-        "Monthly Oncology Summary,Total Cases,17\n" +
-        "Monthly Oncology Summary,New This Month,3\n" +
-        "Monthly Oncology Summary,Active Clinics,3\n" +
-        "Monthly Oncology Summary,Remission Rate,17%\n" +
-        "Monthly Oncology Summary,Generated,\"" + new Date().toLocaleString() + "\"\n";
+      // CSV format - dynamic based on template
+      let content = "Metric,Value\n";
+      
+      if (templateId === "monthly-summary") {
+        content += `Total Cases,${data.totalCases || 0}\n`;
+        content += `Remission Cases,${data.remissionCases || 0}\n`;
+        content += `Progression Cases,${data.progressionCases || 0}\n`;
+        content += `Remission Rate,${data.remissionRate || 0}%\n`;
+        Object.entries(data.casesByMonth || {}).forEach(([month, count]: any) => {
+          content += `${month},${count}\n`;
+        });
+      } else if (templateId === "tumour-incidence") {
+        content += `Total Cases,${data.totalCases || 0}\n`;
+        Object.entries(data.tumourIncidence || {}).forEach(([type, count]: any) => {
+          content += `Tumour Type: ${type},${count}\n`;
+        });
+        content += "\nSpecies Distribution\n";
+        Object.entries(data.speciesDistribution || {}).forEach(([species, count]: any) => {
+          content += `${species},${count}\n`;
+        });
+      } else if (templateId === "treatment-outcomes") {
+        content += `Total Cases,${data.totalCases || 0}\n`;
+        content += `Success Rate,${data.successRate || 0}%\n`;
+        content += `Progression Rate,${data.progressionRate || 0}%\n`;
+        content += `Deceased Rate,${data.deceasedRate || 0}%\n`;
+        Object.entries(data.outcomes || {}).forEach(([outcome, count]: any) => {
+          content += `${outcome},${count}\n`;
+        });
+      } else if (templateId === "clinic-performance") {
+        content += `Total Cases,${data.totalCases || 0}\n`;
+        content += `Number of Clinics,${data.clinicsCount || 0}\n`;
+      }
+      
+      content += `Generated,${new Date().toLocaleString()}\n`;
       
       const blob = new Blob([content], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
@@ -320,78 +366,117 @@ export default function Reports() {
     } else if (format === "xlsx") {
       // Excel format using XLSX library
       const workbook = XLSX.utils.book_new();
-      
-      // Summary sheet
-      const summaryData = [
+      const summaryData: any[] = [
         ["9ja VetOncoData Report"],
         ["Generated: " + new Date().toLocaleString()],
+        ["Template: " + templateId],
         [],
-        ["Summary Statistics"],
-        ["Metric", "Value"],
-        ["Total Cases", 17],
-        ["New Cases This Month", 3],
-        ["Active Clinics", 3],
-        ["Remission Rate", "17%"],
-        [],
-        ["Cases by Month"],
-        ["Month", "Cases"],
-        ["January 2025", 4],
-        ["September 2024", 3],
-        ["October 2025", 8],
-        ["November 2025", 2],
-        [],
-        ["Top Tumour Types"],
-        ["Type", "Cases"],
-        ["Unknown", 9],
-        ["Melanoma", 3],
-        ["Lymphoma", 2],
-        ["GI Lymphoma", 2],
-        ["WWW", 1],
       ];
       
-      const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Summary");
+      if (templateId === "monthly-summary") {
+        summaryData.push(["Monthly Oncology Summary"]);
+        summaryData.push(["Metric", "Value"]);
+        summaryData.push(["Total Cases", data.totalCases || 0]);
+        summaryData.push(["Remission Cases", data.remissionCases || 0]);
+        summaryData.push(["Progression Cases", data.progressionCases || 0]);
+        summaryData.push(["Remission Rate", `${data.remissionRate || 0}%`]);
+        summaryData.push([]);
+        summaryData.push(["Cases by Month"]);
+        summaryData.push(["Month", "Cases"]);
+        Object.entries(data.casesByMonth || {}).forEach(([month, count]: any) => {
+          summaryData.push([month, count]);
+        });
+      } else if (templateId === "tumour-incidence") {
+        summaryData.push(["Tumour Incidence Analysis"]);
+        summaryData.push(["Total Cases", data.totalCases || 0]);
+        summaryData.push([]);
+        summaryData.push(["Tumour Type", "Cases"]);
+        Object.entries(data.tumourIncidence || {}).forEach(([type, count]: any) => {
+          summaryData.push([type, count]);
+        });
+        summaryData.push([]);
+        summaryData.push(["Species", "Cases"]);
+        Object.entries(data.speciesDistribution || {}).forEach(([species, count]: any) => {
+          summaryData.push([species, count]);
+        });
+      } else if (templateId === "treatment-outcomes") {
+        summaryData.push(["Treatment Outcomes Report"]);
+        summaryData.push(["Total Cases", data.totalCases || 0]);
+        summaryData.push(["Success Rate", `${data.successRate || 0}%`]);
+        summaryData.push(["Progression Rate", `${data.progressionRate || 0}%`]);
+        summaryData.push(["Deceased Rate", `${data.deceasedRate || 0}%`]);
+        summaryData.push([]);
+        summaryData.push(["Outcome", "Cases"]);
+        Object.entries(data.outcomes || {}).forEach(([outcome, count]: any) => {
+          summaryData.push([outcome, count]);
+        });
+      } else if (templateId === "clinic-performance") {
+        summaryData.push(["Clinic Performance Dashboard"]);
+        summaryData.push(["Total Cases", data.totalCases || 0]);
+        summaryData.push(["Number of Clinics", data.clinicsCount || 0]);
+      }
       
-      // Generate Excel file
+      const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
       XLSX.writeFile(workbook, filename);
       
     } else {
       // PDF format using jsPDF
       const doc = new jsPDF();
+      let yPosition = 20;
       
       doc.setFontSize(18);
-      doc.text("9ja VetOncoData", 20, 20);
+      doc.text("9ja VetOncoData", 20, yPosition);
+      yPosition += 10;
+      
       doc.setFontSize(14);
-      doc.text("Veterinary Oncology Report", 20, 28);
+      doc.text("Veterinary Oncology Report", 20, yPosition);
+      yPosition += 10;
       
       doc.setFontSize(10);
-      doc.text("Generated: " + new Date().toLocaleString(), 20, 38);
-      doc.text("Report ID: " + templateId, 20, 44);
+      doc.text("Generated: " + new Date().toLocaleString(), 20, yPosition);
+      yPosition += 6;
+      doc.text("Report Type: " + templateId, 20, yPosition);
+      yPosition += 10;
       
-      doc.setFontSize(12);
-      doc.text("SUMMARY STATISTICS", 20, 56);
-      doc.setFontSize(10);
-      doc.text("Total Cases: 17", 20, 66);
-      doc.text("New Cases This Month: 3", 20, 72);
-      doc.text("Active Clinics: 3", 20, 78);
-      doc.text("Remission Rate: 17%", 20, 84);
-      
-      doc.setFontSize(12);
-      doc.text("CASES BY MONTH", 20, 96);
-      doc.setFontSize(10);
-      doc.text("January 2025: 4 cases", 20, 106);
-      doc.text("September 2024: 3 cases", 20, 112);
-      doc.text("October 2025: 8 cases", 20, 118);
-      doc.text("November 2025: 2 cases", 20, 124);
-      
-      doc.setFontSize(12);
-      doc.text("TOP TUMOUR TYPES", 20, 136);
-      doc.setFontSize(10);
-      doc.text("Unknown: 9 cases", 20, 146);
-      doc.text("Melanoma: 3 cases", 20, 152);
-      doc.text("Lymphoma: 2 cases", 20, 158);
-      doc.text("GI Lymphoma: 2 cases", 20, 164);
-      doc.text("WWW: 1 case", 20, 170);
+      if (templateId === "monthly-summary") {
+        doc.setFontSize(12);
+        doc.text("MONTHLY ONCOLOGY SUMMARY", 20, yPosition);
+        yPosition += 10;
+        doc.setFontSize(10);
+        doc.text(`Total Cases: ${data.totalCases || 0}`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Remission Cases: ${data.remissionCases || 0}`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Progression Cases: ${data.progressionCases || 0}`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Remission Rate: ${data.remissionRate || 0}%`, 20, yPosition);
+      } else if (templateId === "tumour-incidence") {
+        doc.setFontSize(12);
+        doc.text("TUMOUR INCIDENCE ANALYSIS", 20, yPosition);
+        yPosition += 10;
+        doc.setFontSize(10);
+        doc.text(`Total Cases: ${data.totalCases || 0}`, 20, yPosition);
+        yPosition += 8;
+        doc.text("Top Tumour Types:", 20, yPosition);
+        yPosition += 6;
+        Object.entries(data.tumourIncidence || {}).slice(0, 5).forEach(([type, count]: any) => {
+          doc.text(`${type}: ${count}`, 25, yPosition);
+          yPosition += 6;
+        });
+      } else if (templateId === "treatment-outcomes") {
+        doc.setFontSize(12);
+        doc.text("TREATMENT OUTCOMES", 20, yPosition);
+        yPosition += 10;
+        doc.setFontSize(10);
+        doc.text(`Total Cases: ${data.totalCases || 0}`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Success Rate: ${data.successRate || 0}%`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Progression Rate: ${data.progressionRate || 0}%`, 20, yPosition);
+        yPosition += 6;
+        doc.text(`Deceased Rate: ${data.deceasedRate || 0}%`, 20, yPosition);
+      }
       
       doc.save(filename);
     }
