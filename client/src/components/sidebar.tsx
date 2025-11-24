@@ -104,7 +104,7 @@ export default function Sidebar() {
         
         <div className="relative flex flex-col h-full">
           {/* Logo Header */}
-          <div className="flex items-center justify-between px-6 py-6 border-b border-border">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div className="flex items-center gap-3 overflow-hidden flex-1">
               {!isCollapsed && (
                 <span className="text-primary whitespace-nowrap tracking-tight text-[26px] bg-[#f6f9f9] font-extrabold text-justify">9ja VetOncoData</span>
@@ -124,21 +124,19 @@ export default function Sidebar() {
           </div>
 
           {/* Desktop Collapse Toggle */}
-          <div className="hidden lg:px-4 lg:flex lg:py-2">
+          <div className="hidden lg:px-4 lg:flex lg:py-1">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-primary/8 dark:hover:bg-primary/15 transition-colors group"
+              className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-foreground/60 hover:text-foreground hover:bg-primary/8 dark:hover:bg-primary/15 transition-colors"
               data-testid="button-toggle-sidebar"
               title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {isCollapsed ? (
-                <>
-                  <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                </>
+                <ChevronRight className="h-4 w-4 flex-shrink-0" />
               ) : (
                 <>
                   <ChevronLeft className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">Collapse</span>
+                  <span className="text-xs truncate">Collapse</span>
                 </>
               )}
             </button>
