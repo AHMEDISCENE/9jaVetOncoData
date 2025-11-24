@@ -105,12 +105,12 @@ export default function Sidebar() {
         <div className="relative flex flex-col h-full">
           {/* Logo Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
+            <div className="flex items-center gap-3 overflow-hidden flex-1">
               {!isCollapsed && (
                 <motion.span 
-                  className="text-primary whitespace-nowrap tracking-tight text-[26px] bg-[#f6f9f9] font-extrabold text-justify lg:static"
-                  animate={{ x: ["0%", "-8%", "0%"] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="text-primary whitespace-nowrap tracking-tight text-[26px] font-extrabold"
+                  animate={{ x: ["0px", "-30px", "0px"] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
                 >
                   9ja VetOncoData
                 </motion.span>
