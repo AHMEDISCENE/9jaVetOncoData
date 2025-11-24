@@ -542,6 +542,7 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type ImportJob = typeof importJobs.$inferSelect;
 export type Invitation = typeof invitations.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 
 export type InsertClinic = z.infer<typeof insertClinicSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -570,6 +571,20 @@ export type CaseWithDetails = Case & {
   attachmentsCount?: number;
   firstImageUrl?: string;
 };
+
+// Password reset tokens table
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"), // null until used
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("password_reset_tokens_user_id_idx").on(table.userId),
+  tokenIdx: index("password_reset_tokens_token_idx").on(table.token),
+  expiresAtIdx: index("password_reset_tokens_expires_at_idx").on(table.expiresAt),
+}));
 
 // Session table for express-session
 export const session = pgTable("session", {

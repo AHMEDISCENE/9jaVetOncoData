@@ -38,6 +38,23 @@ The application is configured as a PWA with offline capabilities, service worker
 ## Security and Audit Trail
 The system implements comprehensive audit logging for all create, update, and delete operations. Role-based access control ensures that users can only access data from their own clinics, preventing cross-clinic data leakage.
 
+## Password Reset System
+The application includes a complete password reset flow with the following features:
+- **Forgot Password Dialog**: Modal dialog accessible from the login page that prompts users for their email address
+- **Password Reset Tokens**: Secure tokens (32-byte random hex) generated and stored in `password_reset_tokens` table with 24-hour expiration
+- **Token Verification**: Tokens are single-use and become invalid after being used to reset a password
+- **Backend Endpoints**:
+  - `POST /api/auth/forgot-password`: Generates reset token and logs it (TODO: integrate SendGrid for email delivery)
+  - `POST /api/auth/reset-password`: Verifies token and updates user password with bcrypt hashing
+- **Password Visibility Toggles**: Eye/EyeOff icons in all password fields for easy visibility toggling
+
+## Recent Changes (November 24, 2025)
+- **Added password visibility toggles**: Eye icons in login/register password fields to show/hide passwords
+- **Implemented forgot password flow**: Complete modal dialog workflow for password reset
+- **Created password_reset_tokens table**: Secure token storage with indexes for fast lookups and expiration management
+- **Added backend password reset endpoints**: Forgot password and reset password API routes with proper validation
+- **Database optimization**: Indexes on user_id, token, and expires_at for efficient queries
+
 # External Dependencies
 
 ## Database Services

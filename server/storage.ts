@@ -24,6 +24,7 @@ import {
   type ImportJob,
   type Notification,
   type InsertNotification,
+  type PasswordResetToken,
   users,
   clinics,
   cases,
@@ -37,6 +38,7 @@ import {
   invitations,
   importJobs,
   notifications,
+  passwordResetTokens,
   ngStates
 } from "@shared/schema";
 import { db } from "./db";
@@ -66,6 +68,9 @@ export interface IStorage {
     name: string;
     photo?: string;
   }): Promise<User>;
+  createPasswordResetToken(userId: string): Promise<string>;
+  verifyPasswordResetToken(token: string): Promise<string | undefined>;
+  resetPassword(token: string, newPassword: string): Promise<void>;
   
   // Clinics
   getClinic(id: string): Promise<Clinic | undefined>;
@@ -334,6 +339,63 @@ export class DatabaseStorage implements IStorage {
       emailVerified: new Date(), // Google accounts are pre-verified
     }).returning();
     return user;
+  }
+
+  async createPasswordResetToken(userId: string): Promise<string> {
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    
+    await db.insert(passwordResetTokens).values({
+      userId,
+      token,
+      expiresAt,
+    });
+    
+    return token;
+  }
+
+  async verifyPasswordResetToken(token: string): Promise<string | undefined> {
+    const [record] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(and(
+        eq(passwordResetTokens.token, token),
+        gte(passwordResetTokens.expiresAt, new Date()),
+        isNull(passwordResetTokens.usedAt)
+      ));
+    
+    return record?.userId;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const [record] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(and(
+        eq(passwordResetTokens.token, token),
+        gte(passwordResetTokens.expiresAt, new Date()),
+        isNull(passwordResetTokens.usedAt)
+      ));
+    
+    if (!record) {
+      throw new Error("Invalid or expired reset token");
+    }
+
+    const hashedPassword = require('bcrypt').hashSync(newPassword, 10);
+    
+    await db.transaction(async (tx) => {
+      // Update password
+      await tx
+        .update(users)
+        .set({ password: hashedPassword, updatedAt: new Date() })
+        .where(eq(users.id, record.userId));
+      
+      // Mark token as used
+      await tx
+        .update(passwordResetTokens)
+        .set({ usedAt: new Date() })
+        .where(eq(passwordResetTokens.token, token));
+    });
   }
 
   async getClinic(id: string): Promise<Clinic | undefined> {

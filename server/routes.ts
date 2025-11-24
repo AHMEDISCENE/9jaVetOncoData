@@ -534,6 +534,53 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
     }
   });
 
+  // Password reset endpoints
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists for security
+        return res.json({ message: "If email exists, reset link has been sent" });
+      }
+
+      const token = await storage.createPasswordResetToken(user.id);
+      
+      // TODO: In production, send email with reset link containing token
+      // For now, we'll just return success and the token can be obtained from logs or dev tools
+      console.log(`[PASSWORD_RESET] Reset token for ${email}: ${token}`);
+      
+      res.json({ message: "If email exists, reset link has been sent" });
+    } catch (error) {
+      console.error("[ERROR] Forgot password failed:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Reset token is required" });
+      }
+      if (!password || typeof password !== 'string' || password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+
+      await storage.resetPassword(token, password);
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("[ERROR] Reset password failed:", error);
+      const message = error instanceof Error ? error.message : "Failed to reset password";
+      res.status(400).json({ message });
+    }
+  });
+
   // Invitation routes
   app.post("/api/invitations", requireAuth, requireRole("MANAGER"), preventAdminRoleInBody, async (req, res) => {
     try {

@@ -15,7 +15,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useQuery } from "@tanstack/react-query";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -65,6 +66,16 @@ export default function Login() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordStep, setForgotPasswordStep] = useState<"email" | "reset">("email");
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -95,6 +106,113 @@ export default function Login() {
     queryKey: ["/api/clinics/available"],
     enabled: activeTab === "register",
   });
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotPasswordEmail) {
+      toast({ title: "Error", description: "Please enter your email address", variant: "destructive" });
+      return;
+    }
+    
+    setIsSendingReset(true);
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotPasswordEmail }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Email sent",
+          description: "Check your email for password reset instructions",
+        });
+        setForgotPasswordStep("reset");
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send reset email",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send reset email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetToken || !newPassword || !confirmNewPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (newPassword !== confirmNewPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords don't match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsResettingPassword(true);
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: resetToken, password: newPassword }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Your password has been reset. You can now log in.",
+        });
+        setShowForgotPassword(false);
+        setForgotPasswordStep("email");
+        setForgotPasswordEmail("");
+        setResetToken("");
+        setNewPassword("");
+        setConfirmNewPassword("");
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to reset password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reset password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
 
   // Watch clinic mode and selected clinic
   const clinicMode = registerForm.watch("clinicMode");
@@ -311,6 +429,7 @@ export default function Login() {
                           type="button"
                           className="text-sm text-primary hover:text-primary/80"
                           data-testid="link-forgot-password"
+                          onClick={() => setShowForgotPassword(true)}
                         >
                           Forgot password?
                         </button>
@@ -643,6 +762,132 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{forgotPasswordStep === "email" ? "Forgot Password?" : "Reset Password"}</DialogTitle>
+            <DialogDescription>
+              {forgotPasswordStep === "email"
+                ? "Enter your email address and we'll send you a reset link"
+                : "Enter the reset token from your email and your new password"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {forgotPasswordStep === "email" ? (
+            <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">Email Address</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  data-testid="input-reset-email"
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={isSendingReset}
+                className="w-full"
+                data-testid="button-send-reset"
+              >
+                {isSendingReset && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {isSendingReset ? "Sending..." : "Send Reset Email"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-token">Reset Token</Label>
+                <Input
+                  id="reset-token"
+                  type="text"
+                  placeholder="Enter the token from your email"
+                  value={resetToken}
+                  onChange={(e) => setResetToken(e.target.value)}
+                  data-testid="input-reset-token"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showResetPassword ? "text" : "password"}
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    data-testid="input-new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    data-testid="button-toggle-new-password"
+                  >
+                    {showResetPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-new-password"
+                    type={showResetConfirm ? "text" : "password"}
+                    placeholder="Confirm new password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    data-testid="input-confirm-new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetConfirm(!showResetConfirm)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    data-testid="button-toggle-confirm-new-password"
+                  >
+                    {showResetConfirm ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <Button
+                type="submit"
+                disabled={isResettingPassword}
+                className="w-full"
+                data-testid="button-reset-password"
+              >
+                {isResettingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {isResettingPassword ? "Resetting..." : "Reset Password"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setForgotPasswordStep("email");
+                  setResetToken("");
+                  setNewPassword("");
+                  setConfirmNewPassword("");
+                }}
+                data-testid="button-back-to-email"
+              >
+                Back to Email
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Nigerian themed sidebar */}
       <div className="hidden lg:block relative w-0 flex-1">
