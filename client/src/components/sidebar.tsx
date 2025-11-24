@@ -104,13 +104,13 @@ export default function Sidebar() {
         
         <div className="relative flex flex-col h-full">
           {/* Logo Header */}
-          <div className="flex items-center justify-between px-4 py-5 border-b border-border">
+          <div className="flex items-center justify-between px-6 py-6 border-b border-border">
             <div className="flex items-center gap-3 overflow-hidden flex-1">
-              <div className="h-10 w-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                <Stethoscope className="h-5 w-5 text-primary-foreground" />
-              </div>
               {!isCollapsed && (
-                <span className="text-2xl font-bold text-foreground whitespace-nowrap leading-none line-clamp-1">9ja VetOncoData</span>
+                <span className="text-3xl font-black text-primary whitespace-nowrap leading-tight tracking-tight">9ja VetOncoData</span>
+              )}
+              {isCollapsed && (
+                <span className="text-xl font-black text-primary">9ja</span>
               )}
             </div>
             <div className="flex items-center gap-2">
