@@ -45,6 +45,7 @@ import { db } from "./db";
 import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { randomBytes } from "crypto";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // Users
@@ -387,7 +388,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Invalid or expired reset token/code");
     }
 
-    const hashedPassword = require('bcrypt').hashSync(newPassword, 10);
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
     
     await db.transaction(async (tx) => {
       // Update password
