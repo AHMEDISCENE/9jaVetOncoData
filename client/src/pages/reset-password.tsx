@@ -103,26 +103,12 @@ export default function ResetPassword() {
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">Reset Password</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Enter the token from your email and your new password
+                Enter your new password to reset your account
               </p>
             </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleResetPassword} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="token">Reset Token</Label>
-                <Input
-                  id="token"
-                  type="text"
-                  placeholder="Enter the token from your email"
-                  value={resetToken}
-                  onChange={(e) => setResetToken(e.target.value)}
-                  data-testid="input-reset-token"
-                  readOnly={!!new URLSearchParams(window.location.search).get("token")}
-                  className={new URLSearchParams(window.location.search).get("token") ? "bg-muted" : ""}
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
                 <div className="relative">
