@@ -102,8 +102,8 @@ export default function Sidebar() {
         
         <div className="relative flex flex-col h-full">
           {/* Logo Header */}
-          <div className="flex items-center justify-between px-4 py-4 pt-[20px] pb-[20px] bg-background dark:bg-slate-900">
-            <div className="flex items-center gap-2 lg:gap-3 min-w-0 flex-1">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border pl-[0px] pr-[0px] pt-[20px] pb-[20px]">
+            <div className="flex items-center gap-2 lg:gap-3 overflow-hidden flex-1">
               {!isCollapsed && (
                 <motion.div 
                   className="flex items-center gap-2 lg:gap-3 whitespace-nowrap"
@@ -116,7 +116,7 @@ export default function Sidebar() {
                     className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0 object-contain"
                   />
                   <span 
-                    className="text-primary tracking-tight text-lg lg:text-[26px] font-extrabold leading-tight truncate"
+                    className="text-primary tracking-tight text-lg lg:text-[26px] font-extrabold leading-tight"
                   >
                     9ja VetOncoData
                   </span>
@@ -132,7 +132,7 @@ export default function Sidebar() {
             </div>
             {/* Mobile Close Button */}
             <button 
-              className="lg:hidden flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors flex-shrink-0 ml-2"
+              className="lg:hidden flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors flex-shrink-0 ml-4"
               onClick={toggleMobileSidebar}
               data-testid="button-close-sidebar"
             >
