@@ -549,21 +549,22 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         return res.json({ message: "If email exists, reset link has been sent" });
       }
 
-      const token = await storage.createPasswordResetToken(user.id);
+      const { token, code } = await storage.createPasswordResetToken(user.id);
       
-      console.log(`[PASSWORD_RESET] Reset token for ${email}: ${token}`);
+      console.log(`[PASSWORD_RESET] Reset token for ${email}: ${token} (code: ${code})`);
       
       try {
         // Try to send email via Gmail
-        await sendPasswordResetEmail(email, token);
+        await sendPasswordResetEmail(email, token, code);
         res.json({ message: "If email exists, reset link has been sent" });
       } catch (emailError) {
-        console.error("[ERROR] Failed to send email, returning token for development:", emailError);
-        // If email fails (Gmail not connected), return token for testing
+        console.error("[ERROR] Failed to send email, returning token and code for development:", emailError);
+        // If email fails (Gmail not connected), return token and code for testing
         const response: any = { message: "If email exists, reset link has been sent" };
         if (process.env.NODE_ENV === 'development') {
           response.token = token;
-          response.devMessage = "Email service unavailable - token included for testing";
+          response.code = code;
+          response.devMessage = "Email service unavailable - token and code included for testing";
         }
         res.json(response);
       }
@@ -575,16 +576,16 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
 
   app.post("/api/auth/reset-password", async (req, res) => {
     try {
-      const { token, password } = req.body;
+      const { code, password } = req.body;
       
-      if (!token || typeof token !== 'string') {
-        return res.status(400).json({ message: "Reset token is required" });
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ message: "Reset code is required" });
       }
       if (!password || typeof password !== 'string' || password.length < 6) {
         return res.status(400).json({ message: "Password must be at least 6 characters" });
       }
 
-      await storage.resetPassword(token, password);
+      await storage.resetPassword(code, password);
       res.json({ message: "Password reset successfully" });
     } catch (error) {
       console.error("[ERROR] Reset password failed:", error);

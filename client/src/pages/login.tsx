@@ -806,15 +806,17 @@ export default function Login() {
           ) : (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="reset-token">Reset Token</Label>
+                <Label htmlFor="reset-code">Reset Code</Label>
                 <Input
-                  id="reset-token"
+                  id="reset-code"
                   type="text"
-                  placeholder="Enter the token from your email"
+                  placeholder="Enter the 6-digit code from your email"
                   value={resetToken}
                   onChange={(e) => setResetToken(e.target.value)}
-                  data-testid="input-reset-token"
+                  maxLength={6}
+                  data-testid="input-reset-code"
                 />
+                <p className="text-xs text-muted-foreground">Enter the 6-digit code sent to your email</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>

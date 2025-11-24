@@ -341,17 +341,20 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createPasswordResetToken(userId: string): Promise<string> {
+  async createPasswordResetToken(userId: string): Promise<{token: string; code: string}> {
     const token = randomBytes(32).toString('hex');
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     
     await db.insert(passwordResetTokens).values({
       userId,
       token,
+      code,
       expiresAt,
     });
     
-    return token;
+    return { token, code };
   }
 
   async verifyPasswordResetToken(token: string): Promise<string | undefined> {
@@ -367,18 +370,21 @@ export class DatabaseStorage implements IStorage {
     return record?.userId;
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<void> {
+  async resetPassword(tokenOrCode: string, newPassword: string): Promise<void> {
     const [record] = await db
       .select()
       .from(passwordResetTokens)
       .where(and(
-        eq(passwordResetTokens.token, token),
+        or(
+          eq(passwordResetTokens.token, tokenOrCode),
+          eq(passwordResetTokens.code, tokenOrCode)
+        ),
         gte(passwordResetTokens.expiresAt, new Date()),
         isNull(passwordResetTokens.usedAt)
       ));
     
     if (!record) {
-      throw new Error("Invalid or expired reset token");
+      throw new Error("Invalid or expired reset token/code");
     }
 
     const hashedPassword = require('bcrypt').hashSync(newPassword, 10);
@@ -394,7 +400,7 @@ export class DatabaseStorage implements IStorage {
       await tx
         .update(passwordResetTokens)
         .set({ usedAt: new Date() })
-        .where(eq(passwordResetTokens.token, token));
+        .where(eq(passwordResetTokens.id, record.id));
     });
   }
 

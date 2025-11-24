@@ -10,26 +10,26 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [resetToken, setResetToken] = useState("");
+  const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Parse token from URL on mount
+  // Parse code/token from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    if (token) {
-      setResetToken(token);
+    const code = params.get("code") || params.get("token");
+    if (code) {
+      setResetCode(code);
     }
   }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!resetToken || !newPassword || !confirmNewPassword) {
+    if (!resetCode || !newPassword || !confirmNewPassword) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -61,7 +61,7 @@ export default function ResetPassword() {
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: resetToken, password: newPassword }),
+        body: JSON.stringify({ code: resetCode, password: newPassword }),
       });
       
       if (response.ok) {

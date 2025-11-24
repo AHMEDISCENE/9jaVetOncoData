@@ -577,12 +577,14 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   token: text("token").notNull().unique(),
+  code: text("code").notNull().unique(), // 4-6 digit code
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"), // null until used
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   userIdIdx: index("password_reset_tokens_user_id_idx").on(table.userId),
   tokenIdx: index("password_reset_tokens_token_idx").on(table.token),
+  codeIdx: index("password_reset_tokens_code_idx").on(table.code),
   expiresAtIdx: index("password_reset_tokens_expires_at_idx").on(table.expiresAt),
 }));
 
