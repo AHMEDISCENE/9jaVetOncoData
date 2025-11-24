@@ -109,8 +109,8 @@ export default function Sidebar() {
               {!isCollapsed && (
                 <motion.span 
                   className="text-primary whitespace-nowrap tracking-tight text-[26px] font-extrabold"
-                  animate={{ x: ["0px", "-30px", "0px"] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                  animate={{ x: ["0px", "-60px", "0px"] }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
                 >
                   9ja VetOncoData
                 </motion.span>
