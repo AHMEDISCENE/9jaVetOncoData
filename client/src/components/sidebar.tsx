@@ -115,7 +115,7 @@ export default function Sidebar() {
             </div>
             {/* Mobile Close Button */}
             <button 
-              className="lg:hidden flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors"
+              className="lg:hidden flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors flex-shrink-0 ml-4"
               onClick={toggleMobileSidebar}
               data-testid="button-close-sidebar"
             >
