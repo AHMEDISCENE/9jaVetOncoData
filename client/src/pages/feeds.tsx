@@ -199,7 +199,9 @@ export default function Feeds() {
   };
 
   const canDeletePost = (post: FeedPost) => {
-    return user?.id === post.authorId || user?.role === "ADMIN";
+    return user?.id === post.authorId || 
+           user?.role === "SUPER_ADMIN" || 
+           (user?.role === "ADMIN" && user?.clinicId === post.clinicId);
   };
 
   if (isLoading) {
