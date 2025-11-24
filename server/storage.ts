@@ -491,11 +491,11 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
         .$dynamic();
 
-      // Shared reads - filter by clinic(s) if explicitly requested
-      if (filters.clinicIds && filters.clinicIds.length > 0) {
+      // Filter by clinic - either specific clinicId or clinicIds array
+      if (clinicId) {
+        query = query.where(eq(cases.clinicId, clinicId));
+      } else if (filters.clinicIds && filters.clinicIds.length > 0) {
         query = query.where(inArray(cases.clinicId, filters.clinicIds));
-      } else {
-        query = query.where(sql`1=1`);
       }
 
       if (filters.species) {
