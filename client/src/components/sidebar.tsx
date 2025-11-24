@@ -176,7 +176,7 @@ export default function Sidebar() {
                 >
                   <Link 
                     href={item.href}
-                    className={`nav-item group ${itemActive ? "active" : "hover:bg-opacity-100"} ${
+                    className={`nav-item group ${itemActive ? "active text-[#126b56]" : "hover:bg-opacity-100"} ${
                       isCollapsed 
                         ? "lg:justify-center lg:p-3 lg:rounded-md lg:w-full" 
                         : "justify-start"
