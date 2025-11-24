@@ -464,7 +464,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         userAgent: req.get('User-Agent'),
       });
       
-      res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role }, clinic });
+      res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, image: user.image }, clinic });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Registration failed" });
     }
@@ -508,7 +508,8 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           id: user.id, 
           email: user.email, 
           name: user.name, 
-          role: user.role 
+          role: user.role,
+          image: user.image 
         }, 
         clinic: userWithClinic?.clinic 
       });
@@ -545,7 +546,8 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           id: userWithClinic.id, 
           email: userWithClinic.email, 
           name: userWithClinic.name, 
-          role: userWithClinic.role 
+          role: userWithClinic.role,
+          image: userWithClinic.image 
         }, 
         clinic: userWithClinic.clinic 
       });
