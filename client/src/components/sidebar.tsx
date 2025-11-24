@@ -104,7 +104,7 @@ export default function Sidebar() {
         
         <div className="relative flex flex-col h-full">
           {/* Logo Header */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-border">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-border pl-[0px] pr-[0px] ml-[0px] mr-[0px] pt-[38px] pb-[38px]">
             <div className="flex items-center gap-3 overflow-hidden flex-1">
               <div className="h-10 w-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                 <Stethoscope className="h-5 w-5 text-primary-foreground" />
