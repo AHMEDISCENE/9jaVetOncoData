@@ -163,7 +163,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className={`flex-1 space-y-1 ${isCollapsed ? "lg:px-2 px-4 py-4" : "px-4 py-4"}`}>
+          <nav className="flex-1 space-y-1 px-4 py-4 pt-[0px] pb-[0px]">
             {allNavigation.map((item, index) => {
               const Icon = item.icon;
               const itemActive = isActive(item.href);
