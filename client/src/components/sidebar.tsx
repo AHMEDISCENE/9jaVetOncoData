@@ -110,7 +110,7 @@ export default function Sidebar() {
                 <Stethoscope className="h-5 w-5 text-primary-foreground" />
               </div>
               {!isCollapsed && (
-                <span className="text-2xl font-bold text-foreground whitespace-nowrap">9ja VetOncoData</span>
+                <span className="text-2xl font-bold text-foreground whitespace-nowrap leading-none line-clamp-1">9ja VetOncoData</span>
               )}
             </div>
             <div className="flex items-center gap-2">
