@@ -113,29 +113,30 @@ export default function Sidebar() {
                 <span className="text-xl font-black text-primary">9ja</span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {/* Desktop Collapse Arrow Button */}
-              <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="hidden lg:flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors"
-                data-testid="button-toggle-sidebar"
-                title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="h-5 w-5" />
-                ) : (
-                  <ChevronLeft className="h-5 w-5" />
-                )}
-              </button>
-              {/* Mobile Close Button */}
-              <button 
-                className="lg:hidden flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors"
-                onClick={toggleMobileSidebar}
-                data-testid="button-close-sidebar"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+            {/* Mobile Close Button */}
+            <button 
+              className="lg:hidden flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors"
+              onClick={toggleMobileSidebar}
+              data-testid="button-close-sidebar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Desktop Collapse Toggle */}
+          <div className="hidden lg:flex px-4 py-3">
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="flex items-center justify-center h-10 w-10 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 text-foreground transition-colors"
+              data-testid="button-toggle-sidebar"
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="h-5 w-5" />
+              ) : (
+                <ChevronLeft className="h-5 w-5" />
+              )}
+            </button>
           </div>
 
           {/* Navigation */}
