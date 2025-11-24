@@ -49,6 +49,26 @@ The application includes a complete password reset flow with the following featu
 - **Password Visibility Toggles**: Eye/EyeOff icons in all password fields for easy visibility toggling
 
 ## Recent Changes (November 24, 2025)
+
+### Sidebar & UI Improvements
+- **Logo animation**: Added smooth scrolling animation to "9ja VetOncoData" text to reveal full brand name on mobile devices
+- **Collapse button redesign**: Moved collapse toggle below header with compact styling and "Collapse" label
+- **Mobile header adjustment**: Added margin to close button to prevent text overlap
+
+### Bulk Upload Data Validation (CRITICAL FIX)
+- **Lenient validation mode**: Modified `server/csv-import.ts` to gracefully handle invalid data instead of failing entire rows
+- **Blank import for invalid data**: All fields now return `undefined` instead of throwing errors when validation fails
+  - Invalid species/breed → imported as blank
+  - Invalid state (not a valid Nigerian state) → imported as blank
+  - Invalid dates → imported as blank
+  - Invalid sex values → imported as blank
+  - Invalid age values → imported as blank
+  - Invalid outcomes → imported as blank
+  - Empty or malformed data → imported as blank
+- **All fields now optional**: No required fields block the import process - data imports successfully with blank values for invalid fields
+- **Result**: Users can now import CSV files with mixed valid/invalid data without import failures
+
+### Previous Changes
 - **SUPER_ADMIN Setup Endpoint**: Added `/api/admin/setup-super-admin` endpoint for initializing the first platform SUPER_ADMIN. Endpoint checks if any SUPER_ADMIN exists; if not, allows setup via email. Only works once - prevents unauthorized promotions.
 - **Gmail integration for password resets**: Connected Gmail API via Replit connector for sending actual password reset emails
 - **Email service implementation**: Created `server/email.ts` with OAuth2 authentication for Gmail, handles token expiration and refresh

@@ -30,84 +30,62 @@ const STATE_TO_ZONE: Record<string, string> = {
   'ZAMFARA': 'NORTH_WEST'
 };
 
-// CSV Row schema with preprocessing
+// CSV Row schema with preprocessing - lenient validation that imports blanks instead of failing
 const csvRowSchema = z.object({
-  species: z.string().min(1, "Species is required"),
-  breed: z.string().min(1, "Breed is required"),
-  state: z.string().min(1, "State is required").transform((val) => {
+  species: z.string().optional().transform(v => v?.trim() || undefined),
+  breed: z.string().optional().transform(v => v?.trim() || undefined),
+  state: z.string().optional().transform((val) => {
+    if (!val || val.trim() === '') return undefined;
     const normalized = STATE_MAP[val.toLowerCase().trim()];
-    if (!normalized) {
-      throw new Error(`Invalid state: ${val}. Must be a valid Nigerian state.`);
-    }
-    return normalized;
+    return normalized || undefined; // Return undefined if state not found instead of throwing
   }),
-  diagnosis_date: z.string().min(1, "Diagnosis date is required").transform((val) => {
+  diagnosis_date: z.string().optional().transform((val) => {
+    if (!val || val.trim() === '') return undefined;
     const date = new Date(val);
-    if (isNaN(date.getTime())) {
-      throw new Error(`Invalid diagnosis date: ${val}. Use YYYY-MM-DD format.`);
-    }
-    return date;
+    return isNaN(date.getTime()) ? undefined : date; // Return undefined if invalid date instead of throwing
   }),
-  patient_name: z.string().optional().transform(v => v || null),
+  patient_name: z.string().optional().transform(v => v?.trim() || undefined),
   sex: z.string().optional().transform((val) => {
-    if (!val || val.trim() === '') return null;
+    if (!val || val.trim() === '') return undefined;
     const normalized = val.toUpperCase().replace(/\s+/g, '_');
     const valid = ['MALE_NEUTERED', 'MALE_INTACT', 'FEMALE_SPAYED', 'FEMALE_INTACT'];
-    if (!valid.includes(normalized)) {
-      throw new Error(`Invalid sex: ${val}. Must be one of: ${valid.join(', ')}`);
-    }
-    return normalized;
+    return valid.includes(normalized) ? normalized : undefined; // Return undefined if invalid sex instead of throwing
   }),
   age_years: z.string().optional().transform((val) => {
-    if (!val || val.trim() === '') return null;
+    if (!val || val.trim() === '') return undefined;
     const num = parseInt(val);
-    if (isNaN(num) || num < 0) {
-      throw new Error(`Invalid age_years: ${val}. Must be a positive number.`);
-    }
-    return num;
+    return (isNaN(num) || num < 0) ? undefined : num; // Return undefined if invalid age instead of throwing
   }),
   age_months: z.string().optional().transform((val) => {
-    if (!val || val.trim() === '') return null;
+    if (!val || val.trim() === '') return undefined;
     const num = parseInt(val);
-    if (isNaN(num) || num < 0 || num > 11) {
-      throw new Error(`Invalid age_months: ${val}. Must be 0-11.`);
-    }
-    return num;
+    return (isNaN(num) || num < 0 || num > 11) ? undefined : num; // Return undefined if invalid months instead of throwing
   }),
-  tumour_type: z.string().optional().transform(v => v || null),
-  tumour_type_custom: z.string().optional().transform(v => v || null),
-  anatomical_site: z.string().optional().transform(v => v || null),
-  anatomical_site_custom: z.string().optional().transform(v => v || null),
-  laterality: z.string().optional().transform(v => v || null),
-  stage: z.string().optional().transform(v => v || null),
-  diagnosis_method: z.string().optional().transform(v => v || null),
-  treatment_plan: z.string().optional().transform(v => v || null),
+  tumour_type: z.string().optional().transform(v => v?.trim() || undefined),
+  tumour_type_custom: z.string().optional().transform(v => v?.trim() || undefined),
+  anatomical_site: z.string().optional().transform(v => v?.trim() || undefined),
+  anatomical_site_custom: z.string().optional().transform(v => v?.trim() || undefined),
+  laterality: z.string().optional().transform(v => v?.trim() || undefined),
+  stage: z.string().optional().transform(v => v?.trim() || undefined),
+  diagnosis_method: z.string().optional().transform(v => v?.trim() || undefined),
+  treatment_plan: z.string().optional().transform(v => v?.trim() || undefined),
   treatment_start: z.string().optional().transform((val) => {
-    if (!val || val.trim() === '') return null;
+    if (!val || val.trim() === '') return undefined;
     const date = new Date(val);
-    if (isNaN(date.getTime())) {
-      throw new Error(`Invalid treatment_start: ${val}. Use YYYY-MM-DD format.`);
-    }
-    return date;
+    return isNaN(date.getTime()) ? undefined : date; // Return undefined if invalid date instead of throwing
   }),
   outcome: z.string().optional().transform((val) => {
-    if (!val || val.trim() === '') return null;
+    if (!val || val.trim() === '') return undefined;
     const normalized = val.toUpperCase().replace(/\s+/g, '_');
     const valid = ['REMISSION', 'MORTALITY', 'EUTHANASIA', 'TREATMENT_ONGOING', 'MANAGEMENT'];
-    if (!valid.includes(normalized)) {
-      throw new Error(`Invalid outcome: ${val}. Must be one of: ${valid.join(', ')}`);
-    }
-    return normalized;
+    return valid.includes(normalized) ? normalized : undefined; // Return undefined if invalid outcome instead of throwing
   }),
   last_follow_up: z.string().optional().transform((val) => {
-    if (!val || val.trim() === '') return null;
+    if (!val || val.trim() === '') return undefined;
     const date = new Date(val);
-    if (isNaN(date.getTime())) {
-      throw new Error(`Invalid last_follow_up: ${val}. Use YYYY-MM-DD format.`);
-    }
-    return date;
+    return isNaN(date.getTime()) ? undefined : date; // Return undefined if invalid date instead of throwing
   }),
-  notes: z.string().optional().transform(v => v || null),
+  notes: z.string().optional().transform(v => v?.trim() || undefined),
 });
 
 export interface ParsedRow {
