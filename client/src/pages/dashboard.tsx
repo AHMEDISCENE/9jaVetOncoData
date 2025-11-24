@@ -75,12 +75,19 @@ export default function Dashboard() {
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>(null);
   const [isDrilldownOpen, setIsDrilldownOpen] = useState(false);
+  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  const toggleCardFlip = (metric: string) => {
+    setFlippedCards(prev => ({
+      ...prev,
+      [metric]: !prev[metric]
+    }));
+  };
+
   const handleMetricClick = (metric: MetricType) => {
-    setSelectedMetric(metric);
-    setIsDrilldownOpen(true);
+    toggleCardFlip(metric || "");
   };
 
   const handleCloseDrilldown = () => {
@@ -356,7 +363,7 @@ export default function Dashboard() {
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card 
-          className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 cursor-pointer overflow-hidden"
           role="button"
           tabIndex={0}
           onClick={() => handleMetricClick("totalCases")}
@@ -368,31 +375,42 @@ export default function Dashboard() {
           }}
           data-testid="card-total-cases"
         >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
-                  Total Cases
-                </p>
-                <p
-                  className="text-4xl font-bold text-blue-600 dark:text-blue-300"
-                  data-testid="stat-total-cases"
-                >
-                  {stats.totalCases.toLocaleString()}
+          <div className="card-flip-container">
+            <CardContent className={`card-flip p-6 ${flippedCards["totalCases"] ? "flipped" : ""}`}>
+              <div className="card-flip-front">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                      Total Cases
+                    </p>
+                    <p
+                      className="text-4xl font-bold text-blue-600 dark:text-blue-300"
+                      data-testid="stat-total-cases"
+                    >
+                      {stats.totalCases.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="h-14 w-14 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
+                    <i className="fas fa-clipboard-list text-blue-600 dark:text-blue-300 text-xl"></i>
+                  </div>
+                </div>
+                <p className="text-xs font-medium text-blue-600 dark:text-blue-300 mt-2">
+                  Click to flip
                 </p>
               </div>
-              <div className="h-14 w-14 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
-                <i className="fas fa-clipboard-list text-blue-600 dark:text-blue-300 text-xl"></i>
+              <div className="card-flip-back">
+                <div className="text-center">
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-200 mb-2">Total Oncology Cases</p>
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-300">{stats.totalCases}</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mt-3">Click to return</p>
+                </div>
               </div>
-            </div>
-            <p className="text-xs font-medium text-blue-600 dark:text-blue-300 mt-2">
-              Click for details
-            </p>
-          </CardContent>
+            </CardContent>
+          </div>
         </Card>
 
         <Card 
-          className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 cursor-pointer overflow-hidden"
           role="button"
           tabIndex={0}
           onClick={() => handleMetricClick("newThisMonth")}
@@ -404,31 +422,42 @@ export default function Dashboard() {
           }}
           data-testid="card-new-this-month"
         >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
-                  New This Month
-                </p>
-                <p
-                  className="text-4xl font-bold text-purple-600 dark:text-purple-300"
-                  data-testid="stat-new-this-month"
-                >
-                  {stats.newThisMonth.toLocaleString()}
+          <div className="card-flip-container">
+            <CardContent className={`card-flip p-6 ${flippedCards["newThisMonth"] ? "flipped" : ""}`}>
+              <div className="card-flip-front">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                      New This Month
+                    </p>
+                    <p
+                      className="text-4xl font-bold text-purple-600 dark:text-purple-300"
+                      data-testid="stat-new-this-month"
+                    >
+                      {stats.newThisMonth.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="h-14 w-14 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center">
+                    <i className="fas fa-plus text-purple-600 dark:text-purple-300 text-xl"></i>
+                  </div>
+                </div>
+                <p className="text-xs font-medium text-purple-600 dark:text-purple-300 mt-2">
+                  Click to flip
                 </p>
               </div>
-              <div className="h-14 w-14 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center">
-                <i className="fas fa-plus text-purple-600 dark:text-purple-300 text-xl"></i>
+              <div className="card-flip-back">
+                <div className="text-center">
+                  <p className="text-sm font-medium text-purple-700 dark:text-purple-200 mb-2">Cases Added This Month</p>
+                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-300">{stats.newThisMonth}</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-300 mt-3">Click to return</p>
+                </div>
               </div>
-            </div>
-            <p className="text-xs font-medium text-purple-600 dark:text-purple-300 mt-2">
-              Click for details
-            </p>
-          </CardContent>
+            </CardContent>
+          </div>
         </Card>
 
         <Card 
-          className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800 cursor-pointer overflow-hidden"
           role="button"
           tabIndex={0}
           onClick={() => handleMetricClick("activeClinics")}
@@ -440,29 +469,40 @@ export default function Dashboard() {
           }}
           data-testid="card-active-clinics"
         >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
-                  Active Clinics
-                </p>
-                <p
-                  className="text-4xl font-bold text-amber-600 dark:text-amber-300"
-                  data-testid="stat-active-clinics"
-                >
-                  {stats.activeClinics.toLocaleString()}
-                </p>
+          <div className="card-flip-container">
+            <CardContent className={`card-flip p-6 ${flippedCards["activeClinics"] ? "flipped" : ""}`}>
+              <div className="card-flip-front">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                      Active Clinics
+                    </p>
+                    <p
+                      className="text-4xl font-bold text-amber-600 dark:text-amber-300"
+                      data-testid="stat-active-clinics"
+                    >
+                      {stats.activeClinics.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="h-14 w-14 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
+                    <i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-xl"></i>
+                  </div>
+                </div>
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-2">Click to flip</p>
               </div>
-              <div className="h-14 w-14 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
-                <i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-xl"></i>
+              <div className="card-flip-back">
+                <div className="text-center">
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-200 mb-2">Clinics Currently Active</p>
+                  <p className="text-3xl font-bold text-amber-600 dark:text-amber-300">{stats.activeClinics}</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-300 mt-3">Click to return</p>
+                </div>
               </div>
-            </div>
-            <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-2">Click for details</p>
-          </CardContent>
+            </CardContent>
+          </div>
         </Card>
 
         <Card 
-          className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
+          className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 cursor-pointer overflow-hidden"
           role="button"
           tabIndex={0}
           onClick={() => handleMetricClick("remissionRate")}
@@ -474,27 +514,38 @@ export default function Dashboard() {
           }}
           data-testid="card-remission-rate"
         >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-700 dark:text-green-200">
-                  Remission Rate
-                </p>
-                <p
-                  className="text-4xl font-bold text-green-600 dark:text-green-300"
-                  data-testid="stat-remission-rate"
-                >
-                  {stats.remissionRate}%
+          <div className="card-flip-container">
+            <CardContent className={`card-flip p-6 ${flippedCards["remissionRate"] ? "flipped" : ""}`}>
+              <div className="card-flip-front">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                      Remission Rate
+                    </p>
+                    <p
+                      className="text-4xl font-bold text-green-600 dark:text-green-300"
+                      data-testid="stat-remission-rate"
+                    >
+                      {stats.remissionRate}%
+                    </p>
+                  </div>
+                  <div className="h-14 w-14 bg-green-200 dark:bg-green-800 rounded-full flex items-center justify-center">
+                    <i className="fas fa-heart text-green-600 dark:text-green-300 text-xl"></i>
+                  </div>
+                </div>
+                <p className="text-xs font-medium text-green-600 dark:text-green-300 mt-2">
+                  Click to flip
                 </p>
               </div>
-              <div className="h-14 w-14 bg-green-200 dark:bg-green-800 rounded-full flex items-center justify-center">
-                <i className="fas fa-heart text-green-600 dark:text-green-300 text-xl"></i>
+              <div className="card-flip-back">
+                <div className="text-center">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-200 mb-2">Treatment Success Rate</p>
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-300">{stats.remissionRate}%</p>
+                  <p className="text-xs text-green-600 dark:text-green-300 mt-3">Click to return</p>
+                </div>
               </div>
-            </div>
-            <p className="text-xs font-medium text-green-600 dark:text-green-300 mt-2">
-              Click for details
-            </p>
-          </CardContent>
+            </CardContent>
+          </div>
         </Card>
       </div>
 
