@@ -1675,13 +1675,14 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         return res.status(404).json({ message: "File not found" });
       }
 
-      // Check write permission: creator or admin
+      // Check write permission: creator, clinic-owning admin, or super admin
       const user = await storage.getUser(userId);
       const isCreator = caseData.createdBy.id === userId;
-      const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'SUPER_ADMIN';
+      const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+      const isClinicAdmin = (user?.role === 'ADMIN' || user?.role === 'MANAGER') && user?.clinicId === caseData.clinic.id;
       
-      if (!isCreator && !isAdmin) {
-        return res.status(403).json({ message: "Only case creator or admins can delete files" });
+      if (!isCreator && !isSuperAdmin && !isClinicAdmin) {
+        return res.status(403).json({ message: "Only case creator, clinic admins, or super admins can delete files" });
       }
 
       // Soft delete

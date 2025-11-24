@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { useState, useRef } from "react";
 import { FileText, Image, Upload, X, ArrowLeft, Eye, MapPin, User, Calendar, Stethoscope, AlertCircle, Download, FileJson } from "lucide-react";
 import type { CaseFile } from "@shared/schema";
@@ -68,6 +69,7 @@ export default function CaseDetail() {
   const [, params] = useRoute("/cases/:id");
   const caseId = params?.id;
   const { toast } = useToast();
+  const { user, clinic } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
@@ -303,6 +305,17 @@ export default function CaseDetail() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Check if user can delete files: creator, same clinic admin, or super admin
+  const canDeleteFiles = () => {
+    if (!user || !caseData) return false;
+    
+    const isCreator = user.id === caseData.createdBy.id;
+    const isSuperAdmin = user.role === 'SUPER_ADMIN';
+    const isClinicAdmin = (user.role === 'ADMIN' || user.role === 'MANAGER') && clinic?.id === caseData.clinic.id;
+    
+    return isCreator || isSuperAdmin || isClinicAdmin;
   };
 
   if (caseLoading) {
@@ -699,15 +712,17 @@ export default function CaseDetail() {
                                 <Eye className="h-3 w-3 mr-1" />
                                 View
                               </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="h-8 w-8 rounded-lg"
-                                onClick={() => deleteMutation.mutate(file.id)}
-                                data-testid={`button-delete-${file.id}`}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
+                              {canDeleteFiles() && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="h-8 w-8 rounded-lg"
+                                  onClick={() => deleteMutation.mutate(file.id)}
+                                  data-testid={`button-delete-${file.id}`}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                           <p className="text-xs truncate mt-2 text-muted-foreground">{file.originalName}</p>
@@ -752,15 +767,17 @@ export default function CaseDetail() {
                                 View
                               </a>
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteMutation.mutate(file.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                              data-testid={`button-delete-${file.id}`}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            {canDeleteFiles() && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteMutation.mutate(file.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                data-testid={`button-delete-${file.id}`}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -793,18 +810,20 @@ export default function CaseDetail() {
               >
                 <X className="h-6 w-6" />
               </Button>
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute bottom-6 right-6 rounded-full h-10 w-10 shadow-lg"
-                onClick={() => {
-                  deleteMutation.mutate(selectedImageId);
-                  setSelectedImageId(null);
-                }}
-                data-testid="button-delete-fullscreen"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+              {canDeleteFiles() && (
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute bottom-6 right-6 rounded-full h-10 w-10 shadow-lg"
+                  onClick={() => {
+                    deleteMutation.mutate(selectedImageId);
+                    setSelectedImageId(null);
+                  }}
+                  data-testid="button-delete-fullscreen"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>
