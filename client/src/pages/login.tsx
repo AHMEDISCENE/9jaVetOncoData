@@ -130,8 +130,11 @@ export default function Login() {
           description: data.devMessage || "Check your email for password reset instructions",
         });
         setForgotPasswordStep("reset");
-        // Auto-fill token in development mode for testing
-        if (data.token) {
+        // Auto-fill code in development mode for testing
+        if (data.code) {
+          setResetToken(data.code);
+        } else if (data.token) {
+          // Fallback for token-based flow
           setResetToken(data.token);
         }
       } else {
@@ -186,7 +189,7 @@ export default function Login() {
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: resetToken, password: newPassword }),
+        body: JSON.stringify({ code: resetToken, password: newPassword }),
       });
       
       if (response.ok) {
