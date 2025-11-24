@@ -15,6 +15,7 @@ import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import path from "path";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
+import { sendPasswordResetEmail } from "./email";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -552,14 +553,21 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       
       console.log(`[PASSWORD_RESET] Reset token for ${email}: ${token}`);
       
-      // In development, return the token for testing. In production, send via email
-      const response: any = { message: "If email exists, reset link has been sent" };
-      if (process.env.NODE_ENV === 'development') {
-        response.token = token;
-        response.devMessage = "Development mode: token included for testing";
+      try {
+        // Try to send email via Gmail
+        const resetLink = `${process.env.APP_URL || 'http://localhost:5000'}/reset-password?token=${token}`;
+        await sendPasswordResetEmail(email, token, resetLink);
+        res.json({ message: "If email exists, reset link has been sent" });
+      } catch (emailError) {
+        console.error("[ERROR] Failed to send email, returning token for development:", emailError);
+        // If email fails (Gmail not connected), return token for testing
+        const response: any = { message: "If email exists, reset link has been sent" };
+        if (process.env.NODE_ENV === 'development') {
+          response.token = token;
+          response.devMessage = "Email service unavailable - token included for testing";
+        }
+        res.json(response);
       }
-      
-      res.json(response);
     } catch (error) {
       console.error("[ERROR] Forgot password failed:", error);
       res.status(500).json({ message: "Failed to process password reset request" });

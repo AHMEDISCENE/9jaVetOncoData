@@ -44,11 +44,14 @@ The application includes a complete password reset flow with the following featu
 - **Password Reset Tokens**: Secure tokens (32-byte random hex) generated and stored in `password_reset_tokens` table with 24-hour expiration
 - **Token Verification**: Tokens are single-use and become invalid after being used to reset a password
 - **Backend Endpoints**:
-  - `POST /api/auth/forgot-password`: Generates reset token and logs it (TODO: integrate SendGrid for email delivery)
+  - `POST /api/auth/forgot-password`: Generates reset token and sends email via Gmail API (with fallback to development mode token display)
   - `POST /api/auth/reset-password`: Verifies token and updates user password with bcrypt hashing
 - **Password Visibility Toggles**: Eye/EyeOff icons in all password fields for easy visibility toggling
 
 ## Recent Changes (November 24, 2025)
+- **Gmail integration for password resets**: Connected Gmail API via Replit connector for sending actual password reset emails
+- **Email service implementation**: Created `server/email.ts` with OAuth2 authentication for Gmail, handles token expiration and refresh
+- **Updated forgot-password endpoint**: Now sends emails via Gmail with fallback to development mode token display if service unavailable
 - **Added password visibility toggles**: Eye icons in login/register password fields to show/hide passwords
 - **Implemented forgot password flow**: Complete modal dialog workflow for password reset
 - **Created password_reset_tokens table**: Secure token storage with indexes for fast lookups and expiration management
@@ -76,7 +79,10 @@ The application includes a complete password reset flow with the following featu
 - **Sharp**: Planned image processing capabilities for handling medical images and histopathology files
 
 ## Email Services
-- **SendGrid**: Email service integration for notifications, invitations, and report delivery (configured via `@sendgrid/mail`)
+- **Gmail API**: Email service integration for password reset notifications (configured via Gmail/Google OAuth)
+  - Connected via Replit's Gmail connector with `googleapis` package
+  - Sends password reset emails with tokens and reset links
+  - Fallback to development mode token display if email service unavailable
 
 ## Development and Build Tools
 - **Vite**: Modern build tool and development server with hot module replacement
