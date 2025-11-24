@@ -1551,13 +1551,14 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         return res.status(400).json({ message: `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit` });
       }
 
-      // Check write permission: creator or admin
+      // Check write permission: creator, same clinic admin, or super admin
       const user = await storage.getUser(userId);
       const isCreator = caseData.createdBy.id === userId;
-      const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+      const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+      const isClinicAdmin = (user?.role === 'ADMIN' || user?.role === 'MANAGER') && user?.clinicId === caseData.clinic.id;
       
-      if (!isCreator && !isAdmin) {
-        return res.status(403).json({ message: "Only case creator or admins can upload files" });
+      if (!isCreator && !isSuperAdmin && !isClinicAdmin) {
+        return res.status(403).json({ message: "Only case creator or clinic admins can upload files" });
       }
 
       // Read file buffer
@@ -1675,7 +1676,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         return res.status(404).json({ message: "File not found" });
       }
 
-      // Check write permission: creator, clinic-owning admin, or super admin
+      // Check write permission: creator, same clinic admin, or super admin
       const user = await storage.getUser(userId);
       const isCreator = caseData.createdBy.id === userId;
       const isSuperAdmin = user?.role === 'SUPER_ADMIN';

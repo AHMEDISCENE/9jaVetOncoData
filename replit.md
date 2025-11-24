@@ -50,6 +50,21 @@ The application includes a complete password reset flow with the following featu
 
 ## Recent Changes (November 24, 2025)
 
+### File Operations Security Hardening (CRITICAL SECURITY FIX)
+- **Clinic Ownership Validation**: Added clinic ownership checks to both file upload and delete operations
+  - **Case Creator**: Can always upload/delete files from their own cases
+  - **SUPER_ADMIN**: Can upload/delete files from any case across all clinics
+  - **ADMIN/MANAGER**: Can ONLY upload/delete files from cases in their own clinic
+  - **Cross-clinic admins**: Completely blocked from managing files in other clinics' cases
+- **Frontend Permission Check**: Added `canManageFiles()` function to validate permissions before rendering upload/delete UI
+  - Upload button disabled for unauthorized users
+  - Delete buttons hidden for unauthorized users (images, documents, fullscreen viewer)
+- **Backend Validation**: Both `/api/cases/:caseId/files` (POST) and `/api/cases/:caseId/files/:fileId` (DELETE) endpoints validate clinic ownership
+  - Returns 403 Forbidden if unauthorized
+  - Clinic comparison: `user.clinicId === case.clinic.id` for admin/manager roles
+- **Interface Update**: `CaseWithDetails` interface now includes `clinic.id` field to enable proper clinic ownership verification on frontend
+- **Result**: Cross-clinic security vulnerability completely eliminated - admins can no longer access/modify files in other clinics
+
 ### Sidebar & UI Improvements
 - **Logo image addition**: Added veterinary caduceus logo (Nigeria map with medical symbol) before "9ja VetOncoData" text
   - Logo displays in header when sidebar is expanded

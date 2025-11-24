@@ -58,6 +58,7 @@ interface CaseWithDetails {
     image?: string;
   };
   clinic: { 
+    id: string;
     name: string;
     state?: string;
     city?: string;
@@ -307,8 +308,8 @@ export default function CaseDetail() {
     }
   };
 
-  // Check if user can delete files: creator, same clinic admin, or super admin
-  const canDeleteFiles = () => {
+  // Check if user can manage files (upload/delete): creator, same clinic admin, or super admin
+  const canManageFiles = () => {
     if (!user || !caseData) return false;
     
     const isCreator = user.id === caseData.createdBy.id;
@@ -659,7 +660,7 @@ export default function CaseDetail() {
                 />
                 <Button
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading || files.length >= 10}
+                  disabled={isUploading || files.length >= 10 || !canManageFiles()}
                   size="sm"
                   data-testid="button-upload-file"
                 >
@@ -712,7 +713,7 @@ export default function CaseDetail() {
                                 <Eye className="h-3 w-3 mr-1" />
                                 View
                               </Button>
-                              {canDeleteFiles() && (
+                              {canManageFiles() && (
                                 <Button
                                   variant="destructive"
                                   size="sm"
@@ -767,7 +768,7 @@ export default function CaseDetail() {
                                 View
                               </a>
                             </Button>
-                            {canDeleteFiles() && (
+                            {canManageFiles() && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -810,7 +811,7 @@ export default function CaseDetail() {
               >
                 <X className="h-6 w-6" />
               </Button>
-              {canDeleteFiles() && (
+              {canManageFiles() && (
                 <Button
                   variant="destructive"
                   size="icon"
