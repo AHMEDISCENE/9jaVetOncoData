@@ -1283,105 +1283,104 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         };
 
         const doc = new jsPDF({
-          orientation: 'landscape',
+          orientation: 'portrait',
           unit: 'mm',
           format: 'a4',
         });
         
         // Add title
-        doc.setFontSize(18);
+        doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
         doc.text('Veterinary Oncology Cases Report', 14, 15);
         
         // Add metadata
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(100);
-        doc.text(`Generated: ${new Date().toLocaleDateString()} | Total Cases: ${casesForExport.length}`, 14, 22);
+        doc.text(`Generated: ${new Date().toLocaleDateString()} | Total Cases: ${casesForExport.length}`, 14, 21);
         doc.setTextColor(0);
 
-        // Prepare table data
-        const tableRows = casesForExport.map((c: any) => [
-          c.caseNumber || '',
-          c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
-          (c.patientName || '').substring(0, 15),
-          c.species || '',
-          c.breed || '',
-          c.sex || '',
-          (c.tumourType?.name || c.tumourTypeCustom || '').substring(0, 15),
-          (c.anatomicalSite?.name || c.anatomicalSiteCustom || '').substring(0, 15),
-          c.stage || '',
-          c.state || '',
-          c.clinic?.name || '',
-          outcomeLabels[c.outcome as string] || c.outcome || '',
-        ]);
-
-        // Create table
-        let yStart = 30;
+        let currentY = 28;
         const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 12;
         const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 10;
         const maxWidth = pageWidth - 2 * margin;
-        
-        // Column headers
-        const headers = ['Case ID', 'Date', 'Patient', 'Species', 'Breed', 'Sex', 'Tumour Type', 'Site', 'Stage', 'State', 'Clinic', 'Status'];
-        const colWidths = [12, 14, 15, 13, 13, 8, 15, 15, 10, 12, 15, 18];
-        
-        // Draw header row
-        doc.setFont(undefined, 'bold');
-        doc.setFillColor(200, 200, 200);
-        doc.setFontSize(8);
-        let xPos = margin;
-        headers.forEach((header, idx) => {
-          doc.rect(xPos, yStart, colWidths[idx], 6, 'F');
-          doc.text(header, xPos + 1, yStart + 4, { maxWidth: colWidths[idx] - 2 });
-          xPos += colWidths[idx];
-        });
-        
-        // Draw data rows
-        doc.setFont(undefined, 'normal');
-        doc.setFontSize(7);
-        let currentY = yStart + 6;
-        
-        tableRows.forEach((row: any, rowIdx: number) => {
+
+        // Draw each case as a card
+        casesForExport.forEach((c: any, idx: number) => {
           // Check if we need a new page
-          if (currentY > pageHeight - 10) {
+          if (currentY > pageHeight - 30) {
             doc.addPage();
-            currentY = margin;
-            
-            // Redraw header on new page
-            doc.setFont(undefined, 'bold');
-            doc.setFillColor(200, 200, 200);
-            doc.setFontSize(8);
-            let xPosHeader = margin;
-            headers.forEach((header, idx) => {
-              doc.rect(xPosHeader, currentY, colWidths[idx], 6, 'F');
-              doc.text(header, xPosHeader + 1, currentY + 4, { maxWidth: colWidths[idx] - 2 });
-              xPosHeader += colWidths[idx];
-            });
-            
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(7);
-            currentY += 6;
+            currentY = 15;
           }
+
+          // Case card background
+          doc.setFillColor(245, 245, 245);
+          doc.setDrawColor(200, 200, 200);
+          doc.rect(margin, currentY, maxWidth, 38, 'FD');
+
+          // Case ID and Status
+          doc.setFont(undefined, 'bold');
+          doc.setFontSize(10);
+          doc.setTextColor(0);
+          doc.text(`Case #${c.caseNumber}`, margin + 2, currentY + 5);
           
-          // Draw alternating row background
-          if (rowIdx % 2 === 0) {
-            doc.setFillColor(245, 245, 245);
-            doc.rect(margin, currentY, maxWidth, 5, 'F');
-          }
+          doc.setFontSize(8);
+          doc.setFont(undefined, 'normal');
+          const statusText = outcomeLabels[c.outcome as string] || c.outcome || 'Unknown';
+          doc.setTextColor(76, 175, 80);
+          doc.text(statusText, pageWidth - margin - 30, currentY + 5);
+
+          // Patient info
+          doc.setTextColor(0);
+          doc.setFont(undefined, 'bold');
+          doc.setFontSize(8);
+          doc.text('Patient:', margin + 2, currentY + 12);
+          doc.setFont(undefined, 'normal');
+          doc.text((c.patientName || 'N/A').substring(0, 40), margin + 20, currentY + 12);
+
+          // Species and Breed
+          doc.setFont(undefined, 'bold');
+          doc.text('Species:', margin + 2, currentY + 18);
+          doc.setFont(undefined, 'normal');
+          doc.text(c.species || 'N/A', margin + 20, currentY + 18);
           
-          // Draw row data
-          xPos = margin;
-          row.forEach((cell: any, colIdx: number) => {
-            doc.text(String(cell), xPos + 1, currentY + 3, { 
-              maxWidth: colWidths[colIdx] - 2,
-              overflow: 'hidden'
-            });
-            xPos += colWidths[colIdx];
-          });
-          
-          currentY += 5;
+          doc.setFont(undefined, 'bold');
+          doc.text('Breed:', margin + 75, currentY + 18);
+          doc.setFont(undefined, 'normal');
+          doc.text((c.breed || 'N/A').substring(0, 20), margin + 90, currentY + 18);
+
+          // Tumour and Site
+          doc.setFont(undefined, 'bold');
+          doc.text('Tumour:', margin + 2, currentY + 24);
+          doc.setFont(undefined, 'normal');
+          doc.text((c.tumourType?.name || c.tumourTypeCustom || 'N/A').substring(0, 35), margin + 20, currentY + 24);
+
+          doc.setFont(undefined, 'bold');
+          doc.text('Site:', margin + 75, currentY + 24);
+          doc.setFont(undefined, 'normal');
+          doc.text((c.anatomicalSite?.name || c.anatomicalSiteCustom || 'N/A').substring(0, 20), margin + 90, currentY + 24);
+
+          // Location and Diagnosis Date
+          doc.setFont(undefined, 'bold');
+          doc.text('State:', margin + 2, currentY + 30);
+          doc.setFont(undefined, 'normal');
+          doc.text(c.state || 'N/A', margin + 20, currentY + 30);
+
+          doc.setFont(undefined, 'bold');
+          doc.text('Clinic:', margin + 75, currentY + 30);
+          doc.setFont(undefined, 'normal');
+          doc.text((c.clinic?.name || 'N/A').substring(0, 20), margin + 90, currentY + 30);
+
+          // Diagnosis info
+          doc.setFont(undefined, 'bold');
+          doc.text('Diagnosis:', margin + 2, currentY + 36);
+          doc.setFont(undefined, 'normal');
+          const diagDate = c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : 'N/A';
+          const diagMethod = c.diagnosisMethod || 'N/A';
+          doc.text(`${diagDate} (${diagMethod})`, margin + 20, currentY + 36);
+
+          currentY += 42;
         });
 
         res.setHeader('Content-Type', 'application/pdf');
