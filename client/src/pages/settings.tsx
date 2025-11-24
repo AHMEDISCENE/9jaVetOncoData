@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -14,7 +14,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { User, Cog, Moon, Sun, Monitor } from "lucide-react";
+import { User, Cog, Moon, Sun, Monitor, Upload, X } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -41,6 +42,8 @@ export default function Settings() {
   const { user, clinic } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.image || null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return document.documentElement.classList.contains("dark");
@@ -90,6 +93,34 @@ export default function Settings() {
     },
   });
 
+  // Upload avatar mutation
+  const uploadAvatarMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const response = await fetch("/api/users/avatar", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to upload avatar");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setAvatarPreview(data.imageUrl);
+      toast({ description: "Avatar uploaded successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        variant: "destructive", 
+        description: error.message || "Failed to upload avatar" 
+      });
+    },
+  });
+
   // Update clinic mutation
   const updateClinicMutation = useMutation({
     mutationFn: (data: ClinicFormData) => apiRequest("PATCH", "/api/clinics/update", data),
@@ -125,6 +156,46 @@ export default function Settings() {
       ...data,
       name: fullName,
     } as any);
+  };
+
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({ 
+        variant: "destructive", 
+        description: "Please select an image file" 
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ 
+        variant: "destructive", 
+        description: "Image must be less than 5MB" 
+      });
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAvatarPreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload
+    uploadAvatarMutation.mutate(file);
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleClinicSubmit = (data: ClinicFormData) => {
@@ -196,6 +267,55 @@ export default function Settings() {
             <CardContent>
               <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit(handleProfileSubmit)} className="space-y-6">
+                  {/* Avatar Section */}
+                  <div className="space-y-4 border-b pb-4">
+                    <h3 className="text-base font-semibold">Profile Picture</h3>
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-20 w-20" data-testid="avatar-preview">
+                        <AvatarImage src={avatarPreview || undefined} alt="Profile" />
+                        <AvatarFallback>
+                          {user?.name?.split(" ").map(n => n[0]).join("") || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarSelect}
+                          className="hidden"
+                          data-testid="input-avatar-file"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadAvatarMutation.isPending}
+                          data-testid="button-upload-avatar"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          {uploadAvatarMutation.isPending ? "Uploading..." : "Upload Photo"}
+                        </Button>
+                        {avatarPreview && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemoveAvatar}
+                            data-testid="button-remove-avatar"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <FormDescription>
+                      Upload a JPG, PNG, or GIF image (max 5MB)
+                    </FormDescription>
+                  </div>
+
                   {/* Name Section */}
                   <div className="space-y-4 border-b pb-4">
                     <h3 className="text-base font-semibold">Full Name</h3>

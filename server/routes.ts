@@ -88,6 +88,22 @@ const caseFileUpload = multer({
   },
 });
 
+// Avatar upload configuration
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB for avatars
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid image type'));
+    }
+  },
+});
+
 // Auth middleware
 const requireAuth = (req: any, res: any, next: any) => {
   if (!req.session?.userId) {
@@ -730,6 +746,38 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
     } catch (error) {
       console.error("[ERROR] Update profile failed:", error);
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update profile" });
+    }
+  });
+
+  // Avatar upload route
+  app.post("/api/users/avatar", requireAuth, avatarUpload.single("avatar"), async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+
+      // Generate storage key for avatar
+      const avatarKey = `avatars/${userId}/${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
+      
+      // Store avatar
+      const result = await putObject({
+        key: avatarKey,
+        buffer: req.file.buffer,
+        contentType: req.file.mimetype,
+      });
+
+      // Update user with avatar URL
+      const updatedUser = await storage.updateUser(userId, { image: result.publicUrl });
+      
+      res.json({ 
+        imageUrl: result.publicUrl,
+        user: updatedUser
+      });
+    } catch (error) {
+      console.error("[ERROR] Avatar upload failed:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to upload avatar" });
     }
   });
 
