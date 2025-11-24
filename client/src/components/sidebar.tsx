@@ -94,18 +94,15 @@ export default function Sidebar() {
       <motion.div 
         className={`fixed inset-y-0 left-0 z-50 border-r lg:translate-x-0 ${
           isCollapsed ? "lg:w-20" : "lg:w-64"
-        } w-64`}
-        style={{ backgroundImage: `url(${doodleImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}
+        } w-64 bg-white dark:bg-gray-950`}
         initial={{ x: -300 }}
         animate={{ x: isMobileOpen || isDesktop ? 0 : -300 }}
         transition={{ type: "spring", damping: 20, stiffness: 100, duration: 0.4 }}
       >
-        {/* Background overlay for text readability - subtle like header */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white/90 to-white/85 dark:from-gray-950/95 dark:via-gray-950/90 dark:to-gray-950/85 pointer-events-none" />
         
         <div className="relative flex flex-col h-full">
           {/* Logo Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border pl-[0px] pr-[0px] pt-[20px] pb-[20px] bg-[#0000001c]">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border pl-[0px] pr-[0px] pt-[20px] pb-[20px]">
             <div className="flex items-center gap-2 lg:gap-3 overflow-hidden flex-1">
               {!isCollapsed && (
                 <motion.div 
@@ -144,7 +141,7 @@ export default function Sidebar() {
           </div>
 
           {/* Desktop Collapse Toggle */}
-          <div className="hidden lg:px-4 lg:flex lg:py-1 bg-[#0000001c]">
+          <div className="hidden lg:px-4 lg:flex lg:py-1">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-foreground/60 hover:text-foreground hover:bg-primary/8 dark:hover:bg-primary/15 transition-colors"
@@ -163,7 +160,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-4 py-4 pt-[0px] pb-[0px] bg-[#00000021]">
+          <nav className="flex-1 space-y-1 px-4 py-4 pt-[0px] pb-[0px]">
             {allNavigation.map((item, index) => {
               const Icon = item.icon;
               const itemActive = isActive(item.href);
@@ -201,7 +198,7 @@ export default function Sidebar() {
 
           {/* User Profile */}
           <motion.div 
-            className="border-t border-border/40 p-3 from-primary/5 via-white/40 to-white/30 dark:from-primary/10 dark:via-gray-900/40 dark:to-gray-900/30 backdrop-blur-md space-y-2 bg-[#0000001a]"
+            className="border-t border-border/40 p-3 space-y-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
@@ -252,7 +249,7 @@ export default function Sidebar() {
               </div>
             ) : (
               <>
-                <div className="flex items-center space-x-2 p-1.5 rounded-lg bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm border border-white/20 dark:border-gray-700/20">
+                <div className="flex items-center space-x-2 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-900 border border-border">
                   <motion.div 
                     className="h-10 w-10 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-primary/20 overflow-hidden relative"
                     whileHover={{ scale: 1.05 }}
