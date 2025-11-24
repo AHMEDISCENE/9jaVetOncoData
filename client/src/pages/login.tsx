@@ -776,7 +776,7 @@ export default function Login() {
             <DialogDescription>
               {forgotPasswordStep === "email"
                 ? "Enter your email address and we'll send you a password reset link"
-                : "Check your email for the password reset link and click it to reset your password"}
+                : "Enter the reset token from your email and your new password"}
             </DialogDescription>
           </DialogHeader>
 
@@ -804,28 +804,92 @@ export default function Login() {
               </Button>
             </form>
           ) : (
-            <div className="space-y-4">
-              <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-                <p className="text-sm text-green-800 dark:text-green-200">
-                  ✓ Email sent successfully! Click the link in your email to reset your password. The link will expire in 24 hours.
-                </p>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-token">Reset Token</Label>
+                <Input
+                  id="reset-token"
+                  type="text"
+                  placeholder="Enter the token from your email"
+                  value={resetToken}
+                  onChange={(e) => setResetToken(e.target.value)}
+                  data-testid="input-reset-token"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showResetPassword ? "text" : "password"}
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    data-testid="input-new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    data-testid="button-toggle-new-password"
+                  >
+                    {showResetPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-new-password"
+                    type={showResetConfirm ? "text" : "password"}
+                    placeholder="Confirm new password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    data-testid="input-confirm-new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetConfirm(!showResetConfirm)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    data-testid="button-toggle-confirm-new-password"
+                  >
+                    {showResetConfirm ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
               <Button
+                type="submit"
+                disabled={isResettingPassword}
+                className="w-full"
+                data-testid="button-reset-password"
+              >
+                {isResettingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {isResettingPassword ? "Resetting..." : "Reset Password"}
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
                 className="w-full"
                 onClick={() => {
-                  setShowForgotPassword(false);
                   setForgotPasswordStep("email");
-                  setForgotPasswordEmail("");
                   setResetToken("");
                   setNewPassword("");
                   setConfirmNewPassword("");
                 }}
-                data-testid="button-close-reset-dialog"
+                data-testid="button-back-to-email"
               >
-                Got it, close
+                Back to Email
               </Button>
-            </div>
+            </form>
           )}
         </DialogContent>
       </Dialog>
