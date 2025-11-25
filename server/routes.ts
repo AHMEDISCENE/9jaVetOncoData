@@ -1382,19 +1382,19 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         // Create notification before sending response
         try {
           const clinicUsers = await storage.getUsersByClinic(clinicId);
+          const exporter = await storage.getUser(userId);
           for (const user of clinicUsers) {
-            await storage.createNotification({
+            const notification = await storage.createNotification({
               userId: user.id,
               type: 'CASE_UPDATED',
               title: user.id === userId ? 'Cases Exported' : 'Cases Exported',
               message: user.id === userId
                 ? `You exported ${casesForExport.length} case(s) as CSV`
-                : `${(await storage.getUser(userId))?.name} exported ${casesForExport.length} case(s) as CSV`,
+                : `${exporter?.name} exported ${casesForExport.length} case(s) as CSV`,
               metadata: { caseCount: casesForExport.length, format: 'CSV' },
             });
             if (notificationManager) {
-              const notification = await storage.getNotifications(user.id, 1);
-              if (notification[0]) notificationManager.sendNotification(user.id, notification[0]);
+              notificationManager.sendNotification(user.id, notification);
             }
           }
         } catch (notifError) {
@@ -1446,19 +1446,19 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         // Create notification before sending response
         try {
           const clinicUsers = await storage.getUsersByClinic(clinicId);
+          const exporter = await storage.getUser(userId);
           for (const user of clinicUsers) {
-            await storage.createNotification({
+            const notification = await storage.createNotification({
               userId: user.id,
               type: 'CASE_UPDATED',
               title: user.id === userId ? 'Cases Exported' : 'Cases Exported',
               message: user.id === userId
                 ? `You exported ${casesForExport.length} case(s) as Excel`
-                : `${(await storage.getUser(userId))?.name} exported ${casesForExport.length} case(s) as Excel`,
+                : `${exporter?.name} exported ${casesForExport.length} case(s) as Excel`,
               metadata: { caseCount: casesForExport.length, format: 'XLSX' },
             });
             if (notificationManager) {
-              const notification = await storage.getNotifications(user.id, 1);
-              if (notification[0]) notificationManager.sendNotification(user.id, notification[0]);
+              notificationManager.sendNotification(user.id, notification);
             }
           }
         } catch (notifError) {
@@ -1625,19 +1625,19 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         // Create notification before sending response
         try {
           const clinicUsers = await storage.getUsersByClinic(clinicId);
+          const exporter = await storage.getUser(userId);
           for (const user of clinicUsers) {
-            await storage.createNotification({
+            const notification = await storage.createNotification({
               userId: user.id,
               type: 'CASE_UPDATED',
               title: user.id === userId ? 'Cases Exported' : 'Cases Exported',
               message: user.id === userId
                 ? `You exported ${casesForExport.length} case(s) as PDF`
-                : `${(await storage.getUser(userId))?.name} exported ${casesForExport.length} case(s) as PDF`,
+                : `${exporter?.name} exported ${casesForExport.length} case(s) as PDF`,
               metadata: { caseCount: casesForExport.length, format: 'PDF' },
             });
             if (notificationManager) {
-              const notification = await storage.getNotifications(user.id, 1);
-              if (notification[0]) notificationManager.sendNotification(user.id, notification[0]);
+              notificationManager.sendNotification(user.id, notification);
             }
           }
         } catch (notifError) {
