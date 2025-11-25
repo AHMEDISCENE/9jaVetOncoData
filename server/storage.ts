@@ -1561,6 +1561,33 @@ export class DatabaseStorage implements IStorage {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
+      // Clinics by case count
+      const clinicCounts = new Map<string, number>();
+      allCases.forEach(c => {
+        if (c.clinicId) {
+          clinicCounts.set(c.clinicId, (clinicCounts.get(c.clinicId) || 0) + 1);
+        }
+      });
+      
+      // Get clinic names
+      const clinicIds = Array.from(clinicCounts.keys());
+      const clinicsData = clinicIds.length > 0 
+        ? await db
+            .select({ id: clinics.id, name: clinics.name })
+            .from(clinics)
+            .where(inArray(clinics.id, clinicIds))
+        : [];
+      
+      const clinicNameMap = new Map(clinicsData.map(c => [c.id, c.name]));
+      const clinicsByCount = Array.from(clinicCounts.entries())
+        .map(([clinicId, count]) => ({ 
+          id: clinicId,
+          name: clinicNameMap.get(clinicId) || 'Unknown Clinic', 
+          count 
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
       return {
         totalCases,
         newThisMonth,
@@ -1571,6 +1598,7 @@ export class DatabaseStorage implements IStorage {
         casesBySpecies,
         treatmentOutcomes,
         casesByState,
+        clinicsByCount,
         recentActivity: [],
       };
     } catch (error) {
@@ -1585,6 +1613,7 @@ export class DatabaseStorage implements IStorage {
         casesBySpecies: [],
         treatmentOutcomes: [],
         casesByState: [],
+        clinicsByCount: [],
         recentActivity: [],
       };
     }

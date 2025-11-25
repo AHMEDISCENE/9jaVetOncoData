@@ -550,21 +550,21 @@ export default function Dashboard() {
                 </div>
               </div>
               <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-2">
-                Click to see by state
+                Click to see top clinics
               </p>
             </div>
           }
           backContent={
             <div className="p-3 h-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-950 flex flex-col">
-              <p className="text-xs font-bold text-amber-800 dark:text-amber-200 mb-2">Cases by State</p>
+              <p className="text-xs font-bold text-amber-800 dark:text-amber-200 mb-2">Top Clinics</p>
               <div className="flex-1 space-y-1 min-h-0 fancy-scroll">
-                {stats.casesByState?.slice(0, 5).map((item, idx) => (
+                {stats.clinicsByCount?.slice(0, 5).map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-amber-700 dark:text-amber-300 truncate max-w-[65%]">{item.state}</span>
+                    <span className="text-amber-700 dark:text-amber-300 truncate max-w-[65%]">{item.name}</span>
                     <span className="font-semibold text-amber-800 dark:text-amber-200 ml-2">{item.count}</span>
                   </div>
                 ))}
-                {(!stats.casesByState || stats.casesByState.length === 0) && (
+                {(!stats.clinicsByCount || stats.clinicsByCount.length === 0) && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">No data available</p>
                 )}
               </div>

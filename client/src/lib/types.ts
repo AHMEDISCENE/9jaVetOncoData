@@ -8,6 +8,7 @@ export interface DashboardStats {
   casesBySpecies: Array<{name: string; count: number}>;
   treatmentOutcomes: Array<{name: string; count: number}>;
   casesByState: Array<{state: string; count: number}>;
+  clinicsByCount: Array<{id: string; name: string; count: number}>;
   recentActivity: Array<{
     id: string;
     type: string;
