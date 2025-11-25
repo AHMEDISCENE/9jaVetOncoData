@@ -1429,12 +1429,11 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         const pageWidth = doc.internal.pageSize.getWidth();
         const maxWidth = pageWidth - 2 * margin;
         const colWidth = maxWidth / 2;
-        const lineHeight = 5;
 
-        // Draw each case as a table row
+        // Draw each case as a detailed card
         casesForExport.forEach((c: any, idx: number) => {
-          // Check if we need a new page (need space for case info)
-          if (currentY > pageHeight - 25) {
+          // Check if we need a new page
+          if (currentY > pageHeight - 40) {
             doc.addPage();
             currentY = 15;
           }
@@ -1442,13 +1441,16 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           // Prepare data
           const statusText = outcomeLabels[c.outcome as string] || c.outcome || 'Unknown';
           const diagDate = c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : 'N/A';
+          const ageStr = (c.ageYears ? `${c.ageYears}y` : '') + (c.ageMonths ? ` ${c.ageMonths}m` : '') || 'N/A';
+          const treatment = c.treatmentPlan || 'N/A';
+          const diagMethod = c.diagnosisMethod || 'N/A';
           
-          // Case card background
+          // Case card background (increased height to 38mm to fit all data)
           doc.setFillColor(250, 250, 250);
           doc.setDrawColor(220, 220, 220);
-          doc.rect(margin, currentY, maxWidth, 20, 'FD');
+          doc.rect(margin, currentY, maxWidth, 38, 'FD');
 
-          // Case ID and Status (Top row)
+          // Row 1: Case ID and Animal Status
           doc.setFont('', 'bold');
           doc.setFontSize(9);
           doc.setTextColor(0);
@@ -1458,44 +1460,88 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           doc.setFontSize(8);
           doc.setTextColor(76, 175, 80);
           const statusX = margin + colWidth;
-          doc.text(`Status: ${statusText}`, statusX, currentY + 4);
+          doc.text(`Animal Status: ${statusText}`, statusX, currentY + 4);
 
-          // Middle row: Patient, Species, State
+          // Row 2: Patient and Species
           doc.setTextColor(0);
           doc.setFont('', 'bold');
           doc.setFontSize(7);
           doc.text('Patient:', margin + 2, currentY + 9);
           doc.setFont('', 'normal');
-          doc.text((c.patientName || 'N/A').substring(0, 25), margin + 18, currentY + 9);
+          doc.text((c.patientName || 'N/A').substring(0, 22), margin + 18, currentY + 9);
 
           doc.setFont('', 'bold');
           doc.text('Species:', statusX, currentY + 9);
           doc.setFont('', 'normal');
-          doc.text((c.species || 'N/A').substring(0, 20), statusX + 16, currentY + 9);
+          doc.text((c.species || 'N/A').substring(0, 18), statusX + 16, currentY + 9);
 
-          // Bottom row: Clinic, Diagnosis Date, Tumour
+          // Row 3: Breed and Age
           doc.setFont('', 'bold');
-          doc.text('Clinic:', margin + 2, currentY + 13);
+          doc.text('Breed:', margin + 2, currentY + 13);
           doc.setFont('', 'normal');
-          doc.text((c.clinic?.name || 'N/A').substring(0, 25), margin + 18, currentY + 13);
-
-          doc.setFont('', 'bold');
-          doc.text('State:', statusX, currentY + 13);
-          doc.setFont('', 'normal');
-          doc.text((c.state || 'N/A').substring(0, 20), statusX + 16, currentY + 13);
-
-          // Fourth row: Diagnosis Date and Tumour Type
-          doc.setFont('', 'bold');
-          doc.text('Diagnosis:', margin + 2, currentY + 17);
-          doc.setFont('', 'normal');
-          doc.text(diagDate, margin + 24, currentY + 17);
+          doc.text((c.breed || 'N/A').substring(0, 22), margin + 14, currentY + 13);
 
           doc.setFont('', 'bold');
-          doc.text('Tumour:', statusX, currentY + 17);
+          doc.text('Age:', statusX, currentY + 13);
           doc.setFont('', 'normal');
-          doc.text((c.tumourType?.name || c.tumourTypeCustom || 'N/A').substring(0, 15), statusX + 14, currentY + 17);
+          doc.text(ageStr.substring(0, 18), statusX + 11, currentY + 13);
 
-          currentY += 22;
+          // Row 4: Clinic and State
+          doc.setFont('', 'bold');
+          doc.text('Clinic:', margin + 2, currentY + 17);
+          doc.setFont('', 'normal');
+          doc.text((c.clinic?.name || 'N/A').substring(0, 22), margin + 16, currentY + 17);
+
+          doc.setFont('', 'bold');
+          doc.text('State:', statusX, currentY + 17);
+          doc.setFont('', 'normal');
+          doc.text((c.state || 'N/A').substring(0, 18), statusX + 11, currentY + 17);
+
+          // Row 5: Diagnosis Date and Diagnosis Method
+          doc.setFont('', 'bold');
+          doc.text('Diagnosis:', margin + 2, currentY + 21);
+          doc.setFont('', 'normal');
+          doc.text(diagDate, margin + 24, currentY + 21);
+
+          doc.setFont('', 'bold');
+          doc.text('Method:', statusX, currentY + 21);
+          doc.setFont('', 'normal');
+          doc.text(diagMethod.substring(0, 15), statusX + 16, currentY + 21);
+
+          // Row 6: Tumour Type and Treatment
+          doc.setFont('', 'bold');
+          doc.text('Tumour:', margin + 2, currentY + 25);
+          doc.setFont('', 'normal');
+          const tumourName = (c.tumourType?.name || c.tumourTypeCustom || 'N/A').substring(0, 22);
+          doc.text(tumourName, margin + 16, currentY + 25);
+
+          doc.setFont('', 'bold');
+          doc.text('Treatment:', statusX, currentY + 25);
+          doc.setFont('', 'normal');
+          doc.text(treatment.substring(0, 13), statusX + 23, currentY + 25);
+
+          // Row 7: Anatomical Site
+          doc.setFont('', 'bold');
+          doc.text('Site:', margin + 2, currentY + 29);
+          doc.setFont('', 'normal');
+          const siteName = (c.anatomicalSite?.name || c.anatomicalSiteCustom || 'N/A').substring(0, 22);
+          doc.text(siteName, margin + 12, currentY + 29);
+
+          doc.setFont('', 'bold');
+          doc.text('Stage:', statusX, currentY + 29);
+          doc.setFont('', 'normal');
+          doc.text((c.stage || 'N/A').substring(0, 18), statusX + 15, currentY + 29);
+
+          // Row 8: Notes (if exists)
+          if (c.notes) {
+            doc.setFont('', 'bold');
+            doc.setFontSize(6.5);
+            doc.text('Notes:', margin + 2, currentY + 33);
+            doc.setFont('', 'normal');
+            doc.text(c.notes.substring(0, 65), margin + 12, currentY + 33);
+          }
+
+          currentY += 40;
         });
 
         res.setHeader('Content-Type', 'application/pdf');
