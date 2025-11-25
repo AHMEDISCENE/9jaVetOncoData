@@ -7,13 +7,20 @@ import { alias } from 'drizzle-orm/pg-core';
  * Fetch the latest cases from the database and build a text context
  * for ChatGPT to understand recent data.
  * 
- * Returns a compact, readable text snippet with recent cases.
+ * Returns a compact, readable text snippet with recent cases and total count.
  */
 export async function buildLiveDataContext(
-  maxCases: number = 10
+  maxCases: number = 20
 ): Promise<string> {
   try {
     const creator = alias(db._.schema?.users as any, 'creator');
+
+    // Fetch total count of cases
+    const totalCountResult = await db
+      .select({ count: db.raw('COUNT(*)::int') })
+      .from(cases);
+    
+    const totalCases = (totalCountResult[0]?.count as number) || 0;
 
     // Fetch latest cases with related data
     const recentCases = await db
@@ -51,7 +58,11 @@ export async function buildLiveDataContext(
       })
       .join('\n');
 
-    return `Recent cases (latest first):\n${formattedCases}`;
+    const showingText = recentCases.length < totalCases 
+      ? `Showing ${recentCases.length} most recent cases out of ${totalCases} total cases in the database.`
+      : `Total of ${totalCases} case(s) in the database.`;
+
+    return `VetOncoData Database Summary:\n${showingText}\n\nRecent cases (latest first):\n${formattedCases}`;
   } catch (error) {
     console.error('[buildLiveDataContext] Error fetching cases:', error);
     return 'Error fetching live data from database.';
