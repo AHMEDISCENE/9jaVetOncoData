@@ -171,9 +171,30 @@ export default function Feeds() {
     const files = e.target.files;
     if (!files) return;
     
+    const currentAttachments = isEdit ? editedData.attachments || [] : newPost.attachments || [];
+    const MAX_IMAGES = 4;
+    
+    if (currentAttachments.length >= MAX_IMAGES) {
+      toast({
+        variant: "destructive",
+        description: `Maximum of ${MAX_IMAGES} images allowed per post`,
+      });
+      e.target.value = '';
+      return;
+    }
+    
     setUploadingImages(true);
     try {
+      let addedCount = 0;
       for (const file of Array.from(files)) {
+        if (currentAttachments.length + addedCount >= MAX_IMAGES) {
+          toast({
+            variant: "destructive",
+            description: `Only ${MAX_IMAGES - addedCount} more image(s) can be added. Maximum of ${MAX_IMAGES} per post.`,
+          });
+          break;
+        }
+        
         if (!file.type.startsWith('image/')) {
           toast({
             variant: "destructive",
@@ -191,6 +212,7 @@ export default function Feeds() {
         }
         
         await uploadImage(file, isEdit);
+        addedCount++;
       }
     } finally {
       setUploadingImages(false);
@@ -438,16 +460,21 @@ export default function Feeds() {
 
             <div>
               <div className="mb-2">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Attach Images
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    Attach Images
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {(newPost.attachments || []).length}/4
+                  </span>
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="file"
                     accept="image/*"
                     multiple
                     onChange={(e) => handleImageSelect(e, false)}
-                    disabled={uploadingImages}
+                    disabled={uploadingImages || (newPost.attachments || []).length >= 4}
                     className="hidden"
                     id="feed-image-input"
                     data-testid="input-post-images"
@@ -455,7 +482,7 @@ export default function Feeds() {
                   <Button 
                     variant="outline"
                     onClick={() => document.getElementById('feed-image-input')?.click()}
-                    disabled={uploadingImages}
+                    disabled={uploadingImages || (newPost.attachments || []).length >= 4}
                     data-testid="button-attach-images"
                   >
                     <ImagePlus className="h-4 w-4 mr-2" />
@@ -690,16 +717,21 @@ export default function Feeds() {
 
             <div>
               <div className="mb-2">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Attach Images
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    Attach Images
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {(editedData.attachments || []).length}/4
+                  </span>
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="file"
                     accept="image/*"
                     multiple
                     onChange={(e) => handleImageSelect(e, true)}
-                    disabled={uploadingImages}
+                    disabled={uploadingImages || (editedData.attachments || []).length >= 4}
                     className="hidden"
                     id="feed-edit-image-input"
                     data-testid="input-edit-post-images"
@@ -707,7 +739,7 @@ export default function Feeds() {
                   <Button 
                     variant="outline"
                     onClick={() => document.getElementById('feed-edit-image-input')?.click()}
-                    disabled={uploadingImages}
+                    disabled={uploadingImages || (editedData.attachments || []).length >= 4}
                     data-testid="button-attach-edit-images"
                   >
                     <ImagePlus className="h-4 w-4 mr-2" />

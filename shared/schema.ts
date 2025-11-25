@@ -505,13 +505,21 @@ export const insertFeedPostSchema = createInsertSchema(feedPosts).omit({
   createdAt: true,
   updatedAt: true,
   publishedAt: true,
+}).refine((data) => {
+  if (data.attachments && data.attachments.length > 4) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Maximum of 4 images allowed per post",
+  path: ["attachments"],
 });
 
 export const updateFeedPostSchema = z.object({
   title: z.string().min(1).optional(),
   body: z.string().min(1).optional(),
   tags: z.array(z.string()).optional(),
-  attachments: z.array(z.string()).optional(),
+  attachments: z.array(z.string()).max(4, "Maximum of 4 images allowed per post").optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
 });
 
