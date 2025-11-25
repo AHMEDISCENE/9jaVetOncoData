@@ -319,33 +319,25 @@ export default function Analytics() {
   });
   const hasTumourDistributionData = tumourDistributionRows.length > 0;
 
-  const handleCasesOverTimeExport = async () => {
-    if (!hasCasesOverTimeData) {
-      return;
-    }
-
+  // Generic export handler for analytics with format support
+  const handleAnalyticsExport = async (
+    chartName: string,
+    headers: string[],
+    rows: any[],
+    summary: any,
+    format: 'csv' | 'xlsx' | 'pdf'
+  ) => {
     try {
-      const totalCases = casesOverTimeRows.reduce((sum, row) => sum + (row.cases || 0), 0);
-      const avgCases = totalCases / casesOverTimeRows.length;
-      const caseValues = casesOverTimeRows.map(r => r.cases || 0);
-      const maxCases = Math.max(...caseValues);
-      const minCases = Math.min(...caseValues);
-
       const response = await apiRequest('POST', '/api/analytics/export', {
-        chartName: 'Cases Over Time',
-        headers: ['period', 'cases'],
-        rows: casesOverTimeRows,
-        summary: {
-          total: totalCases,
-          average: Math.round(avgCases * 100) / 100,
-          highest: maxCases,
-          lowest: minCases,
-          recordCount: casesOverTimeRows.length,
-        },
+        chartName,
+        headers,
+        rows,
+        summary,
+        format,
       });
 
       const contentDisposition = response.headers.get('content-disposition');
-      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || 'cases-over-time.csv';
+      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || `export.${format}`;
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -357,65 +349,53 @@ export default function Analytics() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
+      const formatLabel = format === 'csv' ? 'CSV' : format === 'xlsx' ? 'Excel' : 'PDF';
       toast({
         title: "Export successful",
-        description: "Cases Over Time data has been exported",
+        description: `${chartName} has been exported as ${formatLabel}`,
       });
     } catch (err) {
       console.error(err);
+      const formatLabel = format === 'csv' ? 'CSV' : format === 'xlsx' ? 'Excel' : 'PDF';
       toast({
         variant: "destructive",
         title: "Export failed",
-        description: "We couldn't export the Cases Over Time data. Please try again.",
+        description: `We couldn't export as ${formatLabel}. Please try again.`,
       });
     }
   };
 
-  const handleTumourDistributionExport = async () => {
+  const handleCasesOverTimeExport = async (format: 'csv' | 'xlsx' | 'pdf' = 'csv') => {
+    if (!hasCasesOverTimeData) {
+      return;
+    }
+
+    const totalCases = casesOverTimeRows.reduce((sum, row) => sum + (row.cases || 0), 0);
+    const avgCases = totalCases / casesOverTimeRows.length;
+    const caseValues = casesOverTimeRows.map(r => r.cases || 0);
+    const maxCases = Math.max(...caseValues);
+    const minCases = Math.min(...caseValues);
+
+    await handleAnalyticsExport('Cases Over Time', ['period', 'cases'], casesOverTimeRows, {
+      total: totalCases,
+      average: Math.round(avgCases * 100) / 100,
+      highest: maxCases,
+      lowest: minCases,
+      recordCount: casesOverTimeRows.length,
+    }, format);
+  };
+
+  const handleTumourDistributionExport = async (format: 'csv' | 'xlsx' | 'pdf' = 'csv') => {
     if (!hasTumourDistributionData) {
       return;
     }
 
-    try {
-      const totalCases = tumourDistributionRows.reduce((sum, row) => sum + (row.cases || 0), 0);
-      const topTumour = tumourDistributionRows[0];
-      const topPercent = topTumour ? Math.round((topTumour.cases / totalCases) * 100) : 0;
+    const totalCases = tumourDistributionRows.reduce((sum, row) => sum + (row.cases || 0), 0);
 
-      const response = await apiRequest('POST', '/api/analytics/export', {
-        chartName: 'Tumour Type Distribution',
-        headers: ['tumour_type', 'cases', 'percent'],
-        rows: tumourDistributionRows,
-        summary: {
-          total: totalCases,
-          recordCount: tumourDistributionRows.length,
-        },
-      });
-
-      const contentDisposition = response.headers.get('content-disposition');
-      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || 'tumour-type-distribution.csv';
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "Export successful",
-        description: "Tumour Type Distribution data has been exported",
-      });
-    } catch (err) {
-      console.error(err);
-      toast({
-        variant: "destructive",
-        title: "Export failed",
-        description: "We couldn't export the Tumour Type Distribution data. Please try again.",
-      });
-    }
+    await handleAnalyticsExport('Tumour Type Distribution', ['tumour_type', 'cases', 'percent'], tumourDistributionRows, {
+      total: totalCases,
+      recordCount: tumourDistributionRows.length,
+    }, format);
   };
 
   const speciesRows = stats.casesBySpecies.map((item) => ({
@@ -424,51 +404,19 @@ export default function Analytics() {
   }));
   const hasSpeciesData = speciesRows.length > 0;
 
-  const handleSpeciesExport = async () => {
+  const handleSpeciesExport = async (format: 'csv' | 'xlsx' | 'pdf' = 'csv') => {
     if (!hasSpeciesData) {
       return;
     }
 
-    try {
-      const totalCases = speciesRows.reduce((sum, row) => sum + (row.cases || 0), 0);
-      const avgCases = totalCases / speciesRows.length;
+    const totalCases = speciesRows.reduce((sum, row) => sum + (row.cases || 0), 0);
+    const avgCases = totalCases / speciesRows.length;
 
-      const response = await apiRequest('POST', '/api/analytics/export', {
-        chartName: 'Cases by Species',
-        headers: ['species', 'cases'],
-        rows: speciesRows,
-        summary: {
-          total: totalCases,
-          average: Math.round(avgCases * 100) / 100,
-          recordCount: speciesRows.length,
-        },
-      });
-
-      const contentDisposition = response.headers.get('content-disposition');
-      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || 'cases-by-species.csv';
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "Export successful",
-        description: "Cases by Species data has been exported",
-      });
-    } catch (err) {
-      console.error(err);
-      toast({
-        variant: "destructive",
-        title: "Export failed",
-        description: "We couldn't export the Species data. Please try again.",
-      });
-    }
+    await handleAnalyticsExport('Cases by Species', ['species', 'cases'], speciesRows, {
+      total: totalCases,
+      average: Math.round(avgCases * 100) / 100,
+      recordCount: speciesRows.length,
+    }, format);
   };
 
   const outcomeRows = stats.treatmentOutcomes.map((item) => ({
@@ -477,52 +425,20 @@ export default function Analytics() {
   }));
   const hasOutcomeData = outcomeRows.length > 0;
 
-  const handleOutcomeExport = async () => {
+  const handleOutcomeExport = async (format: 'csv' | 'xlsx' | 'pdf' = 'csv') => {
     if (!hasOutcomeData) {
       return;
     }
 
-    try {
-      const totalOutcomes = outcomeRows.reduce((sum, row) => sum + (row.count || 0), 0);
-      const remissionCount = outcomeRows.find(r => r.status?.toLowerCase().includes('remission'))?.count || 0;
-      const remissionPercent = totalOutcomes > 0 ? Math.round((remissionCount / totalOutcomes) * 100) : 0;
+    const totalOutcomes = outcomeRows.reduce((sum, row) => sum + (row.count || 0), 0);
+    const remissionCount = outcomeRows.find(r => r.status?.toLowerCase().includes('remission'))?.count || 0;
+    const remissionPercent = totalOutcomes > 0 ? Math.round((remissionCount / totalOutcomes) * 100) : 0;
 
-      const response = await apiRequest('POST', '/api/analytics/export', {
-        chartName: 'Treatment Outcomes',
-        headers: ['status', 'count'],
-        rows: outcomeRows,
-        summary: {
-          total: totalOutcomes,
-          successRate: remissionPercent,
-          recordCount: outcomeRows.length,
-        },
-      });
-
-      const contentDisposition = response.headers.get('content-disposition');
-      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || 'treatment-outcomes.csv';
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "Export successful",
-        description: "Treatment Outcomes data has been exported",
-      });
-    } catch (err) {
-      console.error(err);
-      toast({
-        variant: "destructive",
-        title: "Export failed",
-        description: "We couldn't export the Treatment Outcomes data. Please try again.",
-      });
-    }
+    await handleAnalyticsExport('Treatment Outcomes', ['status', 'count'], outcomeRows, {
+      total: totalOutcomes,
+      successRate: remissionPercent,
+      recordCount: outcomeRows.length,
+    }, format);
   };
 
   return (
@@ -633,20 +549,11 @@ export default function Analytics() {
         <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('casesOverTime')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases Over Time</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="button-export-trend-chart"
-              onClick={handleCasesOverTimeExport}
-              disabled={!hasCasesOverTimeData}
-              aria-label={
-                hasCasesOverTimeData
-                  ? "Export Cases Over Time as CSV"
-                  : "No Cases Over Time data to export"
-              }
-            >
-              <i className="fas fa-download mr-2"></i>Export
-            </Button>
+            <div className="flex gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => handleCasesOverTimeExport('csv')} disabled={!hasCasesOverTimeData} data-testid="button-export-trend-chart-csv" title="Export as CSV">CSV</Button>
+              <Button variant="outline" size="sm" onClick={() => handleCasesOverTimeExport('xlsx')} disabled={!hasCasesOverTimeData} data-testid="button-export-trend-chart-xlsx" title="Export as Excel">Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => handleCasesOverTimeExport('pdf')} disabled={!hasCasesOverTimeData} data-testid="button-export-trend-chart-pdf" title="Export as PDF">PDF</Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-80">
@@ -689,20 +596,11 @@ export default function Analytics() {
         <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('tumourDistribution')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Tumour Type Distribution</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="button-export-distribution-chart"
-              onClick={handleTumourDistributionExport}
-              disabled={!hasTumourDistributionData}
-              aria-label={
-                hasTumourDistributionData
-                  ? "Export Tumour Type Distribution as CSV"
-                  : "No tumour type distribution data to export"
-              }
-            >
-              <i className="fas fa-download mr-2"></i>Export
-            </Button>
+            <div className="flex gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => handleTumourDistributionExport('csv')} disabled={!hasTumourDistributionData} data-testid="button-export-distribution-chart-csv" title="Export as CSV">CSV</Button>
+              <Button variant="outline" size="sm" onClick={() => handleTumourDistributionExport('xlsx')} disabled={!hasTumourDistributionData} data-testid="button-export-distribution-chart-xlsx" title="Export as Excel">Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => handleTumourDistributionExport('pdf')} disabled={!hasTumourDistributionData} data-testid="button-export-distribution-chart-pdf" title="Export as PDF">PDF</Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-80">
@@ -747,20 +645,11 @@ export default function Analytics() {
         <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('casesBySpecies')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases by Species</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="button-export-species-chart"
-              onClick={handleSpeciesExport}
-              disabled={!hasSpeciesData}
-              aria-label={
-                hasSpeciesData
-                  ? "Export Cases by Species as CSV"
-                  : "No cases by species data to export"
-              }
-            >
-              <i className="fas fa-download mr-2"></i>Export
-            </Button>
+            <div className="flex gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => handleSpeciesExport('csv')} disabled={!hasSpeciesData} data-testid="button-export-species-chart-csv" title="Export as CSV">CSV</Button>
+              <Button variant="outline" size="sm" onClick={() => handleSpeciesExport('xlsx')} disabled={!hasSpeciesData} data-testid="button-export-species-chart-xlsx" title="Export as Excel">Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => handleSpeciesExport('pdf')} disabled={!hasSpeciesData} data-testid="button-export-species-chart-pdf" title="Export as PDF">PDF</Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-80">
@@ -800,20 +689,11 @@ export default function Analytics() {
         <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('treatmentOutcomes')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Treatment Outcomes</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="button-export-outcomes-chart"
-              onClick={handleOutcomeExport}
-              disabled={!hasOutcomeData}
-              aria-label={
-                hasOutcomeData
-                  ? "Export Treatment Outcomes as CSV"
-                  : "No treatment outcomes data to export"
-              }
-            >
-              <i className="fas fa-download mr-2"></i>Export
-            </Button>
+            <div className="flex gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => handleOutcomeExport('csv')} disabled={!hasOutcomeData} data-testid="button-export-outcomes-chart-csv" title="Export as CSV">CSV</Button>
+              <Button variant="outline" size="sm" onClick={() => handleOutcomeExport('xlsx')} disabled={!hasOutcomeData} data-testid="button-export-outcomes-chart-xlsx" title="Export as Excel">Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => handleOutcomeExport('pdf')} disabled={!hasOutcomeData} data-testid="button-export-outcomes-chart-pdf" title="Export as PDF">PDF</Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-80">

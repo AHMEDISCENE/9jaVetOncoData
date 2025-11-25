@@ -175,13 +175,21 @@ export default function Reports() {
       });
       
       if (!response.ok) throw new Error("Failed to generate report");
-      const reportData = await response.json();
       
-      let fileExtension = "txt";
-      if (data.format === "pdf") fileExtension = "pdf";
-      else if (data.format === "xlsx") fileExtension = "xlsx";
-      else if (data.format === "csv") fileExtension = "csv";
-      const filename = `report_${Date.now()}.${fileExtension}`;
+      // All formats return files as blobs
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || `report_${Date.now()}.${data.format}`;
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       
       return {
         success: true,
@@ -189,17 +197,16 @@ export default function Reports() {
         templateId: data.templateId,
         format: data.format,
         customization: data.customization,
-        reportData,
+        reportData: { format: data.format, downloaded: true },
       };
     },
     onSuccess: (data) => {
-      // Generate and trigger download with real data
-      generateAndDownloadReport(data.templateId, data.filename, data.format, data.reportData, data.customization);
-      
+      // All reports are now downloaded directly as files
       toast({
         title: "Report Generated & Downloaded",
-        description: `Report ${data.filename} is ready`,
+        description: `Report has been exported as ${data.format.toUpperCase()}`,
       });
+      
       setRunningReportId(null);
       setFormatDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/reports/history"] });
