@@ -217,9 +217,25 @@ export default function Feeds() {
       const response = await apiRequest("PUT", `/api/feeds/${id}`, data);
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/feeds"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/feeds/recent"] });
+    onSuccess: (updatedPost) => {
+      // Manually update the cache to avoid HTTP 304 issues
+      queryClient.setQueryData(["/api/feeds"], (oldData: any) => {
+        if (!oldData?.items) return oldData;
+        return {
+          ...oldData,
+          items: oldData.items.map((post: FeedPost) =>
+            post.id === updatedPost.id ? updatedPost : post
+          ),
+        };
+      });
+      
+      queryClient.setQueryData(["/api/feeds/recent"], (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((post: FeedPost) =>
+          post.id === updatedPost.id ? updatedPost : post
+        );
+      });
+      
       setEditingPost(null);
       toast({
         title: "Post updated successfully",
@@ -786,7 +802,8 @@ export default function Feeds() {
 
       {/* Image Viewer Dialog */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex items-center justify-center">
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex items-center justify-center border-0">
+          <DialogTitle className="sr-only">Image Viewer</DialogTitle>
           {selectedImage && (
             <div className="relative w-full h-full flex items-center justify-center bg-black/50">
               <button
