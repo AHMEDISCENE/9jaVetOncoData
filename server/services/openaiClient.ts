@@ -24,6 +24,10 @@ interface OpenAIResponse {
   }>;
 }
 
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function callChatGPT({
   systemPrompt = DEFAULT_SYSTEM_PROMPT,
   userMessage,
@@ -73,41 +77,62 @@ export async function callChatGPT({
 
   messages.push({ role: 'user', content: userMessage });
 
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: 0.7,
-      }),
-    });
+  // Retry logic for rate limiting
+  const maxRetries = 3;
+  let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenAI API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorData,
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature: 0.7,
+        }),
       });
-      throw new Error(`OpenAI API returned status ${response.status}`);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('OpenAI API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorData,
+        });
+
+        // Handle rate limiting with exponential backoff
+        if (response.status === 429 && attempt < maxRetries) {
+          const waitTime = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, 30000);
+          console.log(`Rate limited. Retrying in ${waitTime}ms... (attempt ${attempt + 1}/${maxRetries})`);
+          await sleep(waitTime);
+          continue;
+        }
+
+        throw new Error(`OpenAI API returned status ${response.status}`);
+      }
+
+      const data = (await response.json()) as OpenAIResponse;
+      const assistantMessage = data.choices[0]?.message?.content;
+
+      if (!assistantMessage) {
+        console.error('No message content in OpenAI response');
+        throw new Error('Invalid response format from OpenAI API');
+      }
+
+      return assistantMessage;
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt < maxRetries && error instanceof Error && error.message.includes('429')) {
+        continue;
+      }
+      console.error('Error calling ChatGPT:', error);
+      throw error;
     }
-
-    const data = (await response.json()) as OpenAIResponse;
-    const assistantMessage = data.choices[0]?.message?.content;
-
-    if (!assistantMessage) {
-      console.error('No message content in OpenAI response');
-      throw new Error('Invalid response format from OpenAI API');
-    }
-
-    return assistantMessage;
-  } catch (error) {
-    console.error('Error calling ChatGPT:', error);
-    throw error;
   }
+
+  throw lastError || new Error('OpenAI API call failed after retries');
 }
