@@ -731,7 +731,6 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         title, 
         jobTitle, 
         specialty, 
-        displayName,
         bio 
       } = req.body;
       
@@ -743,7 +742,6 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         title: z.string().optional(),
         jobTitle: z.string().optional(),
         specialty: z.string().optional(),
-        displayName: z.string().optional(),
         bio: z.string().optional(),
       });
 
@@ -755,7 +753,6 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         title,
         jobTitle,
         specialty,
-        displayName,
         bio,
       });
       
@@ -771,7 +768,6 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           title: updatedUser.title,
           jobTitle: updatedUser.jobTitle,
           specialty: updatedUser.specialty,
-          displayName: updatedUser.displayName,
           bio: updatedUser.bio,
           role: updatedUser.role 
         } 

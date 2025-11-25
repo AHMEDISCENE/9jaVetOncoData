@@ -35,11 +35,11 @@ export default function Profile() {
   const firstName = (user as any)?.firstName || user?.name?.split(" ")[0] || "";
   const lastName = (user as any)?.lastName || user?.name?.split(" ").slice(1).join(" ") || "";
   const title = (user as any)?.title || "";
-  const displayName = (user as any)?.displayName || user?.name || "";
   const jobTitle = (user as any)?.jobTitle || "";
   const specialty = (user as any)?.specialty || "";
   const bio = (user as any)?.bio || "";
   const userImage = (user as any)?.image;
+  const displayName = user?.name || "";  // Use full name for display
 
   const roleColors: Record<string, string> = {
     SUPER_ADMIN: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",

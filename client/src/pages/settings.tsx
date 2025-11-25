@@ -22,7 +22,6 @@ const profileSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email"),
   title: z.string().optional(), // Dr., Prof., Mr., Ms., etc.
-  displayName: z.string().optional(),
   jobTitle: z.string().optional(),
   specialty: z.string().optional(),
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
@@ -62,7 +61,6 @@ export default function Settings() {
       lastName: (user as any)?.lastName || lastName || "",
       email: user?.email || "",
       title: (user as any)?.title || "",
-      displayName: (user as any)?.displayName || "",
       jobTitle: (user as any)?.jobTitle || "",
       specialty: (user as any)?.specialty || "",
       bio: (user as any)?.bio || "",
@@ -453,31 +451,10 @@ export default function Settings() {
                     />
                   </div>
 
-                  {/* Display & Communication */}
+                  {/* Bio Section */}
                   <div className="space-y-4 border-b pb-4">
-                    <h3 className="text-base font-semibold">Display & Communication</h3>
+                    <h3 className="text-base font-semibold">Additional Information</h3>
                     
-                    <FormField
-                      control={profileForm.control}
-                      name="displayName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Display Name</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="How your name appears on cases and comments" 
-                              data-testid="input-displayName"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            This name will appear on cases, comments, and feed posts
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     <FormField
                       control={profileForm.control}
                       name="bio"
