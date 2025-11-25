@@ -136,14 +136,18 @@ The system features comprehensive audit logging for all CUD operations and imple
   - **Field Extraction**: AI analyzes clinical notes and suggests: species, breed, sex, age, diagnosis method, tumour type, anatomical site, laterality, stage, treatment plan, notes
   - **Form Integration**: Handler function (`handleApplySuggestions`) applies AI suggestions to form fields using React Hook Form's `setValue()`
 
-### AI Analytics Query Mode Support (Backend)
+### AI Analytics Query Mode Support (Backend & Frontend)
 - **Extended AI Analytics Endpoint**: Added optional `mode` parameter to `/api/ai/analytics-query` for dual-mode AI responses
-  - **"data_only" Mode** (default): AI answers ONLY from VetOncoData database results, strictly limiting responses to available context
-  - **"general" Mode**: AI can combine VetOncoData results with general veterinary knowledge for enriched answers
+  - **"strict" Mode** (default): AI answers ONLY from VetOncoData database results, strictly limiting responses to available context
+  - **"universal" Mode**: AI can combine VetOncoData results with general veterinary/oncology knowledge for enriched answers
 - **ChatGPT Helper Enhancement**: Updated `callChatGPT()` in `openaiClient.ts` to support mode parameter
-  - Mode="data_only": Appends strict instruction to system prompt: "You must answer ONLY using the context provided. If context is not enough, say you do not know."
-  - Mode="general": Allows AI to use its own knowledge alongside context (default behavior)
-  - Normalized mode validation: Invalid modes default to "data_only" for safety
+  - Mode="strict": Appends strict instruction to system prompt: "You must answer ONLY using the VetOncoData context. If the context is not enough, say you cannot answer from VetOncoData data."
+  - Mode="universal": Appends instruction to system prompt: "You may also use your general veterinary/oncology knowledge, but remind users this is not a substitute for a veterinarian's judgement."
+  - Normalized mode validation: Invalid modes default to "strict" for safety
 - **Analytics Query Service**: Extended `executeAnalyticsQuery()` to accept and pass through mode parameter to the summary generation step
-- **Request Format**: `POST /api/ai/analytics-query` now accepts `{ question: string; mode?: "data_only" | "general" }`
-- **Note**: Frontend UI toggle for mode selection will be added in next phase
+- **Request Format**: `POST /api/ai/analytics-query` now accepts `{ question: string; mode?: "strict" | "universal" }`
+- **Frontend UI Toggle**: Added mode toggle to "Ask AI About Your Data" panel on Analytics page
+  - Two pill buttons: "Strictly VetOncoData" and "Universal Oncology AI"
+  - Selected mode defaults to "strict"
+  - Descriptive caption updates based on selected mode
+  - Mode sent with each API request to ensure consistent AI behavior
