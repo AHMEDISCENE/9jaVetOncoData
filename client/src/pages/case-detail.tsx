@@ -64,6 +64,7 @@ interface CaseWithDetails {
     phone?: string;
     linkedIn?: string;
     googleScholar?: string;
+    clinicName?: string;
   };
   clinic: { 
     id: string;
@@ -855,17 +856,17 @@ export default function CaseDetail() {
         </Card>
       </div>
 
-      {/* Uploader Profile Sidebar */}
+      {/* Profile Sidebar */}
       {selectedUploader && (
-        <div className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-slate-950 shadow-lg z-40 flex flex-col border-l border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="fixed right-0 top-0 h-full w-80 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 shadow-2xl z-40 flex flex-col border-l border-slate-200 dark:border-slate-800 overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
-            <h2 className="font-semibold text-foreground">Uploader Profile</h2>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
+            <h2 className="text-sm font-semibold text-foreground">Profile</h2>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSelectedUploader(null)}
-              className="h-8 w-8"
+              className="h-7 w-7"
               data-testid="button-close-uploader-sidebar"
             >
               <X className="h-4 w-4" />
@@ -873,96 +874,85 @@ export default function CaseDetail() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-auto p-6 space-y-6">
-            {/* Avatar */}
-            <div className="flex flex-col items-center">
-              <Avatar className="h-24 w-24 mb-4">
+          <div className="flex-1 overflow-auto p-5 space-y-5">
+            {/* Avatar & Name */}
+            <div className="flex flex-col items-center text-center">
+              <Avatar className="h-20 w-20 mb-3 ring-2 ring-primary/20">
                 <AvatarImage src={selectedUploader.image || ''} />
-                <AvatarFallback className="text-xl">
+                <AvatarFallback className="text-lg font-semibold">
                   {selectedUploader.firstName?.[0]}{selectedUploader.lastName?.[0]}
                 </AvatarFallback>
               </Avatar>
-              <h3 className="font-semibold text-lg text-foreground text-center">
+              <h3 className="font-semibold text-base text-foreground">
                 {selectedUploader.firstName} {selectedUploader.lastName}
               </h3>
-            </div>
-
-            {/* Title */}
-            {selectedUploader.title && (
-              <div className="text-center pb-4 border-b border-slate-200 dark:border-slate-800">
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+              {selectedUploader.title && (
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   {selectedUploader.title}
                 </p>
+              )}
+            </div>
+
+            {/* Clinic & Role */}
+            {(selectedUploader.clinicName || selectedUploader.jobTitle) && (
+              <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 text-center border border-slate-200 dark:border-slate-700">
+                {selectedUploader.clinicName && (
+                  <p className="text-xs text-slate-600 dark:text-slate-400">Clinic</p>
+                )}
+                {selectedUploader.clinicName && (
+                  <p className="text-sm font-medium text-foreground">{selectedUploader.clinicName}</p>
+                )}
+                {selectedUploader.jobTitle && (
+                  <>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">Role</p>
+                    <p className="text-sm font-medium text-foreground">{selectedUploader.jobTitle}</p>
+                  </>
+                )}
               </div>
             )}
 
-            {/* Job Info */}
-            <div className="space-y-4">
-              {selectedUploader.jobTitle && (
-                <div className="flex items-start gap-3">
-                  <Briefcase className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Job Title</p>
-                    <p className="text-sm text-foreground">{selectedUploader.jobTitle}</p>
-                  </div>
+            {/* Specialty */}
+            {selectedUploader.specialty && (
+              <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/50">
+                <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Specialty</p>
+                  <p className="text-sm text-foreground">{selectedUploader.specialty}</p>
                 </div>
-              )}
-
-              {selectedUploader.specialty && (
-                <div className="flex items-start gap-3">
-                  <Stethoscope className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Specialty</p>
-                    <p className="text-sm text-foreground">{selectedUploader.specialty}</p>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Contact Info */}
-            <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-              {selectedUploader.phone && (
-                <div className="flex items-start gap-3">
-                  <Phone className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Phone</p>
-                    <a href={`tel:${selectedUploader.phone}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all">
-                      {selectedUploader.phone}
-                    </a>
-                  </div>
-                </div>
-              )}
+            {(selectedUploader.phone || selectedUploader.linkedIn || selectedUploader.googleScholar) && (
+              <div className="space-y-2">
+                {selectedUploader.phone && (
+                  <a href={`tel:${selectedUploader.phone}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group">
+                    <Phone className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                    <span className="text-xs truncate text-blue-600 dark:text-blue-400 group-hover:underline">{selectedUploader.phone}</span>
+                  </a>
+                )}
 
-              {selectedUploader.linkedIn && (
-                <div className="flex items-start gap-3">
-                  <Mail className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">LinkedIn</p>
-                    <a href={selectedUploader.linkedIn} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate">
-                      View Profile
-                    </a>
-                  </div>
-                </div>
-              )}
+                {selectedUploader.linkedIn && (
+                  <a href={selectedUploader.linkedIn} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group">
+                    <Mail className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                    <span className="text-xs truncate text-blue-600 dark:text-blue-400 group-hover:underline">LinkedIn Profile</span>
+                  </a>
+                )}
 
-              {selectedUploader.googleScholar && (
-                <div className="flex items-start gap-3">
-                  <Mail className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Google Scholar</p>
-                    <a href={selectedUploader.googleScholar} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate">
-                      View Profile
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
+                {selectedUploader.googleScholar && (
+                  <a href={selectedUploader.googleScholar} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group">
+                    <Mail className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                    <span className="text-xs truncate text-blue-600 dark:text-blue-400 group-hover:underline">Google Scholar</span>
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Bio */}
             {selectedUploader.bio && (
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Bio</p>
-                <p className="text-sm text-foreground leading-relaxed">{selectedUploader.bio}</p>
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mb-2">About</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{selectedUploader.bio}</p>
               </div>
             )}
           </div>

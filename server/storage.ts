@@ -784,6 +784,7 @@ export class DatabaseStorage implements IStorage {
 
   async getCase(id: string, clinicId?: string): Promise<CaseWithDetails | undefined> {
     const creator = alias(users, 'creator');
+    const creatorClinic = alias(clinics, 'creator_clinic');
     
     const [result] = await db
       .select({
@@ -804,6 +805,7 @@ export class DatabaseStorage implements IStorage {
           phone: creator.phone,
           linkedIn: creator.linkedIn,
           googleScholar: creator.googleScholar,
+          clinicName: creatorClinic.name,
         },
         tumour_types: tumourTypes,
         anatomical_sites: anatomicalSites,
@@ -811,6 +813,7 @@ export class DatabaseStorage implements IStorage {
       .from(cases)
       .leftJoin(clinics, eq(cases.clinicId, clinics.id))
       .leftJoin(creator, eq(cases.createdBy, creator.id))
+      .leftJoin(creatorClinic, eq(creator.clinicId, creatorClinic.id))
       .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
       .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
       .where(eq(cases.id, id));
