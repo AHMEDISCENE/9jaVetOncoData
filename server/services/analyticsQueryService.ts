@@ -1,5 +1,4 @@
 import { callChatGPT } from './openaiClient';
-import { db } from '../db';
 
 const SCHEMA_DESCRIPTION = `Database schema for veterinary oncology analytics:
 
@@ -117,10 +116,11 @@ export async function executeAnalyticsQuery(
       };
     }
 
-    // Execute the query using Drizzle's raw SQL
-    const result = dbExecutor 
-      ? await dbExecutor(sqlQuery)
-      : await (db as any).execute(sqlQuery);
+    // Execute the query
+    if (!dbExecutor) {
+      throw new Error("Database executor is required");
+    }
+    const result = await dbExecutor(sqlQuery);
 
     if (!result || result.length === 0) {
       return {

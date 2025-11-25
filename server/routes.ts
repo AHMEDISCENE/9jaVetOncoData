@@ -5,7 +5,7 @@ import { insertUserSchema, insertClinicSchema, insertCaseSchema, insertTumourTyp
 import bcrypt from "bcrypt";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
+import { pool, db } from "./db";
 import multer from "multer";
 import { z } from "zod";
 import passport from "passport";
@@ -3728,9 +3728,10 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
         return res.status(400).json({ message: "question field is required and must be a string" });
       }
 
-      // Execute the analytics query
+      // Execute the analytics query with a database executor
       const result = await executeAnalyticsQuery(question, async (sql: string) => {
-        return db.raw(sql) as any;
+        const result = await pool.query(sql);
+        return result.rows;
       });
 
       res.json(result);
