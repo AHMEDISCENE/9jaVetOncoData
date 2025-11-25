@@ -54,10 +54,16 @@ interface CaseWithDetails {
   createdBy: { 
     id: string;
     name: string;
+    firstName?: string;
+    lastName?: string;
     title?: string;
     jobTitle?: string;
     specialty?: string;
     image?: string;
+    bio?: string;
+    phone?: string;
+    linkedIn?: string;
+    googleScholar?: string;
   };
   clinic: { 
     id: string;
