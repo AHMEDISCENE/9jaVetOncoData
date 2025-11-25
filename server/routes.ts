@@ -3719,8 +3719,8 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
-  // AI Case Suggestion endpoint - extract case fields from clinical notes
-  app.post("/api/ai/case-suggest", requireAuth, async (req, res) => {
+  // AI Case Form Suggestion endpoint - extract case fields from clinical notes
+  app.post("/api/ai/case-form-suggest", requireAuth, async (req, res) => {
     try {
       const { text } = req.body;
       
@@ -3728,21 +3728,10 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
         return res.status(400).json({ message: "text field is required and must be a string" });
       }
 
-      const systemPrompt = `You are helping to pre-fill a veterinary oncology case form from clinical notes. 
-From the text below, extract the following fields if present:
-- species (e.g., Dog, Cat, Bird)
-- breed (e.g., Labrador, Siamese)
-- sex (Male, Female, Unknown)
-- ageYears (integer or null)
-- ageMonths (integer or null)
-- tumourType (e.g., Lymphoma, Osteosarcoma, Hemangiosarcoma)
-- anatomicalSite (e.g., Bone, Lymph node, Skin)
-- stage (e.g., I, II, III, IV)
-- diagnosisMethod (FNA, Biopsy, Imaging, Clinical, Unknown)
-- notesSummary (1-2 sentence summary of key clinical information)
-
+      const systemPrompt = `You help pre-fill a veterinary oncology case form from free-text clinical notes.
+Extract the following fields if present: species, breed, sex, ageYears, ageMonths, tumourType, anatomicalSite, stage, diagnosisMethod, notesSummary.
 If you cannot determine a field with reasonable confidence, use null.
-Respond ONLY with valid JSON in this exact format (no other text):
+Respond ONLY with valid JSON matching this exact format:
 {
   "species": string | null,
   "breed": string | null,
@@ -3767,16 +3756,15 @@ Respond ONLY with valid JSON in this exact format (no other text):
       try {
         suggested = JSON.parse(response);
       } catch (parseError) {
-        console.warn("[ai.case-suggest] Failed to parse JSON response, using empty object");
-        // Return empty suggested object if parsing fails
+        console.error("[ai.case-form-suggest] JSON parsing failed:", parseError instanceof Error ? parseError.message : String(parseError));
       }
 
       res.json({ suggested });
     } catch (error) {
-      console.error("[ai.case-suggest]", error);
+      console.error("[ai.case-form-suggest]", error);
       res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Failed to suggest case fields",
-        suggested: {}
+        suggested: {},
+        error: "ai_suggest_failed"
       });
     }
   });
