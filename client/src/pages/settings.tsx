@@ -80,20 +80,23 @@ export default function Settings() {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: (data: ProfileFormData) => apiRequest("PATCH", "/api/users/profile", data),
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("PATCH", "/api/users/profile", data);
+      return response.json();
+    },
     onSuccess: (response: any) => {
       toast({ description: "Profile updated successfully" });
       // Manually update the query cache with the new user data
-      const currentData = queryClient.getQueryData(["/api/auth/me"]) as any;
-      if (currentData && response?.user) {
-        queryClient.setQueryData(["/api/auth/me"], {
-          ...currentData,
+      queryClient.setQueryData(["/api/auth/me"], (oldData: any) => {
+        if (!oldData?.user) return oldData;
+        return {
+          ...oldData,
           user: {
-            ...currentData.user,
-            ...response.user,
+            ...oldData.user,
+            ...response?.user,
           },
-        });
-      }
+        };
+      });
     },
     onError: (error: any) => {
       toast({ 
