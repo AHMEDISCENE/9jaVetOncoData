@@ -2634,6 +2634,19 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
+  // Serve feed image
+  app.get("/api/feeds/images/:encodedKey", async (req, res) => {
+    try {
+      const storageKey = Buffer.from(decodeURIComponent(req.params.encodedKey), 'base64').toString('utf-8');
+      const { buffer, contentType } = await getObject({ key: storageKey });
+      
+      res.type(contentType);
+      res.send(buffer);
+    } catch (error) {
+      res.status(404).json({ message: "Image not found" });
+    }
+  });
+
   // Upload image for feed post
   app.post("/api/feeds/upload-image", requireAuth, feedImageUpload.single('image'), async (req, res) => {
     try {
@@ -2644,13 +2657,15 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
       const storageKey = `feed-images/${Date.now()}-${req.file.originalname}`;
       
       try {
-        const result = await putObject({
+        await putObject({
           key: storageKey,
           buffer: req.file.buffer,
           contentType: req.file.mimetype,
         });
         
-        res.json({ url: result.publicUrl });
+        // Return URL that points to the feed image endpoint
+        const encodedKey = Buffer.from(storageKey).toString('base64');
+        res.json({ url: `/api/feeds/images/${encodeURIComponent(encodedKey)}` });
       } catch (storageError) {
         console.error("[WARNING] Failed to upload to object storage:", storageError);
         // Fallback to data URL for local storage
