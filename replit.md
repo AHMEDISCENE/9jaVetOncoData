@@ -129,3 +129,21 @@ The system features comprehensive audit logging for all CUD operations and imple
   - Nav items use `justify-content: flex-start` with full width on mobile
   - Icons have consistent sizing for proper alignment
   - Text is left-aligned with proper spacing
+
+### AI Case Field Suggestions Feature
+- **New CaseAIHelper Component**: Integrated AI-powered form field suggestions into New Case Form Step 1
+  - **Fixed Endpoint Placement Bug**: Moved `/api/ai/suggest-case-fields` endpoint before catch-all middleware to fix 404 errors
+  - **Field Extraction**: AI analyzes clinical notes and suggests: species, breed, sex, age, diagnosis method, tumour type, anatomical site, laterality, stage, treatment plan, notes
+  - **Form Integration**: Handler function (`handleApplySuggestions`) applies AI suggestions to form fields using React Hook Form's `setValue()`
+
+### AI Analytics Query Mode Support (Backend)
+- **Extended AI Analytics Endpoint**: Added optional `mode` parameter to `/api/ai/analytics-query` for dual-mode AI responses
+  - **"data_only" Mode** (default): AI answers ONLY from VetOncoData database results, strictly limiting responses to available context
+  - **"general" Mode**: AI can combine VetOncoData results with general veterinary knowledge for enriched answers
+- **ChatGPT Helper Enhancement**: Updated `callChatGPT()` in `openaiClient.ts` to support mode parameter
+  - Mode="data_only": Appends strict instruction to system prompt: "You must answer ONLY using the context provided. If context is not enough, say you do not know."
+  - Mode="general": Allows AI to use its own knowledge alongside context (default behavior)
+  - Normalized mode validation: Invalid modes default to "data_only" for safety
+- **Analytics Query Service**: Extended `executeAnalyticsQuery()` to accept and pass through mode parameter to the summary generation step
+- **Request Format**: `POST /api/ai/analytics-query` now accepts `{ question: string; mode?: "data_only" | "general" }`
+- **Note**: Frontend UI toggle for mode selection will be added in next phase

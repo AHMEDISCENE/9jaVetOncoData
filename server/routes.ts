@@ -3722,17 +3722,24 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
   // AI Analytics Query endpoint - generates safe SQL from natural language
   app.post("/api/ai/analytics-query", requireAuth, async (req, res) => {
     try {
-      const { question } = req.body;
+      const { question, mode } = req.body;
       
       if (!question || typeof question !== 'string') {
         return res.status(400).json({ message: "question field is required and must be a string" });
       }
 
+      // Normalize mode: only "general" or "data_only", default to "data_only"
+      const normalizedMode = (mode === "general" || mode === "data_only") ? mode : "data_only";
+
       // Execute the analytics query with a database executor
-      const result = await executeAnalyticsQuery(question, async (sql: string) => {
-        const result = await pool.query(sql);
-        return result.rows;
-      });
+      const result = await executeAnalyticsQuery(
+        question,
+        async (sql: string) => {
+          const result = await pool.query(sql);
+          return result.rows;
+        },
+        normalizedMode
+      );
 
       res.json(result);
     } catch (error) {

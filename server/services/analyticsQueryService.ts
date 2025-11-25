@@ -97,7 +97,8 @@ export function validateSQL(sql: string): { valid: boolean; error?: string } {
  */
 export async function executeAnalyticsQuery(
   question: string,
-  dbExecutor?: (sql: string) => Promise<any>
+  dbExecutor?: (sql: string) => Promise<any>,
+  mode: "data_only" | "general" = "data_only"
 ): Promise<QueryResult> {
   try {
     // Generate SQL using ChatGPT
@@ -151,6 +152,7 @@ Summary should be concise and highlight key findings.`;
 
     const summary = await callChatGPT({
       userMessage: summaryPrompt,
+      mode,
     });
 
     return {

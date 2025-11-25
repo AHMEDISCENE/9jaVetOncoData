@@ -2,10 +2,13 @@ import fetch from 'node-fetch';
 
 const DEFAULT_SYSTEM_PROMPT = `You are an assistant supporting veterinary oncology data analysis in Nigeria. You can summarise data, suggest possible differentials, and highlight data issues. You must NOT replace professional veterinary judgement. Do not give definitive treatment plans or guarantees. Be concise and factual.`;
 
+type ChatMode = "data_only" | "general";
+
 interface ChatGPTParams {
   systemPrompt?: string;
   userMessage: string;
   context?: string;
+  mode?: ChatMode;
 }
 
 interface OpenAIMessage {
@@ -25,6 +28,7 @@ export async function callChatGPT({
   systemPrompt = DEFAULT_SYSTEM_PROMPT,
   userMessage,
   context,
+  mode = "data_only",
 }: ChatGPTParams): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -34,9 +38,25 @@ export async function callChatGPT({
     throw new Error('OpenAI API key is not configured');
   }
 
-  const messages: OpenAIMessage[] = [
-    { role: 'system', content: systemPrompt },
-  ];
+  // Normalize mode
+  const normalizedMode: ChatMode = (mode === "general" || mode === "data_only") ? mode : "data_only";
+
+  const messages: OpenAIMessage[] = [];
+
+  // Build system message based on mode
+  if (normalizedMode === "general") {
+    // General mode: can use its own knowledge + context
+    messages.push({ role: 'system', content: systemPrompt });
+  } else {
+    // Data-only mode: must answer ONLY from context
+    messages.push({
+      role: 'system',
+      content:
+        systemPrompt +
+        " You must answer ONLY using the context provided. " +
+        "If the context is not enough, say you do not know. Do not use outside knowledge.",
+    });
+  }
 
   if (context) {
     messages.push({
