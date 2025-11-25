@@ -278,6 +278,29 @@
 }
 
 @layer utilities {
+  .flip-card-container {
+    perspective: 1000px;
+  }
+
+  .flip-card-inner {
+    transform-style: preserve-3d;
+    transition: transform 0.6s ease-in-out;
+  }
+
+  .flip-card-inner.flipped {
+    transform: rotateY(180deg);
+  }
+
+  .flip-card-front,
+  .flip-card-back {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .flip-card-back {
+    transform: rotateY(180deg);
+  }
+
   .glass {
     @apply bg-white/60 backdrop-blur-3xl border border-white/30 shadow-2xl;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15),

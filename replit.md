@@ -71,3 +71,30 @@ The system features comprehensive audit logging for all CUD operations and imple
 - **Tailwind CSS**: Utility-first CSS framework.
 - **class-variance-authority**: Type-safe variant API for styling.
 - **clsx**: Utility for constructing className strings.
+
+# Recent Changes
+
+## November 25, 2025
+
+### Dashboard Flip Card Animation
+- **Interactive Stat Cards**: Added smooth 3D flip animation to all 4 dashboard stat cards
+  - **Total Cases Card**: Flips to show breakdown by species (top 5)
+  - **New This Month Card**: Flips to show monthly trend (last 5 months)
+  - **Active Clinics Card**: Flips to show cases by state (top 5)
+  - **Remission Rate Card**: Flips to show treatment outcomes breakdown
+- **Animation Details**:
+  - Uses Framer Motion for smooth 3D rotateY animation (0.6s ease-in-out)
+  - CSS `transform-style: preserve-3d` and `backface-visibility: hidden` for proper 3D effect
+  - Cards maintain their gradient styling on both front and back sides
+  - Rotate icon indicates card can be flipped back
+- **UX Improvements**:
+  - Click hint text ("Click to see breakdown", etc.)
+  - Cards respond to both click and keyboard (Enter/Space) for accessibility
+  - Compact breakdown display with scrollable content
+
+### Mobile Navigation Alignment & Squicircle Design
+- **Perfect Squicircle Selection Box**: Updated active nav item styling to use `border-radius: 1.25rem`
+- **Mobile View Left Alignment**: Added mobile-specific CSS (max-width: 1024px) for proper left alignment
+  - Nav items use `justify-content: flex-start` with full width on mobile
+  - Icons have consistent sizing for proper alignment
+  - Text is left-aligned with proper spacing
