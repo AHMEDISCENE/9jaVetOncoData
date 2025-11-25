@@ -1021,7 +1021,7 @@ export default function Cases() {
       </Card>
 
       {/* Pagination */}
-      {cases && cases.length >= pageSize && (
+      {cases && (cases.length >= pageSize || currentPage > 1) && (
         <div className="flex justify-center gap-2 mt-6">
           <Button
             variant="outline"
@@ -1029,7 +1029,7 @@ export default function Cases() {
             disabled={currentPage === 1}
             data-testid="button-prev-page"
           >
-            Previous
+            ◀ Previous
           </Button>
           <span className="flex items-center px-4">
             Page {currentPage}
@@ -1040,7 +1040,7 @@ export default function Cases() {
             disabled={cases.length < pageSize}
             data-testid="button-next-page"
           >
-            Next
+            Next ▶
           </Button>
         </div>
       )}
