@@ -3100,6 +3100,66 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
     }
   });
 
+  // Analytics export route with notifications
+  app.post("/api/analytics/export", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const userId = (req.session as any).userId;
+      const { chartName, headers, rows } = req.body;
+
+      if (!chartName || !headers || !rows) {
+        return res.status(400).json({ message: "Missing required fields: chartName, headers, rows" });
+      }
+
+      // Build CSV content
+      const escapeCsvValue = (value: unknown): string => {
+        if (value === null || value === undefined) return '';
+        const stringValue = String(value);
+        const needsQuotes = /[",\n\r]/.test(stringValue);
+        const escaped = stringValue.replace(/"/g, '""');
+        return needsQuotes ? `"${escaped}"` : escaped;
+      };
+
+      const headerLine = (headers as string[]).map(h => escapeCsvValue(h)).join(',');
+      const dataLines = (rows as any[]).map(row =>
+        (headers as string[]).map(header => escapeCsvValue(row[header])).join(',')
+      );
+
+      const csvContent = [headerLine, ...dataLines].join('\r\n');
+      const blobContent = `\ufeff${csvContent}`;
+
+      res.setHeader('Content-Type', 'text/csv;charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="analytics-${chartName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv"`);
+
+      // Create notification before sending response
+      try {
+        const clinicUsers = await storage.getUsersByClinic(clinicId);
+        const exporter = await storage.getUser(userId);
+        for (const user of clinicUsers) {
+          const notification = await storage.createNotification({
+            userId: user.id,
+            type: 'CASE_UPDATED',
+            title: user.id === userId ? 'Analytics Exported' : 'Analytics Exported',
+            message: user.id === userId
+              ? `You exported "${chartName}" analytics as CSV`
+              : `${exporter?.name} exported "${chartName}" analytics as CSV`,
+            metadata: { chartName, rowCount: rows.length, format: 'CSV' },
+          });
+          if (notificationManager) {
+            notificationManager.sendNotification(user.id, notification);
+          }
+        }
+      } catch (notifError) {
+        console.error("[WARNING] Failed to create analytics export notification:", notifError);
+      }
+
+      res.send(blobContent);
+    } catch (error) {
+      console.error("[ERROR] Analytics export failed:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to export analytics" });
+    }
+  });
+
   // Ensure unmatched API routes return JSON instead of falling back to the SPA HTML.
   app.use('/api', (_req, res) => {
     return res.status(404).json({ success: false, error: 'API route not found' });

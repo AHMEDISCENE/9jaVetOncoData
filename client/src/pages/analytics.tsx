@@ -319,19 +319,34 @@ export default function Analytics() {
   });
   const hasTumourDistributionData = tumourDistributionRows.length > 0;
 
-  const handleCasesOverTimeExport = () => {
+  const handleCasesOverTimeExport = async () => {
     if (!hasCasesOverTimeData) {
       return;
     }
 
     try {
-      exportToCsv({
+      const response = await apiRequest('POST', '/api/analytics/export', {
+        chartName: 'Cases Over Time',
+        headers: ['period', 'cases'],
         rows: casesOverTimeRows,
-        headers: [
-          { key: "period", label: "period" },
-          { key: "cases", label: "cases" },
-        ],
-        filename: "cases-over-time",
+      });
+
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || 'cases-over-time.csv';
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export successful",
+        description: "Cases Over Time data has been exported",
       });
     } catch (err) {
       console.error(err);
@@ -343,20 +358,34 @@ export default function Analytics() {
     }
   };
 
-  const handleTumourDistributionExport = () => {
+  const handleTumourDistributionExport = async () => {
     if (!hasTumourDistributionData) {
       return;
     }
 
     try {
-      exportToCsv({
+      const response = await apiRequest('POST', '/api/analytics/export', {
+        chartName: 'Tumour Type Distribution',
+        headers: ['tumour_type', 'cases', 'percent'],
         rows: tumourDistributionRows,
-        headers: [
-          { key: "tumour_type", label: "tumour_type" },
-          { key: "cases", label: "cases" },
-          { key: "percent", label: "percent" },
-        ],
-        filename: "tumour-type-distribution",
+      });
+
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || 'tumour-type-distribution.csv';
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export successful",
+        description: "Tumour Type Distribution data has been exported",
       });
     } catch (err) {
       console.error(err);
@@ -374,19 +403,34 @@ export default function Analytics() {
   }));
   const hasSpeciesData = speciesRows.length > 0;
 
-  const handleSpeciesExport = () => {
+  const handleSpeciesExport = async () => {
     if (!hasSpeciesData) {
       return;
     }
 
     try {
-      exportToCsv({
+      const response = await apiRequest('POST', '/api/analytics/export', {
+        chartName: 'Cases by Species',
+        headers: ['species', 'cases'],
         rows: speciesRows,
-        headers: [
-          { key: "species", label: "species" },
-          { key: "cases", label: "cases" },
-        ],
-        filename: "cases-by-species",
+      });
+
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || 'cases-by-species.csv';
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export successful",
+        description: "Cases by Species data has been exported",
       });
     } catch (err) {
       console.error(err);
@@ -404,19 +448,34 @@ export default function Analytics() {
   }));
   const hasOutcomeData = outcomeRows.length > 0;
 
-  const handleOutcomeExport = () => {
+  const handleOutcomeExport = async () => {
     if (!hasOutcomeData) {
       return;
     }
 
     try {
-      exportToCsv({
+      const response = await apiRequest('POST', '/api/analytics/export', {
+        chartName: 'Treatment Outcomes',
+        headers: ['status', 'count'],
         rows: outcomeRows,
-        headers: [
-          { key: "status", label: "status" },
-          { key: "count", label: "count" },
-        ],
-        filename: "treatment-outcomes",
+      });
+
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || 'treatment-outcomes.csv';
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export successful",
+        description: "Treatment Outcomes data has been exported",
       });
     } catch (err) {
       console.error(err);
