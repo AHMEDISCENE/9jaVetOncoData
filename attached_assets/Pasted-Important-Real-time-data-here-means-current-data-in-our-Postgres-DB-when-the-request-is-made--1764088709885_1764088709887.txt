@@ -1,0 +1,58 @@
+Important:
+- “Real-time data” here means current data in our Postgres DB when the request is made.
+- Do NOT fetch or scrape the public internet.
+
+Tasks:
+
+1. Extend the ChatGPT helper
+- Update `callChatGPT` (or equivalent) so it supports an optional `context` argument, e.g.:
+
+  `callChatGPT({ systemPrompt?, userMessage, context? }: { systemPrompt?: string; userMessage: string; context?: string }): Promise<string>`
+
+- When `context` is provided, include it as an extra message in the chat request, for example:
+
+  messages = [
+    { role: "system", content: systemPrompt or defaultSystemPrompt },
+    { role: "system", content: "Here is relevant data from the VetOncoData database:\n" + context },
+    { role: "user", content: userMessage }
+  ]
+
+- Keep existing behaviour working when `context` is not passed.
+
+2. Add a small DB → context helper
+- Create a utility like `buildLiveDataContext.ts` (or similar) that can fetch fresh data from Postgres and return a compact text snippet.
+- For now, implement a simple version, for example:
+  - Fetch last 10–20 cases with: case id, species, tumour_type, state, clinic, outcome, diagnosis_date.
+  - Convert them into a readable text or JSON-like string (limited in length to avoid huge prompts).
+
+  Example output:
+  "Recent cases (latest first): 
+   1) id=..., species=Dog, tumour=Lymphoma, clinic=Unilorin VTH, state=Kwara, outcome=Remission, diagnosis_date=...
+   2) ..."
+
+- This helper will be reused later for more specific analytics / quality checks.
+
+3. Test endpoint using real-time data
+- Create a new route, for example: `POST /api/ai/live-test`
+- Body: `{ question: string }`
+- In this route:
+  - Call the DB helper to get the latest cases and build the `context` string.
+  - Call `callChatGPT({ userMessage: question, context })`.
+  - Return `{ answer: string }` as JSON.
+- This endpoint is just to prove that ChatGPT is now using **up-to-date DB data** when answering.
+
+4. Keep it efficient and safe
+- Limit how many rows you pull into `context` (e.g. 10–20) and keep the text short.
+- Do NOT expose sensitive data (no emails/passwords).
+- Reuse existing DB connection code and Express patterns.
+
+Do not implement analytics logic or other AI features yet.  
+Just:
+- extend the ChatGPT helper to accept `context`,
+- add one helper to fetch live data from Postgres,
+- and wire a simple `/api/ai/live-test` endpoint that demonstrates real-time data usage.
+
+
+
+
+

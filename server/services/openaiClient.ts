@@ -5,6 +5,7 @@ const DEFAULT_SYSTEM_PROMPT = `You are an assistant supporting veterinary oncolo
 interface ChatGPTParams {
   systemPrompt?: string;
   userMessage: string;
+  context?: string;
 }
 
 interface OpenAIMessage {
@@ -23,6 +24,7 @@ interface OpenAIResponse {
 export async function callChatGPT({
   systemPrompt = DEFAULT_SYSTEM_PROMPT,
   userMessage,
+  context,
 }: ChatGPTParams): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -34,8 +36,16 @@ export async function callChatGPT({
 
   const messages: OpenAIMessage[] = [
     { role: 'system', content: systemPrompt },
-    { role: 'user', content: userMessage },
   ];
+
+  if (context) {
+    messages.push({
+      role: 'system',
+      content: `Here is relevant data from the VetOncoData database:\n${context}`,
+    });
+  }
+
+  messages.push({ role: 'user', content: userMessage });
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

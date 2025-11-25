@@ -19,6 +19,7 @@ import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import { sendPasswordResetEmail } from "./email";
 import { callChatGPT } from "./services/openaiClient";
+import { buildLiveDataContext } from "./services/buildLiveDataContext";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -3692,6 +3693,27 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
       res.json({ answer });
     } catch (error) {
       console.error("[ai.test]", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get AI response" });
+    }
+  });
+
+  // AI Chat endpoint using live database context
+  app.post("/api/ai/live-test", requireAuth, async (req, res) => {
+    try {
+      const { question } = req.body;
+      
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ message: "question field is required and must be a string" });
+      }
+
+      // Fetch live data context from database
+      const context = await buildLiveDataContext(10);
+
+      // Call ChatGPT with the live data context
+      const answer = await callChatGPT({ userMessage: question, context });
+      res.json({ answer });
+    } catch (error) {
+      console.error("[ai.live-test]", error);
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get AI response" });
     }
   });
