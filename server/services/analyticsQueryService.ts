@@ -101,6 +101,48 @@ export function validateSQL(sql: string): { valid: boolean; error?: string } {
 }
 
 /**
+ * Build a text summary of query results for context
+ */
+function buildQueryContext(columns: string[], rows: any[]): string {
+  if (!rows || rows.length === 0) {
+    return '';
+  }
+
+  const rowStrings = rows.map((row: any) => 
+    Object.entries(row)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(', ')
+  ).join('\n');
+
+  return `VetOncoData Query Results:
+Columns: ${columns.join(', ')}
+Rows returned: ${rows.length}
+
+Data:
+${rowStrings}`;
+}
+
+/**
+ * Get system prompt for strict mode analysis
+ */
+function getStrictModeSystemPrompt(): string {
+  return `You are an analytics assistant for the VetOncoData veterinary cancer registry.
+
+Your task: Base your answer ONLY on the data summary provided in the context from VetOncoData.
+- Do NOT use general medical knowledge or facts outside the provided context.
+- Always give as much descriptive analysis as possible:
+  - counts and totals
+  - percentages and proportions
+  - comparisons between groups
+  - simple trends over time if present
+- If the context shows very limited data, still describe whatever is there.
+- If the question is outside the scope of VetOncoData (e.g., asking about another country or non-veterinary topics), 
+  say that Strict VetOncoData mode can only answer questions about the cases in the database.
+
+Remember: Only analyze the data provided. Never add information from outside sources.`;
+}
+
+/**
  * Generate SQL from natural language question and execute it
  */
 export async function executeAnalyticsQuery(
@@ -136,9 +178,9 @@ Please provide general information about this topic from your veterinary/oncolog
         };
       }
 
-      // In strict mode, return the error
+      // In strict mode, return a clear message that this question cannot be answered
       return {
-        summary: `I couldn't generate a safe query: ${validation.error}. Please rephrase your question more specifically.`,
+        summary: 'In Strict VetOncoData mode, I can only answer questions about the cases stored in your database. For this question I could not generate a valid query. Try adjusting your question or switch to Universal Oncology AI mode.',
         columns: [],
         rows: [],
       };
@@ -169,9 +211,9 @@ Please provide general information about this topic from your veterinary/oncolog
         };
       }
 
-      // In strict mode, just report no data
+      // In strict mode, return a clear message without calling ChatGPT
       return {
-        summary: 'No data found matching your query in VetOncoData.',
+        summary: 'In Strict VetOncoData mode, I can only answer questions about the cases stored in your database. For this question I could not find any relevant data. Try adjusting your question or switch to Universal Oncology AI mode.',
         columns: [],
         rows: [],
       };
@@ -181,23 +223,20 @@ Please provide general information about this topic from your veterinary/oncolog
     const columns = Object.keys(result[0]);
     const rows = result.slice(0, 100); // Ensure we don't exceed 100 rows
 
-    // Generate a summary using ChatGPT
-    const sampleData = rows
-      .slice(0, 3)
-      .map((r: any) => Object.entries(r).map(([k, v]) => `${k}=${v}`).join(', '))
-      .join('\n');
+    // Build context from query results
+    const context = buildQueryContext(columns, rows);
 
-    const summaryPrompt = `Based on this database query result, provide a brief 1-2 sentence summary in plain English:
+    // Choose system prompt based on mode
+    const systemPrompt = mode === "strict" ? getStrictModeSystemPrompt() : undefined;
 
-Columns: ${columns.join(', ')}
-Sample data (first 3 rows):
-${sampleData}
-Total rows returned: ${rows.length}
+    const summaryPrompt = `Analyze this VetOncoData query result for the question: "${question}"
 
-Summary should be concise and highlight key findings.`;
+Provide a descriptive analysis highlighting key findings, counts, percentages, and any patterns in the data.`;
 
     const summary = await callChatGPT({
+      systemPrompt,
       userMessage: summaryPrompt,
+      context,
       mode,
     });
 

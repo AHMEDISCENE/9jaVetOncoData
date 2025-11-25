@@ -1,0 +1,75 @@
+You are working inside the VetOncoData project.
+
+Goal:
+Fix the **“Strictly VetOncoData”** mode of the “Ask AI About Your Data” panel so that:
+
+- It still:
+  - turns the question into SQL,
+  - runs the query on the VetOncoData database,
+  - and produces a useful natural-language analysis of the result.
+- BUT it must NOT use general outside knowledge.
+- If there is no relevant data or the question is not about our cases, it should clearly say that, not just fail silently.
+
+Context:
+- There is already an analytics AI endpoint (e.g. POST /api/ai/analytics-query) used by this panel.
+- That endpoint already:
+  - uses ChatGPT to generate SQL,
+  - executes the SQL,
+  - builds a text `context` from the result rows,
+  - calls ChatGPT again to summarise the result.
+- There is also a “Universal” mode that works fine and can use general knowledge.
+
+Tasks (backend only):
+
+1. Make sure Strict mode uses the SAME pipeline
+- In the analytics AI route, keep the existing logic:
+  - question → SQL → DB query → context string.
+- For **both** modes ("strict" and "universal"), only change the **final summarisation call**, not the SQL/query logic.
+- Strict mode must still receive the `context` built from the query results.
+
+2. Adjust the system prompt for Strict mode
+- In the final `callChatGPT` that generates the answer from `context`, branch on `mode`:
+
+  - For "strict":
+    - system prompt should say something like:
+      "You are an analytics assistant for the VetOncoData cancer registry.
+       Base your answer ONLY on the data summary provided in the context from VetOncoData.
+       Do NOT use general medical knowledge.
+       Always give as much descriptive analysis as possible:
+       - counts,
+       - percentages,
+       - comparisons between groups,
+       - simple trends over time if present.
+       If the context is very limited, explain the limitation but still describe whatever data is there.
+       If the question is clearly outside the scope of the dataset (e.g. asking about another country),
+       say that Strict mode can only answer questions about VetOncoData and suggest using Universal mode."
+
+  - For "universal":
+    - keep the current behaviour (allow general knowledge + context).
+
+- Make sure you always pass the same `context` string into `callChatGPT` for both modes.
+
+3. Handle “no data / wrong question” BEFORE calling ChatGPT
+- After running the SQL query:
+  - If the result set is empty OR the query generation obviously failed (e.g. no valid SQL):
+    - Do NOT call ChatGPT.
+    - Return a fixed message instead, for example:
+
+      {
+        answer: "In Strict VetOncoData mode, I can only answer questions about the cases stored in your database. For this question I could not find any relevant data. Try adjusting your question or switch to Universal Oncology AI mode.",
+        columns: [],
+        rows: []
+      }
+
+- Only call `callChatGPT` when there is at least some data to describe.
+
+4. Keep things safe and small
+- Do not change the frontend toggle or layout (the buttons already exist).
+- Do not change the SQL-generation step, except for any small bug you might find.
+- Keep existing try/catch around AI calls so errors return a safe JSON and never crash the server.
+
+End result:
+- In **Strictly VetOncoData** mode, the AI now:
+  - actually analyses the query results (counts, percentages, comparisons),
+  - never pulls in outside facts,
+  - and gives a clear message when the question cannot be answered from VetOncoData alone.
