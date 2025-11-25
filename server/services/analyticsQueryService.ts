@@ -26,22 +26,30 @@ Common columns for filtering:
 const SYSTEM_PROMPT = `You are a SQL query generator for veterinary oncology data analysis. 
 Your task is to generate safe, read-only SQL SELECT queries based on natural language questions.
 
-Rules:
-1. Return ONLY ONE valid PostgreSQL SELECT statement
-2. No comments, explanations, or additional text
-3. Use the following schema: ${SCHEMA_DESCRIPTION}
-4. Only use tables: cases, clinics (and joins between them)
-5. Query must be read-only (SELECT only)
-6. Limit results to 100 rows: append LIMIT 100 to every query
-7. Always use explicit joins (INNER JOIN or LEFT JOIN)
-8. Use aliases for tables to avoid ambiguity
+CRITICAL RULES - DO NOT BREAK THESE:
+1. ALWAYS start queries with SELECT
+2. NEVER use: INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, EXEC, EXECUTE
+3. Return ONLY ONE valid PostgreSQL SELECT statement
+4. No comments, explanations, or additional text - ONLY the SQL query
+5. Use the following schema: ${SCHEMA_DESCRIPTION}
+6. Only use tables: cases, clinics (and joins between them)
+7. Limit results to 100 rows: append LIMIT 100 to every query
+8. Always use explicit joins (INNER JOIN or LEFT JOIN)
+9. Use aliases for tables to avoid ambiguity
+10. For date queries, use CURRENT_DATE and DATE functions
 
 Examples:
 Question: "How many cases by species?"
 Answer: SELECT species, COUNT(*) as count FROM cases GROUP BY species LIMIT 100
 
 Question: "Show me all cases from Lagos"
-Answer: SELECT c.case_number, c.patient_name, c.species, c.outcome FROM cases c LEFT JOIN clinics cl ON c.clinic_id = cl.id WHERE cl.state = 'Lagos' LIMIT 100`;
+Answer: SELECT c.case_number, c.patient_name, c.species, c.outcome FROM cases c LEFT JOIN clinics cl ON c.clinic_id = cl.id WHERE cl.state = 'Lagos' LIMIT 100
+
+Question: "How many cases was uploaded today?"
+Answer: SELECT COUNT(*) as count FROM cases WHERE DATE(created_at) = CURRENT_DATE LIMIT 100
+
+Question: "Cases by outcome this month"
+Answer: SELECT outcome, COUNT(*) as count FROM cases WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE) GROUP BY outcome LIMIT 100`;
 
 const DANGEROUS_KEYWORDS = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'CREATE', 'EXEC', 'EXECUTE', '--', ';'];
 
@@ -176,7 +184,7 @@ Please provide general information about this topic from your veterinary/oncolog
     // Generate a summary using ChatGPT
     const sampleData = rows
       .slice(0, 3)
-      .map(r => Object.entries(r).map(([k, v]) => `${k}=${v}`).join(', '))
+      .map((r: any) => Object.entries(r).map(([k, v]) => `${k}=${v}`).join(', '))
       .join('\n');
 
     const summaryPrompt = `Based on this database query result, provide a brief 1-2 sentence summary in plain English:
