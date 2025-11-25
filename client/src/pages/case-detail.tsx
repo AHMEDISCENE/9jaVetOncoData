@@ -404,8 +404,12 @@ export default function CaseDetail() {
 
             {/* User & Clinic Info Card */}
             <div className="flex flex-col gap-3 w-full sm:w-80">
-              {/* User Card */}
-              <Card className="border-l-4 border-l-primary">
+              {/* User Card - Clickable */}
+              <Card 
+                className="border-l-4 border-l-primary cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => setSelectedUploader(caseData.createdBy)}
+                data-testid="button-show-creator-profile"
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3 mb-3">
                     {caseData.createdBy.image ? (
@@ -435,6 +439,10 @@ export default function CaseDetail() {
                       {caseData.createdBy.specialty}
                     </Badge>
                   )}
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-center gap-1">
+                    <ChevronRight className="h-3 w-3" />
+                    Click to view profile
+                  </p>
                 </CardContent>
               </Card>
 
