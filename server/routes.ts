@@ -20,6 +20,7 @@ import { autoTable } from "jspdf-autotable";
 import { sendPasswordResetEmail } from "./email";
 import { callChatGPT } from "./services/openaiClient";
 import { buildLiveDataContext } from "./services/buildLiveDataContext";
+import { executeAnalyticsQuery } from "./services/analyticsQueryService";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -3715,6 +3716,30 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     } catch (error) {
       console.error("[ai.live-test]", error);
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get AI response" });
+    }
+  });
+
+  // AI Analytics Query endpoint - generates safe SQL from natural language
+  app.post("/api/ai/analytics-query", requireAuth, async (req, res) => {
+    try {
+      const { question } = req.body;
+      
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ message: "question field is required and must be a string" });
+      }
+
+      // Execute the analytics query
+      const result = await executeAnalyticsQuery(question, async (sql: string) => {
+        return db.raw(sql) as any;
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("[ai.analytics-query]", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to execute analytics query",
+        summary: "An error occurred while processing your question. Please try again with a simpler query."
+      });
     }
   });
 

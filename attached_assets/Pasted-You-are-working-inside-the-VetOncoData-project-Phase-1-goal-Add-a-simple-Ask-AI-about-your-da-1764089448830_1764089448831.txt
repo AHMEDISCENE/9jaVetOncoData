@@ -1,0 +1,56 @@
+You are working inside the VetOncoData project.
+
+Phase 1 goal:
+Add a simple “Ask AI about your data” feature on the Analytics page:
+- User types a natural-language question.
+- Backend uses ChatGPT to generate a safe SQL SELECT over our Postgres DB.
+- Run the query and return a short summary + optional table of results.
+
+Context:
+- ChatGPT is already integrated via a helper like `callChatGPT(...)`.
+- There is a working Postgres connection.
+- Frontend is React + TypeScript.
+
+Backend:
+
+1. Create a route `POST /api/ai/analytics-query`.
+   - Body: `{ question: string }`.
+   - Response shape:
+     `{ summary: string; columns: string[]; rows: any[] }`.
+
+2. Inside this route:
+   - Define a short string describing the DB schema we care about (cases, clinics, maybe feeds):
+     - e.g. table `cases` with columns: id, clinic_id, species, breed, tumour_type, diagnosis_date, state, zone, stage, outcome, treatment_regimen, created_at.
+     - table `clinics` with: id, name, state, zone.
+   - Call `callChatGPT` with a system message that:
+     - Explains the schema.
+     - Instructs it to return **only ONE SQL SELECT** statement, no comments, no explanations, no mutations.
+   - Use the user’s `question` as the user message.
+
+3. Safety:
+   - Validate the returned SQL before executing:
+     - Must start with `SELECT` (case-insensitive).
+     - Must NOT contain `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `;` or multi-statements.
+     - Must only reference whitelisted tables (`cases`, `clinics`, etc.).
+   - If validation fails, return a friendly error to the frontend instead of running it.
+
+4. If the SQL is valid:
+   - Execute it against Postgres (read-only).
+   - Limit to e.g. 100 rows and a reasonable time-out.
+   - Build `{ columns, rows }` from the result set.
+   - Optionally call `callChatGPT` again with a short text representation of the result (column names + a few sample rows) to generate a concise `summary` in plain English.
+   - Return `{ summary, columns, rows }` to the client.
+
+Frontend:
+
+5. On the Analytics page, add a small “Ask AI” panel:
+   - Textarea/input for the question.
+   - “Ask” button that calls `POST /api/ai/analytics-query`.
+   - Show:
+     - The `summary` as a paragraph.
+     - If `rows` is not empty, show a simple table with the first N rows.
+
+Keep it simple and clean:
+- No complex UI, just a basic panel.
+- No caching or RAG yet.
+- Do not change existing analytics logic; just add this new endpoint and panel.

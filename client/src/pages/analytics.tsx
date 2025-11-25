@@ -14,6 +14,7 @@ import { useCasesLocationData } from "@/hooks/useCasesLocationData";
 import { InteractiveNigeriaMap } from "@/components/analytics/InteractiveNigeriaMap";
 import { FilterBar } from "@/components/analytics/FilterBar";
 import { MetricDrilldown } from "@/components/analytics/MetricDrilldown";
+import { AIAnalyticsPanel } from "@/components/analytics/AIAnalyticsPanel";
 import { useAnalyticsFilters, buildFilterParams } from "@/contexts/analytics-filters-context";
 import type { DashboardStats } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
@@ -516,6 +517,9 @@ export default function Analytics() {
         <h2 className="text-2xl font-bold text-foreground">Analytics & Insights</h2>
         <p className="text-lg font-semibold text-foreground">Comprehensive analysis of veterinary oncology data</p>
       </div>
+
+      {/* AI Analytics Panel */}
+      <AIAnalyticsPanel />
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
