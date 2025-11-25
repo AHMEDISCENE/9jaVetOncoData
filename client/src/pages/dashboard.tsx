@@ -27,7 +27,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Filter, X, Rss, Plus, Upload, TrendingUp, RotateCcw } from "lucide-react";
+import { Filter, X, Rss, Plus, Upload, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import type { DashboardStats } from "@/lib/types";
 import type { FeedPost } from "@shared/schema";
@@ -76,12 +76,7 @@ function FlipCard({ isFlipped, onFlip, frontContent, backContent, frontClassName
             transform: "rotateY(180deg)",
           }}
         >
-          <div className="relative h-full">
-            {backContent}
-            <div className="absolute bottom-2 right-2 opacity-50 hover:opacity-80 transition-opacity">
-              <RotateCcw className="h-4 w-4" />
-            </div>
-          </div>
+          {backContent}
         </div>
       </motion.div>
     </div>
