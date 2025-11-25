@@ -20,6 +20,7 @@ import { NIGERIA_STATES, getZoneForState, formatStateName, formatZoneName, SPECI
 import { useAttachmentQueue } from "@/hooks/use-attachment-queue";
 import { Paperclip, X, Upload, FileText, Image as ImageIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CaseAIHelper } from "@/components/case-ai-helper";
 
 const caseSchema = z.object({
   state: z.string().min(1, "State is required"),
@@ -96,6 +97,22 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
   const watchedSpecies = form.watch("species");
   const watchedState = form.watch("state");
   const geoZone = watchedState ? getZoneForState(watchedState) : null;
+
+  // Handler for applying AI suggestions to form
+  const handleApplySuggestions = (suggestions: any) => {
+    if (suggestions.species) form.setValue("species", suggestions.species);
+    if (suggestions.breed) form.setValue("breed", suggestions.breed);
+    if (suggestions.sex) form.setValue("sex", suggestions.sex);
+    if (suggestions.ageYears) form.setValue("ageYears", suggestions.ageYears);
+    if (suggestions.ageMonths) form.setValue("ageMonths", suggestions.ageMonths);
+    if (suggestions.diagnosisMethod) form.setValue("diagnosisMethod", suggestions.diagnosisMethod);
+    if (suggestions.tumourTypeCustom) form.setValue("tumourTypeCustom", suggestions.tumourTypeCustom);
+    if (suggestions.anatomicalSiteCustom) form.setValue("anatomicalSiteCustom", suggestions.anatomicalSiteCustom);
+    if (suggestions.laterality) form.setValue("laterality", suggestions.laterality);
+    if (suggestions.stage) form.setValue("stage", suggestions.stage);
+    if (suggestions.treatmentPlan) form.setValue("treatmentPlan", suggestions.treatmentPlan);
+    if (suggestions.notes) form.setValue("notes", suggestions.notes);
+  };
 
   // Auto-save draft
   useEffect(() => {
@@ -369,6 +386,9 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
               {/* Step 1: Patient & Signalment */}
               {currentStep === 1 && (
                 <div className="space-y-6">
+                  {/* AI Helper */}
+                  <CaseAIHelper onApplySuggestions={handleApplySuggestions} />
+
                   {/* State, Zone, and Clinic */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <FormField
