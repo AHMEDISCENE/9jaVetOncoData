@@ -42,7 +42,7 @@ import {
   ngStates
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull, inArray } from "drizzle-orm";
+import { eq, and, or, desc, asc, count, sql, ilike, gte, lte, isNull, inArray, getTableColumns } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { randomBytes } from "crypto";
 import bcrypt from "bcrypt";
@@ -1082,10 +1082,27 @@ export class DatabaseStorage implements IStorage {
     return newFile;
   }
 
-  async getCaseFiles(caseId: string): Promise<CaseFile[]> {
+  async getCaseFiles(caseId: string): Promise<any[]> {
     return await db
-      .select()
+      .select({
+        ...getTableColumns(caseFiles),
+        uploadedByUser: {
+          id: users.id,
+          name: users.name,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          image: users.image,
+          title: users.title,
+          jobTitle: users.jobTitle,
+          specialty: users.specialty,
+          bio: users.bio,
+          phone: users.phone,
+          linkedIn: users.linkedIn,
+          googleScholar: users.googleScholar,
+        }
+      })
       .from(caseFiles)
+      .leftJoin(users, eq(caseFiles.uploadedBy, users.id))
       .where(and(
         eq(caseFiles.caseId, caseId),
         isNull(caseFiles.deletedAt)

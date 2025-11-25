@@ -8,10 +8,11 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useRef } from "react";
-import { FileText, Image, Upload, X, ArrowLeft, Eye, MapPin, User, Calendar, Stethoscope, AlertCircle, Download, FileJson } from "lucide-react";
+import { FileText, Image, Upload, X, ArrowLeft, Eye, MapPin, User, Calendar, Stethoscope, AlertCircle, Download, FileJson, ChevronRight, Mail, Phone, Briefcase } from "lucide-react";
 import type { CaseFile } from "@shared/schema";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const outcomeColors: Record<string, string> = {
   REMISSION: "bg-emerald-100 text-emerald-900",
@@ -76,6 +77,7 @@ export default function CaseDetail() {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedUploader, setSelectedUploader] = useState<any | null>(null);
 
   const { data: caseData, isLoading: caseLoading } = useQuery<CaseWithDetails>({
     queryKey: [`/api/cases/${caseId}`],
@@ -751,7 +753,19 @@ export default function CaseDetail() {
                               )}
                             </div>
                           </div>
-                          <p className="text-xs truncate mt-2 text-muted-foreground">{file.originalName}</p>
+                          <div className="mt-2">
+                            <p className="text-xs truncate text-muted-foreground">{file.originalName}</p>
+                            {file.uploadedByUser && (
+                              <button
+                                onClick={() => setSelectedUploader(file.uploadedByUser)}
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate flex items-center gap-1 mt-1 cursor-pointer"
+                                data-testid={`button-show-uploader-${file.id}`}
+                              >
+                                <User className="h-3 w-3" />
+                                {file.uploadedByUser.firstName} {file.uploadedByUser.lastName}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -776,9 +790,20 @@ export default function CaseDetail() {
                             <FileText className="h-5 w-5 text-amber-500 flex-shrink-0" />
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-sm truncate">{file.originalName}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {(file.sizeBytes / 1024 / 1024).toFixed(2)} MB
-                              </p>
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs text-muted-foreground">
+                                  {(file.sizeBytes / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                                {file.uploadedByUser && (
+                                  <button
+                                    onClick={() => setSelectedUploader(file.uploadedByUser)}
+                                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer whitespace-nowrap ml-2"
+                                    data-testid={`button-show-uploader-${file.id}`}
+                                  >
+                                    {file.uploadedByUser.firstName} {file.uploadedByUser.lastName}
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 ml-2">
@@ -815,6 +840,120 @@ export default function CaseDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Uploader Profile Sidebar */}
+      {selectedUploader && (
+        <div className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-slate-950 shadow-lg z-40 flex flex-col border-l border-slate-200 dark:border-slate-800 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
+            <h2 className="font-semibold text-foreground">Uploader Profile</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedUploader(null)}
+              className="h-8 w-8"
+              data-testid="button-close-uploader-sidebar"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-auto p-6 space-y-6">
+            {/* Avatar */}
+            <div className="flex flex-col items-center">
+              <Avatar className="h-24 w-24 mb-4">
+                <AvatarImage src={selectedUploader.image || ''} />
+                <AvatarFallback className="text-xl">
+                  {selectedUploader.firstName?.[0]}{selectedUploader.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <h3 className="font-semibold text-lg text-foreground text-center">
+                {selectedUploader.firstName} {selectedUploader.lastName}
+              </h3>
+            </div>
+
+            {/* Title */}
+            {selectedUploader.title && (
+              <div className="text-center pb-4 border-b border-slate-200 dark:border-slate-800">
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                  {selectedUploader.title}
+                </p>
+              </div>
+            )}
+
+            {/* Job Info */}
+            <div className="space-y-4">
+              {selectedUploader.jobTitle && (
+                <div className="flex items-start gap-3">
+                  <Briefcase className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Job Title</p>
+                    <p className="text-sm text-foreground">{selectedUploader.jobTitle}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedUploader.specialty && (
+                <div className="flex items-start gap-3">
+                  <Stethoscope className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Specialty</p>
+                    <p className="text-sm text-foreground">{selectedUploader.specialty}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Contact Info */}
+            <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+              {selectedUploader.phone && (
+                <div className="flex items-start gap-3">
+                  <Phone className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Phone</p>
+                    <a href={`tel:${selectedUploader.phone}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all">
+                      {selectedUploader.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {selectedUploader.linkedIn && (
+                <div className="flex items-start gap-3">
+                  <Mail className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">LinkedIn</p>
+                    <a href={selectedUploader.linkedIn} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate">
+                      View Profile
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {selectedUploader.googleScholar && (
+                <div className="flex items-start gap-3">
+                  <Mail className="h-4 w-4 text-slate-500 mt-1 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Google Scholar</p>
+                    <a href={selectedUploader.googleScholar} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate">
+                      View Profile
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bio */}
+            {selectedUploader.bio && (
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Bio</p>
+                <p className="text-sm text-foreground leading-relaxed">{selectedUploader.bio}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Fullscreen Image Viewer */}
       <Dialog open={!!selectedImageId} onOpenChange={(open) => !open && setSelectedImageId(null)}>
