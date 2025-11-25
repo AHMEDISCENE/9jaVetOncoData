@@ -84,6 +84,7 @@ export default function Settings() {
     onSuccess: () => {
       toast({ description: "Profile updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
     },
     onError: (error: any) => {
       toast({ 
@@ -130,6 +131,7 @@ export default function Settings() {
     onSuccess: () => {
       toast({ description: "Clinic information updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
     },
     onError: (error: any) => {
       toast({ 
@@ -149,6 +151,7 @@ export default function Settings() {
     }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
     },
   });
 
