@@ -187,7 +187,7 @@ export default function Sidebar() {
                         ? "lg:h-6 lg:w-6 h-5 w-5" 
                         : "h-5 w-5"
                     } ${itemActive ? "text-primary dark:text-primary-foreground" : "group-hover:text-primary dark:group-hover:text-primary"}`} />
-                    <span className={`transition-opacity duration-200 text-[#000000] ${isCollapsed ? "lg:hidden" : ""}`}>
+                    <span className={`transition-opacity duration-200 text-foreground dark:text-foreground ${isCollapsed ? "lg:hidden" : ""}`}>
                       {item.name}
                     </span>
                   </Link>
@@ -273,10 +273,10 @@ export default function Sidebar() {
                     )}
                   </motion.div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate" data-testid="text-user-name">
+                    <p className="text-xs font-bold text-foreground dark:text-foreground truncate" data-testid="text-user-name">
                       {user?.name || "Unknown User"}
                     </p>
-                    <p className="text-xs font-medium text-foreground/60 truncate" data-testid="text-clinic-name">
+                    <p className="text-xs font-medium text-foreground/60 dark:text-foreground/60 truncate" data-testid="text-clinic-name">
                       {clinic?.name || "No Clinic"}
                     </p>
                   </div>
