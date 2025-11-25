@@ -447,7 +447,7 @@ export default function Dashboard() {
           backContent={
             <div className="p-3 h-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-950 flex flex-col">
               <p className="text-xs font-bold text-blue-800 dark:text-blue-200 mb-2">Cases by Species</p>
-              <div className="flex-1 space-y-1 overflow-y-auto min-h-0">
+              <div className="flex-1 space-y-1 min-h-0 fancy-scroll">
                 {stats.casesBySpecies?.slice(0, 5).map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs">
                     <span className="text-blue-700 dark:text-blue-300 truncate max-w-[65%]">{item.name}</span>
@@ -502,7 +502,7 @@ export default function Dashboard() {
           backContent={
             <div className="p-3 h-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-950 flex flex-col">
               <p className="text-xs font-bold text-purple-800 dark:text-purple-200 mb-2">Monthly Trend</p>
-              <div className="flex-1 space-y-1 overflow-y-auto min-h-0">
+              <div className="flex-1 space-y-1 min-h-0 fancy-scroll">
                 {stats.casesByMonth?.slice(-5).reverse().map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs">
                     <span className="text-purple-700 dark:text-purple-300">{item.month}</span>
@@ -557,7 +557,7 @@ export default function Dashboard() {
           backContent={
             <div className="p-3 h-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-950 flex flex-col">
               <p className="text-xs font-bold text-amber-800 dark:text-amber-200 mb-2">Cases by State</p>
-              <div className="flex-1 space-y-1 overflow-y-auto min-h-0">
+              <div className="flex-1 space-y-1 min-h-0 fancy-scroll">
                 {stats.casesByState?.slice(0, 5).map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs">
                     <span className="text-amber-700 dark:text-amber-300 truncate max-w-[65%]">{item.state}</span>
@@ -612,7 +612,7 @@ export default function Dashboard() {
           backContent={
             <div className="p-3 h-full bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-950 flex flex-col">
               <p className="text-xs font-bold text-green-800 dark:text-green-200 mb-2">Treatment Outcomes</p>
-              <div className="flex-1 space-y-1 overflow-y-auto min-h-0">
+              <div className="flex-1 space-y-1 min-h-0 fancy-scroll">
                 {stats.treatmentOutcomes?.slice(0, 5).map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs">
                     <span className="text-green-700 dark:text-green-300 truncate max-w-[65%]">{item.name}</span>
