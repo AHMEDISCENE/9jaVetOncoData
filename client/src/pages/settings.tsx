@@ -101,6 +101,21 @@ export default function Settings() {
           },
         };
       });
+      // Reset form with the new values to reflect updates in the UI
+      if (response?.user) {
+        profileForm.reset({
+          firstName: response.user.firstName || "",
+          lastName: response.user.lastName || "",
+          email: response.user.email || "",
+          title: response.user.title || "",
+          jobTitle: response.user.jobTitle || "",
+          specialty: response.user.specialty || "",
+          bio: response.user.bio || "",
+          phone: response.user.phone || "",
+          linkedIn: response.user.linkedIn || "",
+          googleScholar: response.user.googleScholar || "",
+        });
+      }
     },
     onError: (error: any) => {
       toast({ 
