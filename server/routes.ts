@@ -19,6 +19,16 @@ import { sendPasswordResetEmail } from "./email";
 
 const PgSession = ConnectPgSimple(session);
 
+// Normalize species names to standardized format
+const normalizeSpecies = (species: string | undefined | null): string | undefined | null => {
+  if (!species) return species;
+  const normalized = species.trim().toLowerCase();
+  if (normalized === 'canine') return 'Dog';
+  if (normalized === 'feline') return 'Cat';
+  // Return capitalized version for standard species like "Dog", "Cat"
+  return species.charAt(0).toUpperCase() + species.slice(1).toLowerCase();
+};
+
 // Validation schemas
 const loginSchema = z.object({
   email: z.string().email(),
@@ -1071,6 +1081,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       // Transform data before validation
       const transformedData = {
         ...req.body,
+        species: normalizeSpecies(req.body.species),
         clinicId,
         createdBy: userId,
         diagnosisDate: new Date(req.body.diagnosisDate),
@@ -1152,6 +1163,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       // Transform data before validation for updates
       const transformedUpdates = {
         ...req.body,
+        species: req.body.species ? normalizeSpecies(req.body.species) : undefined,
         diagnosisDate: req.body.diagnosisDate ? new Date(req.body.diagnosisDate) : undefined,
         treatmentStart: req.body.treatmentStart ? new Date(req.body.treatmentStart) : undefined,
         tumourTypeId,
@@ -2301,7 +2313,12 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
               failedCount++;
             } else {
               try {
-                await storage.createCase(parsedRow.data as any);
+                // Normalize species before creating case
+                const caseData = {
+                  ...parsedRow.data,
+                  species: normalizeSpecies(parsedRow.data.species),
+                };
+                await storage.createCase(caseData as any);
                 successCount++;
               } catch (err) {
                 const errorMsg = err instanceof Error ? err.message : 'Unknown error creating case';
@@ -2883,6 +2900,32 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
       res.json({ message: "Super admin setup successful", user: updatedUser });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to setup super admin" });
+    }
+  });
+
+  // Normalize species in database (convert Canine to Dog, Feline to Cat)
+  app.post("/api/admin/normalize-species", requireAuth, requireRole("SUPER_ADMIN"), async (req, res) => {
+    try {
+      // Use raw SQL to update species names
+      const { sql: sqlFn } = await import("drizzle-orm");
+      
+      // Update using native query
+      const result = await db.execute(
+        sqlFn`UPDATE cases SET species = CASE 
+          WHEN LOWER(species) = 'canine' THEN 'Dog'
+          WHEN LOWER(species) = 'feline' THEN 'Cat'
+          ELSE species 
+        END 
+        WHERE LOWER(species) IN ('canine', 'feline')`
+      );
+      
+      res.json({ 
+        message: "Species normalization completed", 
+        affectedRows: (result as any).rowCount || 0 
+      });
+    } catch (error) {
+      console.error('[normalize-species] Error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to normalize species" });
     }
   });
 
