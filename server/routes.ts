@@ -1300,6 +1300,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
   app.post("/api/cases/export", requireAuth, async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
+      const userId = (req.session as any).userId;
       const { format, filters } = req.body;
 
       if (!format || !['csv', 'pdf', 'xlsx'].includes(format)) {
