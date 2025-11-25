@@ -3744,9 +3744,6 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
-  // Ensure unmatched API routes return JSON instead of falling back to the SPA HTML.
-  app.use('/api', (_req, res) => {
-
   // AI Case Field Suggestions endpoint - suggests form field values from clinical notes
   app.post("/api/ai/suggest-case-fields", requireAuth, async (req, res) => {
     try {
@@ -3766,6 +3763,9 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
       });
     }
   });
+
+  // Ensure unmatched API routes return JSON instead of falling back to the SPA HTML.
+  app.use('/api', (_req, res) => {
     return res.status(404).json({ success: false, error: 'API route not found' });
   });
 
