@@ -1281,14 +1281,15 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       }
 
       // Parse filters - map frontend filter names to API filter names
+      // IMPORTANT: Only apply clinic filter if user explicitly filtered by clinic
+      // Otherwise export ALL cases (no clinic restriction)
       const apiFilters: any = {};
       if (filters) {
         if (filters.zone && filters.zone.length) apiFilters.zones = filters.zone;
         if (filters.state && filters.state.length) apiFilters.states = filters.state;
+        // Only apply clinic filter if explicitly set by user
         if (filters.clinicId && filters.clinicId.length) {
           apiFilters.clinicIds = filters.clinicId;
-        } else if (clinicId) {
-          apiFilters.clinicIds = [clinicId];
         }
         if (filters.tumourTypeId && filters.tumourTypeId.length) apiFilters.tumourTypeIds = filters.tumourTypeId;
         // Add support for species, outcome, and dates
@@ -1296,9 +1297,8 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         if (filters.outcome) apiFilters.outcome = filters.outcome;
         if (filters.startDate) apiFilters.startDate = filters.startDate;
         if (filters.endDate) apiFilters.endDate = filters.endDate;
-      } else if (clinicId) {
-        apiFilters.clinicIds = [clinicId];
       }
+      // Note: No automatic clinic restriction - export all cases unless user explicitly filtered
 
       // Get cases with full details - fetch all matching cases without pagination for export
       // Fetch all cases by getting a large number (no effective limit)
