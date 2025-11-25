@@ -3719,6 +3719,68 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
+  // AI Case Suggestion endpoint - extract case fields from clinical notes
+  app.post("/api/ai/case-suggest", requireAuth, async (req, res) => {
+    try {
+      const { text } = req.body;
+      
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ message: "text field is required and must be a string" });
+      }
+
+      const systemPrompt = `You are helping to pre-fill a veterinary oncology case form from clinical notes. 
+From the text below, extract the following fields if present:
+- species (e.g., Dog, Cat, Bird)
+- breed (e.g., Labrador, Siamese)
+- sex (Male, Female, Unknown)
+- ageYears (integer or null)
+- ageMonths (integer or null)
+- tumourType (e.g., Lymphoma, Osteosarcoma, Hemangiosarcoma)
+- anatomicalSite (e.g., Bone, Lymph node, Skin)
+- stage (e.g., I, II, III, IV)
+- diagnosisMethod (FNA, Biopsy, Imaging, Clinical, Unknown)
+- notesSummary (1-2 sentence summary of key clinical information)
+
+If you cannot determine a field with reasonable confidence, use null.
+Respond ONLY with valid JSON in this exact format (no other text):
+{
+  "species": string | null,
+  "breed": string | null,
+  "sex": "Male" | "Female" | "Unknown" | null,
+  "ageYears": number | null,
+  "ageMonths": number | null,
+  "tumourType": string | null,
+  "anatomicalSite": string | null,
+  "stage": string | null,
+  "diagnosisMethod": "FNA" | "Biopsy" | "Imaging" | "Clinical" | "Unknown" | null,
+  "notesSummary": string | null
+}`;
+
+      // Call ChatGPT to extract case fields
+      const response = await callChatGPT({
+        systemPrompt,
+        userMessage: text,
+      });
+
+      // Parse the response safely
+      let suggested = {};
+      try {
+        suggested = JSON.parse(response);
+      } catch (parseError) {
+        console.warn("[ai.case-suggest] Failed to parse JSON response, using empty object");
+        // Return empty suggested object if parsing fails
+      }
+
+      res.json({ suggested });
+    } catch (error) {
+      console.error("[ai.case-suggest]", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to suggest case fields",
+        suggested: {}
+      });
+    }
+  });
+
   // AI Analytics Query endpoint - generates safe SQL from natural language
   app.post("/api/ai/analytics-query", requireAuth, async (req, res) => {
     try {

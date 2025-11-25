@@ -76,6 +76,26 @@ The system features comprehensive audit logging for all CUD operations and imple
 
 ## November 25, 2025
 
+### AI Analytics Query System (Natural Language Data Analysis)
+- **Feature**: Ask AI about your data using natural language on Analytics page
+  - **Frontend**: New "AI Analytics" tab on Analytics page for querying database
+  - **Backend Endpoint**: `POST /api/ai/analytics-query` 
+  - **Functionality**: Accepts natural language questions, uses ChatGPT to generate safe SQL SELECT queries, executes queries, and returns results with AI-generated summary
+  - **Safety**: Implemented SQL validation (whitelist tables: cases, clinics, tumour_types, anatomical_sites; only SELECT allowed; no mutations)
+  - **Services**: 
+    - `server/services/analyticsQueryService.ts`: Handles SQL generation, validation, and execution
+    - `client/src/components/analytics/AIAnalyticsPanel.tsx`: User interface for asking questions
+  - **UI**: Integrated as separate tab in Analytics page with question textarea, results table, and AI summary
+  
+### AI Case Field Suggestion (Form Pre-filling)
+- **Feature**: Extract case fields from clinical notes text
+  - **Backend Endpoint**: `POST /api/ai/case-suggest` (authentication required)
+  - **Request**: `{ text: string }` - clinical notes text
+  - **Response**: `{ suggested: { species?, breed?, sex?, ageYears?, ageMonths?, tumourType?, anatomicalSite?, stage?, diagnosisMethod?, notesSummary? } }`
+  - **Functionality**: Uses ChatGPT to intelligently extract and suggest case form fields from freetext clinical notes, returning suggested values as null if not found
+  - **Error Handling**: Gracefully handles JSON parsing failures, returns empty object instead of crashing
+  - **Use Case**: Helps pre-fill New Case form from existing clinical text, improving data entry speed
+
 ### Feed Post Image Attachments
 - **Image Upload Feature**: Added full image attachment capability to feed posts
   - **Create Post**: Users can attach multiple images when creating new posts via "Add Images" button
