@@ -330,13 +330,23 @@ export default function Analytics() {
     format: 'csv' | 'xlsx' | 'pdf'
   ) => {
     try {
-      const response = await apiRequest('POST', '/api/analytics/export', {
-        chartName,
-        headers,
-        rows,
-        summary,
-        format,
+      // Use fetch directly to handle binary blob responses
+      const response = await fetch('/api/analytics/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          chartName,
+          headers,
+          rows,
+          summary,
+          format,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Export failed with status ${response.status}`);
+      }
 
       const contentDisposition = response.headers.get('content-disposition');
       const filename = contentDisposition?.split('filename="')[1]?.split('"')[0] || `export.${format}`;
