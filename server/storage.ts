@@ -1083,45 +1083,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCaseFiles(caseId: string): Promise<any[]> {
-    const files = await db
-      .select()
-      .from(caseFiles)
-      .where(and(
-        eq(caseFiles.caseId, caseId),
-        isNull(caseFiles.deletedAt)
-      ))
-      .orderBy(desc(caseFiles.createdAt));
+    const files = await db.execute(sql`
+      SELECT 
+        cf.*,
+        json_build_object(
+          'id', u.id,
+          'name', u.name,
+          'firstName', u.first_name,
+          'lastName', u.last_name,
+          'image', u.image,
+          'title', u.title,
+          'jobTitle', u.job_title,
+          'specialty', u.specialty,
+          'bio', u.bio,
+          'phone', u.phone,
+          'linkedIn', u.linked_in,
+          'googleScholar', u.google_scholar
+        ) as "uploadedByUser"
+      FROM ${sql.identifier(["case_files"])} cf
+      LEFT JOIN ${sql.identifier(["users"])} u ON cf.uploaded_by = u.id
+      WHERE cf.case_id = ${caseId} AND cf.deleted_at IS NULL
+      ORDER BY cf.created_at DESC
+    `);
     
-    // Fetch uploader details for each file
-    const filesWithUploaders = await Promise.all(
-      files.map(async (file) => {
-        const uploader = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            image: users.image,
-            title: users.title,
-            jobTitle: users.jobTitle,
-            specialty: users.specialty,
-            bio: users.bio,
-            phone: users.phone,
-            linkedIn: users.linkedIn,
-            googleScholar: users.googleScholar,
-          })
-          .from(users)
-          .where(eq(users.id, file.uploadedBy))
-          .then(results => results[0] || null);
-        
-        return {
-          ...file,
-          uploadedByUser: uploader,
-        };
-      })
-    );
-    
-    return filesWithUploaders;
+    return files.rows;
   }
 
   async softDeleteCaseFile(id: string): Promise<void> {
