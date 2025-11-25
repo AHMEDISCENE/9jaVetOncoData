@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { ArrowLeft, Edit, Mail, Briefcase, Stethoscope, FileText } from "lucide-react";
+import { ArrowLeft, Edit, Mail, Briefcase, Stethoscope, FileText, Phone, Linkedin, BookOpen } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Profile() {
@@ -38,6 +38,9 @@ export default function Profile() {
   const jobTitle = (user as any)?.jobTitle || "";
   const specialty = (user as any)?.specialty || "";
   const bio = (user as any)?.bio || "";
+  const phone = (user as any)?.phone || "";
+  const linkedIn = (user as any)?.linkedIn || "";
+  const googleScholar = (user as any)?.googleScholar || "";
   const userImage = (user as any)?.image;
   const displayName = user?.name || "";  // Use full name for display
 
@@ -200,6 +203,62 @@ export default function Profile() {
                 <p className="text-sm text-foreground whitespace-pre-wrap" data-testid="text-profile-bio">
                   {bio}
                 </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Contact Details */}
+          {(phone || linkedIn || googleScholar) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Phone className="h-5 w-5" />
+                  Contact Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {phone && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Phone Number</p>
+                    <p className="font-medium text-foreground" data-testid="text-profile-phone">
+                      {phone}
+                    </p>
+                  </div>
+                )}
+                {linkedIn && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Linkedin className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-xs font-semibold text-muted-foreground">LinkedIn</p>
+                    </div>
+                    <a 
+                      href={linkedIn} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="font-medium text-primary hover:underline" 
+                      data-testid="link-profile-linkedin"
+                    >
+                      View Profile
+                    </a>
+                  </div>
+                )}
+                {googleScholar && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-xs font-semibold text-muted-foreground">Google Scholar</p>
+                    </div>
+                    <a 
+                      href={googleScholar} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="font-medium text-primary hover:underline" 
+                      data-testid="link-profile-scholar"
+                    >
+                      View Profile
+                    </a>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

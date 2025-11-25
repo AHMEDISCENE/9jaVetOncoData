@@ -731,7 +731,10 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         title, 
         jobTitle, 
         specialty, 
-        bio 
+        bio,
+        phone,
+        linkedIn,
+        googleScholar
       } = req.body;
       
       const profileSchema = z.object({
@@ -743,6 +746,9 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         jobTitle: z.string().optional(),
         specialty: z.string().optional(),
         bio: z.string().optional(),
+        phone: z.string().optional(),
+        linkedIn: z.string().optional(),
+        googleScholar: z.string().optional(),
       });
 
       const validated = profileSchema.parse({
@@ -754,6 +760,9 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         jobTitle,
         specialty,
         bio,
+        phone,
+        linkedIn,
+        googleScholar,
       });
       
       const updatedUser = await storage.updateUser(userId, validated);
@@ -769,6 +778,9 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           jobTitle: updatedUser.jobTitle,
           specialty: updatedUser.specialty,
           bio: updatedUser.bio,
+          phone: updatedUser.phone,
+          linkedIn: updatedUser.linkedIn,
+          googleScholar: updatedUser.googleScholar,
           role: updatedUser.role 
         } 
       });

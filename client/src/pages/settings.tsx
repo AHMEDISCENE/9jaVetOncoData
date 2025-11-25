@@ -25,6 +25,9 @@ const profileSchema = z.object({
   jobTitle: z.string().optional(),
   specialty: z.string().optional(),
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
+  phone: z.string().optional(),
+  linkedIn: z.string().optional(),
+  googleScholar: z.string().optional(),
 });
 
 const clinicSchema = z.object({
@@ -64,6 +67,9 @@ export default function Settings() {
       jobTitle: (user as any)?.jobTitle || "",
       specialty: (user as any)?.specialty || "",
       bio: (user as any)?.bio || "",
+      phone: (user as any)?.phone || "",
+      linkedIn: (user as any)?.linkedIn || "",
+      googleScholar: (user as any)?.googleScholar || "",
     },
   });
 
@@ -478,7 +484,7 @@ export default function Settings() {
                     />
                   </div>
 
-                  {/* Email Section */}
+                  {/* Contact Information Section */}
                   <div className="space-y-4 border-b pb-4">
                     <h3 className="text-base font-semibold">Contact Information</h3>
                     
@@ -497,6 +503,69 @@ export default function Settings() {
                           </FormControl>
                           <FormDescription>
                             Your email is used for login and notifications
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter your phone number" 
+                              data-testid="input-phone"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Your contact phone number
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="linkedIn"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>LinkedIn Profile</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="https://linkedin.com/in/yourprofile" 
+                              data-testid="input-linkedIn"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Your LinkedIn profile URL
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="googleScholar"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Google Scholar</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="https://scholar.google.com/citations?user=..." 
+                              data-testid="input-googleScholar"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Your Google Scholar profile URL
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
