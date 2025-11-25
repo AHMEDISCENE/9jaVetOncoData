@@ -1378,6 +1378,29 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         const blobContent = `\ufeff${csvContent}`;
         res.setHeader('Content-Type', 'text/csv;charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.csv"`);
+        
+        // Create notification before sending response
+        try {
+          const clinicUsers = await storage.getUsersByClinic(clinicId);
+          for (const user of clinicUsers) {
+            await storage.createNotification({
+              userId: user.id,
+              type: 'CASE_UPDATED',
+              title: user.id === userId ? 'Cases Exported' : 'Cases Exported',
+              message: user.id === userId
+                ? `You exported ${casesForExport.length} case(s) as CSV`
+                : `${(await storage.getUser(userId))?.name} exported ${casesForExport.length} case(s) as CSV`,
+              metadata: { caseCount: casesForExport.length, format: 'CSV' },
+            });
+            if (notificationManager) {
+              const notification = await storage.getNotifications(user.id, 1);
+              if (notification[0]) notificationManager.sendNotification(user.id, notification[0]);
+            }
+          }
+        } catch (notifError) {
+          console.error("[WARNING] Failed to create CSV export notification:", notifError);
+        }
+        
         res.send(blobContent);
       } else if (format === 'xlsx') {
         const outcomeLabels: Record<string, string> = {
@@ -1419,6 +1442,29 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.xlsx"`);
+        
+        // Create notification before sending response
+        try {
+          const clinicUsers = await storage.getUsersByClinic(clinicId);
+          for (const user of clinicUsers) {
+            await storage.createNotification({
+              userId: user.id,
+              type: 'CASE_UPDATED',
+              title: user.id === userId ? 'Cases Exported' : 'Cases Exported',
+              message: user.id === userId
+                ? `You exported ${casesForExport.length} case(s) as Excel`
+                : `${(await storage.getUser(userId))?.name} exported ${casesForExport.length} case(s) as Excel`,
+              metadata: { caseCount: casesForExport.length, format: 'XLSX' },
+            });
+            if (notificationManager) {
+              const notification = await storage.getNotifications(user.id, 1);
+              if (notification[0]) notificationManager.sendNotification(user.id, notification[0]);
+            }
+          }
+        } catch (notifError) {
+          console.error("[WARNING] Failed to create XLSX export notification:", notifError);
+        }
+        
         res.send(buffer);
       } else if (format === 'pdf') {
         const outcomeLabels: Record<string, string> = {
@@ -1575,23 +1621,30 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         
         // Convert to buffer and send
         const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
-        res.send(pdfBuffer);
         
-        // Create notification after successful export (non-blocking)
+        // Create notification before sending response
         try {
-          const user = await storage.getUser(userId);
-          if (user) {
+          const clinicUsers = await storage.getUsersByClinic(clinicId);
+          for (const user of clinicUsers) {
             await storage.createNotification({
-              userId,
+              userId: user.id,
               type: 'CASE_UPDATED',
-              title: 'Cases Exported',
-              message: `Your export of ${casesForExport.length} case(s) as PDF has been downloaded`,
+              title: user.id === userId ? 'Cases Exported' : 'Cases Exported',
+              message: user.id === userId
+                ? `You exported ${casesForExport.length} case(s) as PDF`
+                : `${(await storage.getUser(userId))?.name} exported ${casesForExport.length} case(s) as PDF`,
               metadata: { caseCount: casesForExport.length, format: 'PDF' },
             });
+            if (notificationManager) {
+              const notification = await storage.getNotifications(user.id, 1);
+              if (notification[0]) notificationManager.sendNotification(user.id, notification[0]);
+            }
           }
         } catch (notifError) {
-          console.error("[WARNING] Failed to create export notification:", notifError);
+          console.error("[WARNING] Failed to create PDF export notification:", notifError);
         }
+        
+        res.send(pdfBuffer);
       }
     } catch (error) {
       console.error("[ERROR] Cases export failed:", error);
@@ -3013,6 +3066,27 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
         };
       }
 
+      // Create notification before sending response
+      try {
+        const user = await storage.getUser(userId);
+        if (user) {
+          const notification = await storage.createNotification({
+            userId,
+            type: 'CASE_UPDATED',
+            title: 'Report Generated',
+            message: `Your report (template ${templateId}) covering ${duration} has been generated successfully`,
+            metadata: { templateId, duration, format },
+          });
+          
+          // Send real-time notification via WebSocket
+          if (notificationManager) {
+            notificationManager.sendNotification(userId, notification);
+          }
+        }
+      } catch (notifError) {
+        console.error("[WARNING] Failed to create report notification:", notifError);
+      }
+      
       res.json({
         templateId,
         duration,
@@ -3020,22 +3094,6 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
         format,
         data: reportData,
       });
-      
-      // Create notification for user (non-blocking)
-      try {
-        const user = await storage.getUser(userId);
-        if (user) {
-          await storage.createNotification({
-            userId,
-            type: 'CASE_UPDATED',
-            title: 'Report Generated',
-            message: `Your report (template ${templateId}) covering ${duration} has been generated successfully`,
-            metadata: { templateId, duration, format },
-          });
-        }
-      } catch (notifError) {
-        console.error("[WARNING] Failed to create report notification:", notifError);
-      }
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to generate report" });
     }
