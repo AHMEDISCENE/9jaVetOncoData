@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { cases, clinics, tumourTypes, anatomicalSites } from '@shared/schema';
-import { desc, eq, limit } from 'drizzle-orm';
+import { desc, eq, limit, count } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 /**
@@ -17,7 +17,7 @@ export async function buildLiveDataContext(
 
     // Fetch total count of cases
     const totalCountResult = await db
-      .select({ count: db.raw('COUNT(*)::int') })
+      .select({ count: count() })
       .from(cases);
     
     const totalCases = (totalCountResult[0]?.count as number) || 0;
