@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Pencil, Trash2, ImagePlus, X } from "lucide-react";
+import { Pencil, Trash2, ImagePlus, X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { FeedPost } from "@shared/schema";
 
 interface CreatePostData {
@@ -19,6 +19,12 @@ interface CreatePostData {
   body: string;
   tags: string[];
   attachments?: string[];
+}
+
+interface SelectedImage {
+  postId: string;
+  imageIndex: number;
+  allImages: string[];
 }
 
 export default function Feeds() {
@@ -43,6 +49,7 @@ export default function Feeds() {
   const [editTagInput, setEditTagInput] = useState("");
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
 
   const { data: feedResponse, isLoading, error } = useQuery<{ items: FeedPost[]; nextCursor?: string }>({
     queryKey: ["/api/feeds"],
@@ -448,7 +455,13 @@ export default function Feeds() {
                       <img 
                         src={url} 
                         alt={`Attached ${index + 1}`} 
-                        className="w-full h-32 object-cover rounded border border-border"
+                        className="w-full h-32 object-cover rounded border border-border cursor-pointer hover:opacity-75 transition"
+                        onClick={() => setSelectedImage({
+                          postId: 'new',
+                          imageIndex: index,
+                          allImages: newPost.attachments || []
+                        })}
+                        data-testid={`img-preview-${index}`}
                       />
                       <button
                         onClick={() => removeImage(index, false)}
@@ -550,7 +563,13 @@ export default function Feeds() {
                         key={index}
                         src={url}
                         alt={`Attachment ${index + 1}`}
-                        className="w-full h-48 object-cover rounded border border-border"
+                        className="w-full h-48 object-cover rounded border border-border cursor-pointer hover:opacity-75 transition"
+                        onClick={() => setSelectedImage({
+                          postId: post.id,
+                          imageIndex: index,
+                          allImages: post.attachments || []
+                        })}
+                        data-testid={`img-post-${post.id}-${index}`}
                       />
                     ))}
                   </div>
@@ -688,7 +707,13 @@ export default function Feeds() {
                       <img 
                         src={url} 
                         alt={`Attached ${index + 1}`} 
-                        className="w-full h-32 object-cover rounded border border-border"
+                        className="w-full h-32 object-cover rounded border border-border cursor-pointer hover:opacity-75 transition"
+                        onClick={() => setSelectedImage({
+                          postId: 'edit',
+                          imageIndex: index,
+                          allImages: editedData.attachments || []
+                        })}
+                        data-testid={`img-edit-${index}`}
                       />
                       <button
                         onClick={() => removeImage(index, true)}
@@ -758,6 +783,62 @@ export default function Feeds() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image Viewer Dialog */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex items-center justify-center">
+          {selectedImage && (
+            <div className="relative w-full h-full flex items-center justify-center bg-black/50">
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-4 right-4 text-white hover:text-gray-300 z-50"
+                data-testid="button-close-image-viewer"
+              >
+                <X className="h-6 w-6" />
+              </button>
+
+              {selectedImage.allImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setSelectedImage({
+                      ...selectedImage,
+                      imageIndex: Math.max(0, selectedImage.imageIndex - 1)
+                    })}
+                    disabled={selectedImage.imageIndex === 0}
+                    className="absolute left-4 text-white hover:text-gray-300 disabled:opacity-50 z-50"
+                    data-testid="button-prev-image"
+                  >
+                    <ChevronLeft className="h-8 w-8" />
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedImage({
+                      ...selectedImage,
+                      imageIndex: Math.min(selectedImage.allImages.length - 1, selectedImage.imageIndex + 1)
+                    })}
+                    disabled={selectedImage.imageIndex === selectedImage.allImages.length - 1}
+                    className="absolute right-4 text-white hover:text-gray-300 disabled:opacity-50 z-50"
+                    data-testid="button-next-image"
+                  >
+                    <ChevronRight className="h-8 w-8" />
+                  </button>
+
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black/70 px-4 py-2 rounded z-50">
+                    {selectedImage.imageIndex + 1} / {selectedImage.allImages.length}
+                  </div>
+                </>
+              )}
+
+              <img
+                src={selectedImage.allImages[selectedImage.imageIndex]}
+                alt={`Full size image ${selectedImage.imageIndex + 1}`}
+                className="max-w-full max-h-[80vh] object-contain"
+                data-testid="img-full-size-viewer"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
