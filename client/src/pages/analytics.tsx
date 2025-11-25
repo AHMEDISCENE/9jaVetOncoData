@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import html2canvas from "html2canvas";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -215,6 +216,28 @@ export default function Analytics() {
   const [isDrilldownOpen, setIsDrilldownOpen] = useState(false);
   const { filters } = useAnalyticsFilters();
   
+  // Chart refs for capturing images
+  const casesOverTimeChartRef = useRef<HTMLDivElement>(null);
+  const tumourDistributionChartRef = useRef<HTMLDivElement>(null);
+  const speciesChartRef = useRef<HTMLDivElement>(null);
+  const outcomeChartRef = useRef<HTMLDivElement>(null);
+  
+  // Helper to capture chart as image
+  const captureChartImage = async (chartRef: React.RefObject<HTMLDivElement>) => {
+    if (!chartRef.current) return null;
+    try {
+      const canvas = await html2canvas(chartRef.current, { 
+        scale: 2,
+        useCORS: true,
+        logging: false 
+      });
+      return canvas.toDataURL('image/png');
+    } catch (err) {
+      console.warn('Failed to capture chart image:', err);
+      return null;
+    }
+  };
+  
   const handleMetricClick = (metric: MetricType) => {
     setSelectedMetric(metric);
     setIsDrilldownOpen(true);
@@ -327,9 +350,16 @@ export default function Analytics() {
     headers: string[],
     rows: any[],
     summary: any,
-    format: 'csv' | 'xlsx' | 'pdf'
+    format: 'csv' | 'xlsx' | 'pdf',
+    chartRef?: React.RefObject<HTMLDivElement>
   ) => {
     try {
+      // Capture chart image for PDF exports
+      let chartImageData: string | null = null;
+      if (format === 'pdf' && chartRef) {
+        chartImageData = await captureChartImage(chartRef);
+      }
+
       // Use fetch directly to handle binary blob responses
       const response = await fetch('/api/analytics/export', {
         method: 'POST',
@@ -341,6 +371,7 @@ export default function Analytics() {
           rows,
           summary,
           format,
+          chartImageData,
         }),
       });
 
@@ -394,7 +425,7 @@ export default function Analytics() {
       highest: maxCases,
       lowest: minCases,
       recordCount: casesOverTimeRows.length,
-    }, format);
+    }, format, casesOverTimeChartRef);
   };
 
   const handleTumourDistributionExport = async (format: 'csv' | 'xlsx' | 'pdf' = 'csv') => {
@@ -407,7 +438,7 @@ export default function Analytics() {
     await handleAnalyticsExport('Tumour Type Distribution', ['tumour_type', 'cases', 'percent'], tumourDistributionRows, {
       total: totalCases,
       recordCount: tumourDistributionRows.length,
-    }, format);
+    }, format, tumourDistributionChartRef);
   };
 
   const speciesRows = stats.casesBySpecies.map((item) => ({
@@ -428,7 +459,7 @@ export default function Analytics() {
       total: totalCases,
       average: Math.round(avgCases * 100) / 100,
       recordCount: speciesRows.length,
-    }, format);
+    }, format, speciesChartRef);
   };
 
   const outcomeRows = stats.treatmentOutcomes.map((item) => ({
@@ -450,7 +481,7 @@ export default function Analytics() {
       total: totalOutcomes,
       successRate: remissionPercent,
       recordCount: outcomeRows.length,
-    }, format);
+    }, format, outcomeChartRef);
   };
 
   return (
@@ -575,7 +606,7 @@ export default function Analytics() {
             </DropdownMenu>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
+            <div ref={casesOverTimeChartRef} className="h-80">
               {stats.casesByMonth.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={stats.casesByMonth}>
@@ -629,7 +660,7 @@ export default function Analytics() {
             </DropdownMenu>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
+            <div ref={tumourDistributionChartRef} className="h-80">
               {stats.topTumourTypes.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -685,7 +716,7 @@ export default function Analytics() {
             </DropdownMenu>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
+            <div ref={speciesChartRef} className="h-80">
               {stats.casesBySpecies.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stats.casesBySpecies}>
@@ -736,7 +767,7 @@ export default function Analytics() {
             </DropdownMenu>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
+            <div ref={outcomeChartRef} className="h-80">
               {stats.treatmentOutcomes.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>

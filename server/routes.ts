@@ -3334,7 +3334,7 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
-      const { chartName, headers, rows, summary, format = 'csv' } = req.body;
+      const { chartName, headers, rows, summary, format = 'csv', chartImageData } = req.body;
 
       if (!chartName || !headers || !rows) {
         return res.status(400).json({ message: "Missing required fields: chartName, headers, rows" });
@@ -3504,6 +3504,20 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
         doc.text(`Date: ${now}`, 14, yPos);
         yPos += 10;
 
+        // Add chart image if available
+        if (chartImageData) {
+          try {
+            const chartWidth = 150;
+            const chartHeight = 100;
+            const chartX = (pageWidth - chartWidth) / 2;
+            doc.addImage(chartImageData, 'PNG', chartX, yPos, chartWidth, chartHeight);
+            yPos += chartHeight + 10;
+          } catch (imgError) {
+            console.warn('[PDF Export] Warning: Failed to add chart image:', imgError);
+            // Continue without image
+          }
+        }
+
         if (summary) {
           doc.setFontSize(11);
           doc.text('Summary Statistics:', 14, yPos);
@@ -3534,6 +3548,12 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
             yPos += 5;
           }
           yPos += 5;
+        }
+
+        // Check if we need a new page for the table
+        if (yPos > pageHeight - 80) {
+          doc.addPage();
+          yPos = 15;
         }
 
         const tableData: any[] = [(headers as string[])];
