@@ -1,0 +1,65 @@
+You are working inside the VetOncoData project on Replit.
+
+Goal:
+Set up a clean, reusable **ChatGPT (OpenAI)** service layer in the backend that we can reuse later for:
+- analytics Q&A,
+- case form auto-fill,
+- data quality checks,
+- guidelines Q&A,
+- supportive (non-final) diagnostic suggestions.
+
+Do NOT build any of those features yet. Just the core OpenAI wiring + a simple test endpoint.
+
+Stack:
+- Node + Express backend (TypeScript if available),
+- React/TypeScript frontend,
+- Postgres.
+
+Use:
+- OpenAI Chat Completions API (ChatGPT),
+- Model: default to `gpt-4o-mini` but read from env.
+
+Steps:
+
+1. OpenAI client module
+- Create `server/services/openaiClient.ts` (or similar path that matches the project).
+- Read these env vars:
+  - `OPENAI_API_KEY`
+  - `OPENAI_MODEL` (default to `gpt-4o-mini` if not set).
+- Export a function like:
+
+  `callChatGPT({ systemPrompt?, userMessage }: { systemPrompt?: string; userMessage: string }): Promise<string>`
+
+- Inside it:
+  - Call `https://api.openai.com/v1/chat/completions` with:
+    - model = OPENAI_MODEL
+    - messages = [
+        { role: "system", content: default system prompt (see below, unless overridden) },
+        { role: "user", content: userMessage }
+      ]
+  - Use `OPENAI_API_KEY` in Authorization header.
+  - Return the assistant message text as a string.
+  - Handle errors cleanly and log them; don’t crash the server.
+
+- Default system prompt (can be a const in this file), something like:
+  - “You are an assistant supporting veterinary oncology data analysis in Nigeria. You can summarise data, suggest possible differentials, and highlight data issues. You must NOT replace professional veterinary judgement. Do not give definitive treatment plans or guarantees. Be concise and factual.”
+
+2. Test endpoint
+- Add `POST /api/ai/test` to the Express app.
+- Body: `{ question: string }`.
+- It should:
+  - Call `callChatGPT({ userMessage: question })`.
+  - Return `{ answer: string }` in JSON.
+- For now, no auth changes, just reuse existing middleware patterns.
+
+3. Tiny frontend check (very simple)
+- On some internal/dev-only page or a small test component, add:
+  - A text input + button that sends `{ question }` to `/api/ai/test`.
+  - Show the `answer` below.
+- This is only to confirm that ChatGPT is wired up correctly end-to-end.
+
+Keep the changes small and focused:
+- One OpenAI client file,
+- One `/api/ai/test` route,
+- One minimal front-end test.
+No analytics logic, no case logic, no RAG yet — we will add those in later steps using this `callChatGPT` helper.
