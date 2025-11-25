@@ -552,15 +552,15 @@ export default function Analytics() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases Over Time</CardTitle>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="outline" size="sm" disabled={!hasCasesOverTimeData} data-testid="button-export-trend-chart">
                   Export <ChevronDown className="ml-1 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleCasesOverTimeExport('csv')} data-testid="button-export-trend-chart-csv">CSV</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleCasesOverTimeExport('xlsx')} data-testid="button-export-trend-chart-xlsx">Excel</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleCasesOverTimeExport('pdf')} data-testid="button-export-trend-chart-pdf">PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCasesOverTimeExport('csv'); }} data-testid="button-export-trend-chart-csv">CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCasesOverTimeExport('xlsx'); }} data-testid="button-export-trend-chart-xlsx">Excel</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCasesOverTimeExport('pdf'); }} data-testid="button-export-trend-chart-pdf">PDF</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
@@ -606,15 +606,15 @@ export default function Analytics() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Tumour Type Distribution</CardTitle>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="outline" size="sm" disabled={!hasTumourDistributionData} data-testid="button-export-distribution-chart">
                   Export <ChevronDown className="ml-1 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleTumourDistributionExport('csv')} data-testid="button-export-distribution-chart-csv">CSV</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleTumourDistributionExport('xlsx')} data-testid="button-export-distribution-chart-xlsx">Excel</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleTumourDistributionExport('pdf')} data-testid="button-export-distribution-chart-pdf">PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleTumourDistributionExport('csv'); }} data-testid="button-export-distribution-chart-csv">CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleTumourDistributionExport('xlsx'); }} data-testid="button-export-distribution-chart-xlsx">Excel</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleTumourDistributionExport('pdf'); }} data-testid="button-export-distribution-chart-pdf">PDF</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
@@ -662,15 +662,15 @@ export default function Analytics() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Cases by Species</CardTitle>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="outline" size="sm" disabled={!hasSpeciesData} data-testid="button-export-species-chart">
                   Export <ChevronDown className="ml-1 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleSpeciesExport('csv')} data-testid="button-export-species-chart-csv">CSV</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSpeciesExport('xlsx')} data-testid="button-export-species-chart-xlsx">Excel</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSpeciesExport('pdf')} data-testid="button-export-species-chart-pdf">PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSpeciesExport('csv'); }} data-testid="button-export-species-chart-csv">CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSpeciesExport('xlsx'); }} data-testid="button-export-species-chart-xlsx">Excel</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSpeciesExport('pdf'); }} data-testid="button-export-species-chart-pdf">PDF</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
@@ -713,15 +713,15 @@ export default function Analytics() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Treatment Outcomes</CardTitle>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="outline" size="sm" disabled={!hasOutcomeData} data-testid="button-export-outcomes-chart">
                   Export <ChevronDown className="ml-1 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleOutcomeExport('csv')} data-testid="button-export-outcomes-chart-csv">CSV</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleOutcomeExport('xlsx')} data-testid="button-export-outcomes-chart-xlsx">Excel</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleOutcomeExport('pdf')} data-testid="button-export-outcomes-chart-pdf">PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOutcomeExport('csv'); }} data-testid="button-export-outcomes-chart-csv">CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOutcomeExport('xlsx'); }} data-testid="button-export-outcomes-chart-xlsx">Excel</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOutcomeExport('pdf'); }} data-testid="button-export-outcomes-chart-pdf">PDF</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
