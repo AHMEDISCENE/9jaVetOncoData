@@ -11,13 +11,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ImagePlus, X } from "lucide-react";
 import type { FeedPost } from "@shared/schema";
 
 interface CreatePostData {
   title: string;
   body: string;
   tags: string[];
+  attachments?: string[];
 }
 
 export default function Feeds() {
@@ -29,6 +30,7 @@ export default function Feeds() {
     title: "",
     body: "",
     tags: [],
+    attachments: [],
   });
   const [tagInput, setTagInput] = useState("");
   const [editingPost, setEditingPost] = useState<FeedPost | null>(null);
@@ -36,9 +38,11 @@ export default function Feeds() {
     title: "",
     body: "",
     tags: [],
+    attachments: [],
   });
   const [editTagInput, setEditTagInput] = useState("");
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const { data: feedResponse, isLoading, error } = useQuery<{ items: FeedPost[]; nextCursor?: string }>({
     queryKey: ["/api/feeds"],
@@ -118,6 +122,89 @@ export default function Feeds() {
     }
   };
 
+  const uploadImage = async (file: File, isEdit: boolean = false) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('/api/feeds/upload-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      const { url } = await response.json();
+      
+      if (isEdit) {
+        setEditedData(prev => ({
+          ...prev,
+          attachments: [...(prev.attachments || []), url]
+        }));
+      } else {
+        setNewPost(prev => ({
+          ...prev,
+          attachments: [...(prev.attachments || []), url]
+        }));
+      }
+      
+      toast({ description: "Image uploaded successfully" });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+      });
+    }
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    setUploadingImages(true);
+    try {
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) {
+          toast({
+            variant: "destructive",
+            description: `${file.name} is not an image file`,
+          });
+          continue;
+        }
+        
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            variant: "destructive",
+            description: `${file.name} is too large (max 10MB)`,
+          });
+          continue;
+        }
+        
+        await uploadImage(file, isEdit);
+      }
+    } finally {
+      setUploadingImages(false);
+      e.target.value = '';
+    }
+  };
+
+  const removeImage = (index: number, isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditedData(prev => ({
+        ...prev,
+        attachments: (prev.attachments || []).filter((_, i) => i !== index)
+      }));
+    } else {
+      setNewPost(prev => ({
+        ...prev,
+        attachments: (prev.attachments || []).filter((_, i) => i !== index)
+      }));
+    }
+  };
+
   const updatePostMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: CreatePostData }) => {
       const response = await apiRequest("PUT", `/api/feeds/${id}`, data);
@@ -170,6 +257,7 @@ export default function Feeds() {
       title: post.title,
       body: post.body,
       tags: post.tags || [],
+      attachments: post.attachments || [],
     });
   };
 
@@ -201,7 +289,7 @@ export default function Feeds() {
   const canDeletePost = (post: FeedPost) => {
     return user?.id === post.authorId || 
            user?.role === "SUPER_ADMIN" || 
-           (user?.role === "ADMIN" && user?.clinicId === post.clinicId);
+           (user?.role === "ADMIN" && (user as any)?.clinicId === post.clinicId);
   };
 
   if (isLoading) {
@@ -325,6 +413,56 @@ export default function Feeds() {
               )}
             </div>
 
+            <div>
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Attach Images
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleImageSelect(e, false)}
+                    disabled={uploadingImages}
+                    className="hidden"
+                    id="feed-image-input"
+                    data-testid="input-post-images"
+                  />
+                  <Button 
+                    variant="outline"
+                    onClick={() => document.getElementById('feed-image-input')?.click()}
+                    disabled={uploadingImages}
+                    data-testid="button-attach-images"
+                  >
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    {uploadingImages ? "Uploading..." : "Add Images"}
+                  </Button>
+                </div>
+              </div>
+
+              {((newPost.attachments) || []).length > 0 && (
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {(newPost.attachments || []).map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img 
+                        src={url} 
+                        alt={`Attached ${index + 1}`} 
+                        className="w-full h-32 object-cover rounded border border-border"
+                      />
+                      <button
+                        onClick={() => removeImage(index, false)}
+                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition"
+                        data-testid={`button-remove-image-${index}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2">
               <Button 
                 onClick={handleCreatePost}
@@ -405,6 +543,19 @@ export default function Feeds() {
                 </div>
               </CardHeader>
               <CardContent>
+                {((post.attachments) || []).length > 0 && (
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {(post.attachments || []).map((url, index) => (
+                      <img
+                        key={index}
+                        src={url}
+                        alt={`Attachment ${index + 1}`}
+                        className="w-full h-48 object-cover rounded border border-border"
+                      />
+                    ))}
+                  </div>
+                )}
+                
                 <div className="prose prose-sm max-w-none mb-4">
                   {post.body.split('\n').map((paragraph, index) => (
                     <p key={index} className="mb-2 last:mb-0">{paragraph}</p>
@@ -497,6 +648,56 @@ export default function Feeds() {
                         <i className="fas fa-times"></i>
                       </button>
                     </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Attach Images
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleImageSelect(e, true)}
+                    disabled={uploadingImages}
+                    className="hidden"
+                    id="feed-edit-image-input"
+                    data-testid="input-edit-post-images"
+                  />
+                  <Button 
+                    variant="outline"
+                    onClick={() => document.getElementById('feed-edit-image-input')?.click()}
+                    disabled={uploadingImages}
+                    data-testid="button-attach-edit-images"
+                  >
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    {uploadingImages ? "Uploading..." : "Add Images"}
+                  </Button>
+                </div>
+              </div>
+
+              {((editedData.attachments) || []).length > 0 && (
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {(editedData.attachments || []).map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img 
+                        src={url} 
+                        alt={`Attached ${index + 1}`} 
+                        className="w-full h-32 object-cover rounded border border-border"
+                      />
+                      <button
+                        onClick={() => removeImage(index, true)}
+                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition"
+                        data-testid={`button-remove-edit-image-${index}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}

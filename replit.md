@@ -76,6 +76,35 @@ The system features comprehensive audit logging for all CUD operations and imple
 
 ## November 25, 2025
 
+### Feed Post Image Attachments
+- **Image Upload Feature**: Added full image attachment capability to feed posts
+  - **Create Post**: Users can attach multiple images when creating new posts via "Add Images" button
+  - **Edit Post**: Authors can add or remove images when editing existing posts
+  - **Image Display**: Attached images displayed in 2-column grid above post content for optimal viewing
+  - **Image Management**: Users can remove individual images with hover-activated delete button
+- **Backend Implementation**:
+  - New API endpoint: `POST /api/feeds/upload-image` handles image uploads (10MB max per image)
+  - Multer configuration for feed images with memory storage
+  - Image URLs stored in post `attachments` array (utilizes existing schema field)
+  - Fallback to base64 data URLs if object storage unavailable
+  - Supports JPEG, PNG, GIF, WebP image formats
+- **Frontend Implementation**:
+  - Image selection with multi-file support
+  - Real-time upload with loading state
+  - Toast notifications for upload success/errors
+  - Form validation for file size and type
+  - Both create and edit dialogs support image management
+- **Existing Fields Utilized**: Leveraged the already-existing `attachments` field in feedPosts table to store image URLs
+
+### Account Information Update Bug Fix
+- **Fixed HTTP 304 Caching Issue**: Replaced `refetchQueries()` with `queryClient.setQueryData()` in profile, clinic, and theme mutations
+- **Result**: Account updates now immediately reflect in UI without requiring server refetch
+
+### Dark Mode Text Visibility Fix
+- **Fixed Invisible Navigation Text**: Replaced hardcoded black text (`text-[#000000]`) with theme-adaptive colors
+- **Updated Sidebar Elements**: All nav items, user name, and clinic name now use `text-foreground dark:text-foreground` pattern
+- **Result**: Perfect text contrast in both light and dark modes
+
 ### Dashboard Flip Card Animation with View More
 - **Interactive Stat Cards**: Added smooth 3D flip animation to all 4 dashboard stat cards with retained full functionality
   - **Total Cases Card**: Flips to show breakdown by species (top 5) with "View More" button

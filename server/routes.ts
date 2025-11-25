@@ -116,6 +116,22 @@ const avatarUpload = multer({
   },
 });
 
+// Feed image upload configuration
+const feedImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB for feed images
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid image type'));
+    }
+  },
+});
+
 // Auth middleware
 const requireAuth = (req: any, res: any, next: any) => {
   if (!req.session?.userId) {
@@ -2615,6 +2631,34 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
       res.json(postsWithAuthors);
     } catch (error) {
       res.status(500).json({ message: "Failed to get recent feed posts" });
+    }
+  });
+
+  // Upload image for feed post
+  app.post("/api/feeds/upload-image", requireAuth, feedImageUpload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No image provided" });
+      }
+
+      const storageKey = `feed-images/${Date.now()}-${req.file.originalname}`;
+      
+      try {
+        const result = await putObject({
+          key: storageKey,
+          buffer: req.file.buffer,
+          contentType: req.file.mimetype,
+        });
+        
+        res.json({ url: result.publicUrl });
+      } catch (storageError) {
+        console.error("[WARNING] Failed to upload to object storage:", storageError);
+        // Fallback to data URL for local storage
+        const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        res.json({ url: dataUrl });
+      }
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to upload image" });
     }
   });
 
