@@ -3728,8 +3728,8 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
         return res.status(400).json({ message: "question field is required and must be a string" });
       }
 
-      // Normalize mode: only "general" or "data_only", default to "data_only"
-      const normalizedMode = (mode === "general" || mode === "data_only") ? mode : "data_only";
+      // Normalize mode: only "universal" or "strict", default to "strict"
+      const normalizedMode = mode === "universal" ? "universal" : "strict";
 
       // Execute the analytics query with a database executor
       const result = await executeAnalyticsQuery(

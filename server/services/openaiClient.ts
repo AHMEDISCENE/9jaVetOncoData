@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 
 const DEFAULT_SYSTEM_PROMPT = `You are an assistant supporting veterinary oncology data analysis in Nigeria. You can summarise data, suggest possible differentials, and highlight data issues. You must NOT replace professional veterinary judgement. Do not give definitive treatment plans or guarantees. Be concise and factual.`;
 
-type ChatMode = "data_only" | "general";
+type ChatMode = "strict" | "universal";
 
 interface ChatGPTParams {
   systemPrompt?: string;
@@ -28,7 +28,7 @@ export async function callChatGPT({
   systemPrompt = DEFAULT_SYSTEM_PROMPT,
   userMessage,
   context,
-  mode = "data_only",
+  mode = "strict",
 }: ChatGPTParams): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -39,22 +39,28 @@ export async function callChatGPT({
   }
 
   // Normalize mode
-  const normalizedMode: ChatMode = (mode === "general" || mode === "data_only") ? mode : "data_only";
+  const normalizedMode: ChatMode = (mode === "universal" || mode === "strict") ? mode : "strict";
 
   const messages: OpenAIMessage[] = [];
 
   // Build system message based on mode
-  if (normalizedMode === "general") {
-    // General mode: can use its own knowledge + context
-    messages.push({ role: 'system', content: systemPrompt });
-  } else {
-    // Data-only mode: must answer ONLY from context
+  if (normalizedMode === "universal") {
+    // Universal mode: can use its own knowledge + context
     messages.push({
       role: 'system',
       content:
         systemPrompt +
-        " You must answer ONLY using the context provided. " +
-        "If the context is not enough, say you do not know. Do not use outside knowledge.",
+        " You may also use your general veterinary/oncology knowledge, " +
+        "but remind users this is not a substitute for a veterinarian's judgement.",
+    });
+  } else {
+    // Strict mode: must answer ONLY from VetOncoData context
+    messages.push({
+      role: 'system',
+      content:
+        systemPrompt +
+        " You must answer ONLY using the VetOncoData context. " +
+        "If the context is not enough, say you cannot answer from VetOncoData data.",
     });
   }
 

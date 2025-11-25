@@ -98,7 +98,7 @@ export function validateSQL(sql: string): { valid: boolean; error?: string } {
 export async function executeAnalyticsQuery(
   question: string,
   dbExecutor?: (sql: string) => Promise<any>,
-  mode: "data_only" | "general" = "data_only"
+  mode: "strict" | "universal" = "strict"
 ): Promise<QueryResult> {
   try {
     // Generate SQL using ChatGPT

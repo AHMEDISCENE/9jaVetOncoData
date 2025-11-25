@@ -1,0 +1,54 @@
+You are working inside the VetOncoData project.
+
+Goal:
+For the “Ask AI About Your Data” panel on the Analytics page, add a mode toggle so users can choose:
+- "strict"  → AI must answer ONLY from VetOncoData (DB context). If the data is not enough, it must say so.
+- "universal" → AI can use VetOncoData context + its general veterinary/oncology knowledge.
+
+Use the existing AI analytics endpoint (the one this panel already calls).
+
+BACKEND
+
+1. In the analytics AI route (e.g. POST /api/ai/analytics-query):
+   - Read an optional `mode` from `req.body`:
+     type Mode = "strict" | "universal";
+     const mode: Mode = req.body.mode === "universal" ? "universal" : "strict";
+
+2. Where this route calls `callChatGPT(...)` to turn the SQL result/context into an answer:
+   - Pass `mode` along, and inside `callChatGPT` branch the messages:
+
+   - strict:
+     system = existing analytics system prompt +
+       " You must answer ONLY using the VetOncoData context. " +
+       "If the context is not enough, say you cannot answer from VetOncoData data."
+     messages = [system, "Context: ...", user question]
+
+   - universal:
+     system = existing analytics system prompt +
+       " You may also use your general veterinary/oncology knowledge, " +
+       "but remind users this is not a substitute for a veterinarian’s judgement."
+     messages = [system, optional "Context: ...", user question]
+
+   Keep existing try/catch so errors return a safe JSON error and never crash the server.
+
+FRONTEND
+
+3. In the React component that renders “Ask AI About Your Data”:
+   - Add local state:
+     const [aiMode, setAiMode] = useState<"strict" | "universal">("strict");
+
+   - Above the textarea, render a small toggle, e.g. two pills or radio buttons:
+     - "Strictly VetOncoData"
+     - "Universal Oncology AI"
+     Clicking each updates `aiMode`.
+
+   - When sending the request to the analytics AI endpoint, include `mode`:
+     body = { question, mode: aiMode }
+
+   - Optionally show a short caption under the toggle, e.g.:
+     - strict: "Answers only from your VetOncoData database."
+     - universal: "Uses VetOncoData + general veterinary knowledge."
+
+Scope:
+- Only modify the existing analytics AI endpoint, the ChatGPT helper, and this Analytics AI panel component.
+- Do not create new routes or change other features.

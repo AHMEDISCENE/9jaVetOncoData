@@ -11,8 +11,16 @@ interface AnalyticsQueryResponse {
   rows: any[];
 }
 
+type AIMode = "strict" | "universal";
+
+const MODE_DESCRIPTIONS: Record<AIMode, string> = {
+  strict: "Answers only from your VetOncoData database.",
+  universal: "Uses VetOncoData + general veterinary knowledge.",
+};
+
 export function AIAnalyticsPanel() {
   const [question, setQuestion] = useState("");
+  const [aiMode, setAiMode] = useState<AIMode>("strict");
   const [response, setResponse] = useState<AnalyticsQueryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -36,7 +44,7 @@ export function AIAnalyticsPanel() {
       const res = await fetch("/api/ai/analytics-query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, mode: aiMode }),
       });
 
       if (!res.ok) {
@@ -69,6 +77,40 @@ export function AIAnalyticsPanel() {
       </CardHeader>
       <CardContent className="pt-6">
         <form onSubmit={handleAsk} className="space-y-4">
+          {/* Mode Toggle */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">AI Response Mode</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAiMode("strict")}
+                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  aiMode === "strict"
+                    ? "bg-teal-600 text-white"
+                    : "bg-slate-200 dark:bg-slate-800 text-foreground hover:bg-slate-300 dark:hover:bg-slate-700"
+                }`}
+                data-testid="button-mode-strict"
+              >
+                Strictly VetOncoData
+              </button>
+              <button
+                type="button"
+                onClick={() => setAiMode("universal")}
+                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  aiMode === "universal"
+                    ? "bg-teal-600 text-white"
+                    : "bg-slate-200 dark:bg-slate-800 text-foreground hover:bg-slate-300 dark:hover:bg-slate-700"
+                }`}
+                data-testid="button-mode-universal"
+              >
+                Universal Oncology AI
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {MODE_DESCRIPTIONS[aiMode]}
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Textarea
               placeholder="e.g., 'How many cases by species?', 'Show me all remission cases from Lagos', 'What's the most common tumor type?'"
