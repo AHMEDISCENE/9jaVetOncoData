@@ -77,6 +77,9 @@ export const users = pgTable("users", {
   jobTitle: text("job_title"), // Veterinarian, Veterinary Technician, etc.
   specialty: text("specialty"), // Oncology, Internal Medicine, etc.
   bio: text("bio"), // Short biography
+  phone: text("phone"), // Phone number
+  linkedIn: text("linked_in"), // LinkedIn profile URL
+  googleScholar: text("google_scholar"), // Google Scholar profile URL
   
   role: roleEnum("role").notNull().default("CLINICIAN"),
   clinicId: uuid("clinic_id").references(() => clinics.id),
