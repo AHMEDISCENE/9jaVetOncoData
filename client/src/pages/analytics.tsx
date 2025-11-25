@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 import { useToast } from "@/hooks/use-toast";
@@ -518,10 +519,16 @@ export default function Analytics() {
         <p className="text-lg font-semibold text-foreground">Comprehensive analysis of veterinary oncology data</p>
       </div>
 
-      {/* AI Analytics Panel */}
-      <AIAnalyticsPanel />
+      {/* Tabs for Dashboard and AI Analytics */}
+      <Tabs defaultValue="dashboard" className="w-full mb-8" data-testid="tabs-analytics">
+        <TabsList className="grid w-full grid-cols-2 mb-6" data-testid="tabs-list-analytics">
+          <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="ai" data-testid="tab-ai-analytics">AI Analytics</TabsTrigger>
+        </TabsList>
 
-      {/* Key Metrics Cards */}
+        {/* Dashboard Tab */}
+        <TabsContent value="dashboard" className="space-y-8" data-testid="tab-content-dashboard">
+          {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card 
           className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl focus:scale-105 focus:shadow-xl active:scale-95"
@@ -1208,6 +1215,13 @@ export default function Analytics() {
           </div>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        {/* AI Analytics Tab */}
+        <TabsContent value="ai" data-testid="tab-content-ai">
+          <AIAnalyticsPanel />
+        </TabsContent>
+      </Tabs>
 
       {/* Metric Drilldown */}
       <MetricDrilldown
