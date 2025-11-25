@@ -1,55 +1,120 @@
 import { callChatGPT } from './openaiClient';
 
-const SCHEMA_DESCRIPTION = `Database schema for veterinary oncology analytics:
+// Comprehensive schema description for AI analytics
+const AI_ANALYTICS_SCHEMA_DESCRIPTION = `VetOncoData Database Schema for Analytics
 
-Table: cases
-- id (uuid), case_number (text), clinic_id (uuid), created_by (uuid)
-- species (text), breed (text), sex (text), age_years (int), age_months (int)
-- patient_name (text)
-- tumour_type_id (uuid), anatomical_site_id (uuid), stage (text), laterality (text)
-- diagnosis_date (timestamp), diagnosis_method (text)
-- treatment_regimen (text), treatment_start (timestamp), treatment_end (timestamp)
-- treatment_plan (text), notes (text), outcome (text)
-- state (text), geo_zone (text)
-- created_at (timestamp), updated_at (timestamp)
+TABLE: cases
+Core veterinary oncology case records.
+Columns:
+  - id (uuid): Unique case identifier
+  - case_number (text): Human-readable case reference
+  - clinic_id (uuid): Reference to the clinic that owns this case
+  - created_at (timestamp): When case was uploaded/created. USE THIS for "uploaded today/this month/this year"
+  - updated_at (timestamp): Last modified timestamp
+  - created_by (uuid): User ID of who created the case
+  
+Patient Information:
+  - patient_name (text): Name of the patient (animal)
+  - species (text): Species (e.g. "Canine", "Feline", "Avian")
+  - breed (text): Breed name
+  - sex (text enum): MALE_NEUTERED, MALE_INTACT, FEMALE_SPAYED, FEMALE_INTACT
+  - age_years (integer): Age in years
+  - age_months (integer): Age in months component
+  
+Location:
+  - state (state enum): Nigerian state (e.g. LAGOS, FCT, ENUGU, etc)
+  - geo_zone (geopolitical_zone enum): NORTH_CENTRAL, NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_SOUTH, SOUTH_WEST
+  
+Tumour Details:
+  - tumour_type_id (uuid): Reference to tumour_types table
+  - tumour_type_custom (text): Custom tumour type if not in predefined list
+  - anatomical_site_id (uuid): Reference to anatomical_sites table
+  - anatomical_site_custom (text): Custom anatomical site if not in predefined list
+  - laterality (text): left, right, bilateral, central, etc.
+  - stage (text): Tumour stage/grade
+  
+Diagnosis & Treatment:
+  - diagnosis_date (timestamp): Date of diagnosis
+  - diagnosis_method (text): How diagnosed (biopsy, imaging, etc)
+  - treatment_plan (text): Treatment plan details
+  - treatment_start (timestamp): When treatment started
+  
+Outcome:
+  - outcome (outcome enum): REMISSION, MORTALITY, EUTHANASIA, TREATMENT_ONGOING, MANAGEMENT
+  - last_follow_up (timestamp): Date of last follow-up
+  - notes (text): Additional clinical notes
+  
+Status:
+  - status (status enum): DRAFT, ACTIVE, COMPLETED, ARCHIVED
+  
+TABLE: clinics
+Veterinary clinic information.
+Columns:
+  - id (uuid): Unique clinic identifier
+  - name (text): Clinic name
+  - state (state enum): Nigerian state where clinic operates
+  - city (text): City name
+  - lga (text): Local Government Area
+  - email (text): Contact email
+  - phone (text): Contact phone
+  - address (text): Full address
+  - created_at (timestamp): When clinic was registered
+  - updated_at (timestamp): Last updated
 
-Table: clinics
-- id (uuid), name (text), state (text), city (text), lga (text)
-- email (text), phone (text), address (text)
+TABLE: tumour_types (reference table)
+Predefined tumour types.
+Columns:
+  - id (uuid)
+  - name (text): Tumour type name
+  - species (text): Optional species filter
+  - is_system (boolean): True if system-defined
 
-Whitelisted tables: cases, clinics
+TABLE: anatomical_sites (reference table)
+Predefined anatomical sites.
+Columns:
+  - id (uuid)
+  - name (text): Site name
+  - species (text): Optional species filter
+  - is_system (boolean): True if system-defined
 
-Common columns for filtering:
-- cases.species, cases.state, cases.outcome, cases.stage
-- cases.diagnosis_date, clinics.name, clinics.state`;
+IMPORTANT NOTES:
+- "Uploaded today" refers to cases.created_at = CURRENT_DATE
+- "This month" means DATE_TRUNC('month', cases.created_at) = DATE_TRUNC('month', CURRENT_DATE)
+- "This year" means EXTRACT(YEAR FROM cases.created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+- Use JOIN with clinics table to get clinic name/state in results
+- Nigerian states: ABIA, ADAMAWA, AKWA_IBOM, ANAMBRA, BAUCHI, BAYELSA, BENUE, BORNO, CROSS_RIVER, DELTA, EBONYI, EDO, EKITI, ENUGU, FCT, GOMBE, IMO, JIGAWA, KADUNA, KANO, KATSINA, KEBBI, KOGI, KWARA, LAGOS, NASARAWA, NIGER, OGUN, ONDO, OSUN, OYO, PLATEAU, RIVERS, SOKOTO, TARABA, YOBE, ZAMFARA
+- Outcome values: REMISSION, MORTALITY, EUTHANASIA, TREATMENT_ONGOING, MANAGEMENT`;
 
-const SYSTEM_PROMPT = `You are a SQL query generator for veterinary oncology data analysis. 
-Your task is to generate safe, read-only SQL SELECT queries based on natural language questions.
+const SQL_GENERATION_SYSTEM_PROMPT = `You are an expert SQL query generator for the VetOncoData veterinary oncology registry database.
 
-CRITICAL RULES - DO NOT BREAK THESE:
-1. ALWAYS start queries with SELECT
-2. NEVER use: INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, EXEC, EXECUTE
-3. Return ONLY ONE valid PostgreSQL SELECT statement
-4. No comments, explanations, or additional text - ONLY the SQL query
-5. Use the following schema: ${SCHEMA_DESCRIPTION}
-6. Only use tables: cases, clinics (and joins between them)
-7. Limit results to 100 rows: append LIMIT 100 to every query
-8. Always use explicit joins (INNER JOIN or LEFT JOIN)
-9. Use aliases for tables to avoid ambiguity
-10. For date queries, use CURRENT_DATE and DATE functions
+Your task: Generate ONE valid PostgreSQL SELECT query that answers the user's question.
 
-Examples:
-Question: "How many cases by species?"
-Answer: SELECT species, COUNT(*) as count FROM cases GROUP BY species LIMIT 100
+Schema Information:
+${AI_ANALYTICS_SCHEMA_DESCRIPTION}
 
-Question: "Show me all cases from Lagos"
-Answer: SELECT c.case_number, c.patient_name, c.species, c.outcome FROM cases c LEFT JOIN clinics cl ON c.clinic_id = cl.id WHERE cl.state = 'Lagos' LIMIT 100
+CRITICAL RULES:
+1. ONLY output a valid PostgreSQL SELECT statement - NO explanations, comments, or extra text
+2. ALWAYS use LIMIT 100 to prevent too many results
+3. Use table aliases (e.g., 'c' for cases, 'cl' for clinics) for clarity
+4. Always use explicit JOIN syntax (JOIN...ON) when combining tables
+5. For date filtering:
+   - TODAY: WHERE DATE(cases.created_at) = CURRENT_DATE
+   - THIS MONTH: WHERE DATE_TRUNC('month', cases.created_at) = DATE_TRUNC('month', CURRENT_DATE)
+   - THIS YEAR: WHERE EXTRACT(YEAR FROM cases.created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+6. Include relevant clinic information when useful (clinic name, state, etc)
+7. Use COUNT(*) for counts, GROUP BY for aggregations
+8. Only reference tables and columns that actually exist in the schema
+9. Make queries readable with proper formatting
 
-Question: "How many cases was uploaded today?"
-Answer: SELECT COUNT(*) as count FROM cases WHERE DATE(created_at) = CURRENT_DATE LIMIT 100
+Example Queries:
+Q: "How many cases were uploaded today?"
+A: SELECT COUNT(*) as total_cases FROM cases WHERE DATE(cases.created_at) = CURRENT_DATE
 
-Question: "Cases by outcome this month"
-Answer: SELECT outcome, COUNT(*) as count FROM cases WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE) GROUP BY outcome LIMIT 100`;
+Q: "How many feline cases from Lagos this year?"
+A: SELECT COUNT(*) as feline_count FROM cases c JOIN clinics cl ON c.clinic_id = cl.id WHERE c.species = 'Feline' AND cl.state = 'LAGOS' AND EXTRACT(YEAR FROM c.created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+
+Q: "Which clinic has the highest number of remission cases?"
+A: SELECT cl.name, COUNT(*) as remission_count FROM cases c JOIN clinics cl ON c.clinic_id = cl.id WHERE c.outcome = 'REMISSION' GROUP BY cl.id, cl.name ORDER BY remission_count DESC LIMIT 100`;
 
 const DANGEROUS_KEYWORDS = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'CREATE', 'EXEC', 'EXECUTE', '--', ';'];
 
@@ -101,25 +166,26 @@ export function validateSQL(sql: string): { valid: boolean; error?: string } {
 }
 
 /**
- * Build a text summary of query results for context
+ * Build a text context from query results for ChatGPT analysis
  */
-function buildQueryContext(columns: string[], rows: any[]): string {
+function buildQueryContextForAnalysis(columns: string[], rows: any[]): string {
   if (!rows || rows.length === 0) {
-    return '';
+    return 'No data was found.';
   }
 
-  const rowStrings = rows.map((row: any) => 
-    Object.entries(row)
-      .map(([k, v]) => `${k}=${v}`)
-      .join(', ')
-  ).join('\n');
-
-  return `VetOncoData Query Results:
+  const header = `VetOncoData Query Results:
 Columns: ${columns.join(', ')}
-Rows returned: ${rows.length}
+Total rows: ${rows.length}\n`;
 
-Data:
-${rowStrings}`;
+  // Format rows for readability
+  const rowTexts = rows.map((row: any) => {
+    const entries = Object.entries(row)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(', ');
+    return `  ${entries}`;
+  }).join('\n');
+
+  return `${header}Data:\n${rowTexts}`;
 }
 
 /**
@@ -128,18 +194,36 @@ ${rowStrings}`;
 function getStrictModeSystemPrompt(): string {
   return `You are an analytics assistant for the VetOncoData veterinary cancer registry.
 
-Your task: Base your answer ONLY on the data summary provided in the context from VetOncoData.
-- Do NOT use general medical knowledge or facts outside the provided context.
-- Always give as much descriptive analysis as possible:
-  - counts and totals
-  - percentages and proportions
-  - comparisons between groups
-  - simple trends over time if present
-- If the context shows very limited data, still describe whatever is there.
-- If the question is outside the scope of VetOncoData (e.g., asking about another country or non-veterinary topics), 
-  say that Strict VetOncoData mode can only answer questions about the cases in the database.
+Your task: Base your answer ONLY on the data provided in the query results context.
+CRITICAL: Do NOT use general medical knowledge or any facts outside the provided data.
 
-Remember: Only analyze the data provided. Never add information from outside sources.`;
+Guidelines:
+- Provide descriptive analysis of the data including:
+  - Key counts and totals
+  - Percentages and proportions (calculate if needed)
+  - Comparisons between groups in the data
+  - Simple trends if visible in the data
+- If data is limited, still describe what's there
+- If the question is outside VetOncoData scope, say "In Strict VetOncoData mode, I can only answer questions about the cases in your database"
+
+Never add information not in the provided data.`;
+}
+
+/**
+ * Get system prompt for universal mode analysis
+ */
+function getUniversalModeSystemPrompt(): string {
+  return `You are an analytics assistant for the VetOncoData veterinary cancer registry.
+
+Your task: Analyze the provided query results AND provide additional context from your veterinary oncology knowledge.
+
+Guidelines:
+- First, describe what's in the data (counts, percentages, comparisons, trends)
+- Then, provide relevant context from veterinary/oncology knowledge if helpful
+- Always note that general knowledge is supplementary - not a substitute for professional veterinary judgment
+- If no data found, provide general information about the topic
+
+Be helpful and informative while distinguishing between database findings and general knowledge.`;
 }
 
 /**
@@ -151,61 +235,30 @@ export async function executeAnalyticsQuery(
   mode: "strict" | "universal" = "strict"
 ): Promise<QueryResult> {
   try {
-    // Generate SQL using ChatGPT
+    // Step 1: Generate SQL using ChatGPT with comprehensive schema
+    console.log(`[Analytics Query] Generating SQL for: "${question}"`);
     const sqlQuery = await callChatGPT({
-      systemPrompt: SYSTEM_PROMPT,
+      systemPrompt: SQL_GENERATION_SYSTEM_PROMPT,
       userMessage: question,
     });
 
-    // Validate the SQL
+    console.log(`[Analytics Query] Generated SQL: ${sqlQuery.substring(0, 100)}...`);
+
+    // Step 2: Validate the SQL before execution
     const validation = validateSQL(sqlQuery);
     if (!validation.valid) {
+      console.log(`[Analytics Query] SQL validation failed: ${validation.error}`);
+      
       // In universal mode, provide general knowledge when SQL generation fails
       if (mode === "universal") {
-        const generalKnowledgePrompt = `Your VetOncoData database couldn't generate a query for: "${question}"
-
-Please provide general information about this topic from your veterinary/oncology knowledge. Keep your response brief (1-2 sentences) and informative. Remind users this general knowledge is not a substitute for professional veterinary advice.`;
-
-        const summary = await callChatGPT({
-          userMessage: generalKnowledgePrompt,
+        const generalAnswer = await callChatGPT({
+          systemPrompt: getUniversalModeSystemPrompt(),
+          userMessage: `The question was: "${question}"\n\nI could not generate a database query for this. Please provide helpful information about this topic from your veterinary/oncology knowledge. Note that this is general knowledge, not specific to the VetOncoData database.`,
           mode,
         });
 
         return {
-          summary,
-          columns: [],
-          rows: [],
-        };
-      }
-
-      // In strict mode, return a clear message that this question cannot be answered
-      return {
-        summary: 'In Strict VetOncoData mode, I can only answer questions about the cases stored in your database. For this question I could not generate a valid query. Try adjusting your question or switch to Universal Oncology AI mode.',
-        columns: [],
-        rows: [],
-      };
-    }
-
-    // Execute the query
-    if (!dbExecutor) {
-      throw new Error("Database executor is required");
-    }
-    const result = await dbExecutor(sqlQuery);
-
-    if (!result || result.length === 0) {
-      // In universal mode, provide general knowledge when no data is found
-      if (mode === "universal") {
-        const generalKnowledgePrompt = `Your VetOncoData database has no cases matching the query: "${question}"
-
-Please provide general information about this topic from your veterinary/oncology knowledge. Keep your response brief (1-2 sentences) and informative. Remind users this general knowledge is not a substitute for professional veterinary advice.`;
-
-        const summary = await callChatGPT({
-          userMessage: generalKnowledgePrompt,
-          mode,
-        });
-
-        return {
-          summary,
+          summary: generalAnswer,
           columns: [],
           rows: [],
         };
@@ -213,30 +266,71 @@ Please provide general information about this topic from your veterinary/oncolog
 
       // In strict mode, return a clear message without calling ChatGPT
       return {
-        summary: 'In Strict VetOncoData mode, I can only answer questions about the cases stored in your database. For this question I could not find any relevant data. Try adjusting your question or switch to Universal Oncology AI mode.',
+        summary: 'In Strict VetOncoData mode, I can only answer questions about the cases stored in your database. I could not generate a valid query for this question. Try rephrasing it or switch to Universal Oncology AI mode to get general information.',
         columns: [],
         rows: [],
       };
     }
 
-    // Extract columns and rows
+    // Step 3: Execute the query
+    if (!dbExecutor) {
+      throw new Error("Database executor is required");
+    }
+    
+    console.log(`[Analytics Query] Executing query...`);
+    const result = await dbExecutor(sqlQuery);
+
+    // Step 4: Handle no results
+    if (!result || result.length === 0) {
+      console.log(`[Analytics Query] Query returned no results`);
+      
+      if (mode === "universal") {
+        // In universal mode, ask AI for general knowledge about the topic
+        const generalAnswer = await callChatGPT({
+          systemPrompt: getUniversalModeSystemPrompt(),
+          userMessage: `The question was: "${question}"\n\nThere is no matching data in the VetOncoData database. Please provide helpful general information about this topic from your veterinary/oncology knowledge. Note that this is general knowledge, not specific to the database.`,
+          mode,
+        });
+
+        return {
+          summary: generalAnswer,
+          columns: [],
+          rows: [],
+        };
+      }
+
+      // In strict mode, return a clear message about no data
+      return {
+        summary: 'There are no cases in VetOncoData matching that query.',
+        columns: [],
+        rows: [],
+      };
+    }
+
+    // Step 5: Extract columns and limit results
     const columns = Object.keys(result[0]);
     const rows = result.slice(0, 100); // Ensure we don't exceed 100 rows
+    
+    console.log(`[Analytics Query] Query returned ${rows.length} rows with columns: ${columns.join(', ')}`);
 
-    // Build context from query results
-    const context = buildQueryContext(columns, rows);
+    // Step 6: Build context for AI analysis
+    const context = buildQueryContextForAnalysis(columns, rows);
 
-    // Choose system prompt based on mode
-    const systemPrompt = mode === "strict" ? getStrictModeSystemPrompt() : undefined;
+    // Step 7: Summarize results using ChatGPT based on mode
+    const systemPrompt = mode === "strict" 
+      ? getStrictModeSystemPrompt() 
+      : getUniversalModeSystemPrompt();
 
-    const summaryPrompt = `Analyze this VetOncoData query result for the question: "${question}"
+    const analysisPrompt = `User question: "${question}"
 
-Provide a descriptive analysis highlighting key findings, counts, percentages, and any patterns in the data.`;
+${context}
 
+Please provide a clear, natural-language explanation of these results. Include key numbers, percentages where relevant, and important patterns.`;
+
+    console.log(`[Analytics Query] Generating analysis summary in ${mode} mode...`);
     const summary = await callChatGPT({
       systemPrompt,
-      userMessage: summaryPrompt,
-      context,
+      userMessage: analysisPrompt,
       mode,
     });
 

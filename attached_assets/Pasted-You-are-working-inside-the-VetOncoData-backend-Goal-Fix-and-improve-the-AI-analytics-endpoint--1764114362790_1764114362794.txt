@@ -1,0 +1,73 @@
+You are working inside the VetOncoData backend.
+
+Goal:
+Fix and improve the AI analytics endpoint so that it has access to ALL relevant data in the VetOncoData database (cases, clinics, etc.) and can correctly answer questions like:
+- “How many cases were uploaded today?”
+- “How many feline cases from Lagos this year?”
+- “Which clinic has the highest number of remission cases?”
+
+Right now the AI is very limited and often fails on simple questions. Improve the backend logic; do not touch the frontend layout.
+
+Context:
+- Stack: Node + Express + Postgres.
+- There is already an AI analytics route (e.g. POST `/api/ai/analytics-query`) used by the “Ask AI About Your Data” panel.
+- This route should:
+  1) Turn a natural language question into a SQL SELECT,
+  2) Run it on the real database,
+  3) Summarise the results using ChatGPT.
+
+Tasks:
+
+1. Build an accurate schema description for the LLM
+- Locate the case/clinic models or DB migrations and write a **single source of truth** describing the real tables and columns used in analytics (at least `cases` and `clinics`).
+- Include ALL relevant fields, especially:
+  - `cases`: id, clinic_id, species, breed, tumour_type, state, zone, stage, outcome, diagnosis_date, created_at, updated_at, etc. (use the actual names from the code).
+  - `clinics`: id, name, state, zone, etc.
+- Put this schema description into a constant (e.g. `AI_ANALYTICS_SCHEMA_DESCRIPTION`) that can be passed to ChatGPT.
+- Make sure the description clearly states which column should be used for “uploaded today / this month” (normally `cases.created_at`).
+
+2. Improve the natural-language → SQL step
+- In the analytics route, when you call ChatGPT to generate SQL:
+  - Use a system prompt like:
+    “You are an assistant that writes SQL for the VetOncoData Postgres database. 
+     Here is the schema: <insert AI_ANALYTICS_SCHEMA_DESCRIPTION>.
+     Write ONE valid SQL SELECT query that answers the user’s question, using these tables and columns only.
+     Use `cases.created_at` for ‘uploaded today/this month/this year’ unless the question clearly refers to diagnosis_date.
+     Do not modify data. Do not use DDL or DML.”
+  - Pass the user’s question as the user message.
+- Validate the returned SQL before running:
+  - Must start with `SELECT`.
+  - No `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `;` etc.
+  - Only reference whitelisted tables (`cases`, `clinics`, etc.).
+- If validation fails, return a clear error message instead of running it.
+
+3. Make sure all relevant data is queryable
+- Ensure the SQL generation step is allowed to use **all necessary columns**:
+  - counts (COUNT(*)),
+  - filters by date (`created_at`), species, clinic_id, state, zone, outcome, etc.
+- Do NOT artificially restrict to a subset of fields unless absolutely necessary.
+
+4. Better result summarisation
+- After running the SELECT and getting rows:
+  - Build a compact text summary of the result (column names + a few rows).
+  - Call ChatGPT again with a system prompt like:
+    “You are an analytics assistant for VetOncoData. Based ONLY on the result table in the context, explain the answer to the user’s question in clear language. Include key numbers (counts, percentages, time frames). If there are zero rows, say that no matching data was found.”
+  - Pass:
+    - the user’s original question,
+    - the text summary of rows,
+    - and the mode (strict/universal) if that exists in the code.
+- Return both:
+  - `answer` (natural-language explanation),
+  - and the raw `columns` + `rows`.
+
+5. Edge cases and safety
+- If the query runs but returns 0 rows, respond with a friendly message like:
+  “There are no cases in VetOncoData matching that query.”
+- Wrap all AI calls and DB calls in try/catch and return safe JSON errors; never crash the server.
+
+Scope:
+- Only modify the backend AI analytics route, the ChatGPT helper, and add the schema description constant.
+- Do not change frontend UI or other routes.
+
+End result:
+The AI analytics endpoint should now understand the full VetOncoData schema and correctly answer questions that depend on **all platform data**, including time-based queries such as “How many cases were uploaded today?”.
