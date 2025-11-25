@@ -22,6 +22,7 @@ import Header from "@/components/header";
 import { useAuth } from "@/hooks/use-auth";
 import SetupClinic from "@/pages/setup-clinic";
 import Settings from "@/pages/settings";
+import Profile from "@/pages/profile";
 import UserManagement from "@/pages/user-management";
 import { SidebarProvider, useSidebar } from "@/contexts/sidebar-context";
 import { AnalyticsDateRangeProvider } from "@/contexts/analytics-date-range-context";
@@ -48,6 +49,7 @@ function AuthenticatedLayout() {
             <Route path="/reports" component={Reports} />
             <Route path="/feeds" component={Feeds} />
             <Route path="/calendar" component={Calendar} />
+            <Route path="/profile" component={Profile} />
             <Route path="/settings" component={Settings} />
             <Route path="/admin/users" component={UserManagement} />
             <Route component={NotFound} />

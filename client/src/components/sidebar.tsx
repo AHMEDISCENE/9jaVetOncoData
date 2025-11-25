@@ -250,7 +250,7 @@ export default function Sidebar() {
             ) : (
               <>
                 <Link 
-                  href="/settings"
+                  href="/profile"
                   className="flex items-center space-x-2 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-900 border border-border hover:bg-gray-200 dark:hover:bg-gray-800 hover:border-primary/40 transition-all duration-200 cursor-pointer"
                   data-testid="link-user-profile"
                   onClick={() => setIsMobileOpen(false)}
