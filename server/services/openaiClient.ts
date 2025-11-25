@@ -2,13 +2,10 @@ import fetch from 'node-fetch';
 
 const DEFAULT_SYSTEM_PROMPT = `You are an assistant supporting veterinary oncology data analysis in Nigeria. You can summarise data, suggest possible differentials, and highlight data issues. You must NOT replace professional veterinary judgement. Do not give definitive treatment plans or guarantees. Be concise and factual.`;
 
-type ChatMode = "general" | "db_only";
-
 interface ChatGPTParams {
   systemPrompt?: string;
   userMessage: string;
   context?: string;
-  mode?: ChatMode;
 }
 
 interface OpenAIMessage {
@@ -28,7 +25,6 @@ export async function callChatGPT({
   systemPrompt = DEFAULT_SYSTEM_PROMPT,
   userMessage,
   context,
-  mode = "general",
 }: ChatGPTParams): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -38,30 +34,15 @@ export async function callChatGPT({
     throw new Error('OpenAI API key is not configured');
   }
 
-  const messages: OpenAIMessage[] = [];
+  const messages: OpenAIMessage[] = [
+    { role: 'system', content: systemPrompt },
+  ];
 
-  if (mode === "db_only") {
-    // DB-only mode: only use provided context, no general knowledge
+  if (context) {
     messages.push({
       role: 'system',
-      content: "You must ANSWER ONLY using the context provided. If the context does not contain enough information, say you do not know. Do not use outside knowledge. This is not a substitute for professional veterinary judgement.",
+      content: `Here is relevant data from the VetOncoData database:\n${context}`,
     });
-    messages.push({
-      role: 'system',
-      content: `Context from VetOncoData:\n${context || "NO CONTEXT PROVIDED"}`,
-    });
-  } else {
-    // General mode: allow general knowledge, include context if provided
-    messages.push({
-      role: 'system',
-      content: systemPrompt,
-    });
-    if (context) {
-      messages.push({
-        role: 'system',
-        content: `Here is relevant data from the VetOncoData database:\n${context}`,
-      });
-    }
   }
 
   messages.push({ role: 'user', content: userMessage });

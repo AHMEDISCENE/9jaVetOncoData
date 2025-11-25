@@ -22,7 +22,6 @@ import { callChatGPT } from "./services/openaiClient";
 import { buildLiveDataContext } from "./services/buildLiveDataContext";
 import { executeAnalyticsQuery } from "./services/analyticsQueryService";
 import { suggestCaseFields } from "./services/caseSuggestionService";
-import { getGuidelineContext } from "./services/guidelineService";
 
 const PgSession = ConnectPgSimple(session);
 // Normalize species names to standardized format
@@ -3761,37 +3760,6 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
       res.status(500).json({ 
         message: error instanceof Error ? error.message : "Failed to generate suggestions",
         suggestions: {}
-      });
-    }
-  });
-
-  // AI Guidelines Q&A endpoint with mode toggle (general knowledge vs DB-only)
-  app.post("/api/ai/guidelines", requireAuth, async (req, res) => {
-    try {
-      const { question, mode } = req.body;
-      
-      if (!question || typeof question !== 'string') {
-        return res.status(400).json({ message: "question field is required and must be a string" });
-      }
-
-      const chatMode = (mode === "db_only") ? "db_only" : "general";
-      const context = await getGuidelineContext(question);
-      
-      const systemPrompt = `You are a veterinary oncology knowledge assistant supporting veterinary clinics in Nigeria. Be cautious, mention uncertainty when needed, and remind users this does not replace a veterinarian's judgement. Provide evidence-based information where possible.`;
-      
-      const answer = await callChatGPT({
-        systemPrompt,
-        userMessage: question,
-        context,
-        mode: chatMode,
-      });
-      
-      res.json({ answer });
-    } catch (error) {
-      console.error("[ai.guidelines]", error);
-      res.status(500).json({ 
-        answer: "Sorry, I could not answer that right now. Please try again later.",
-        error: error instanceof Error ? error.message : "Internal server error"
       });
     }
   });
