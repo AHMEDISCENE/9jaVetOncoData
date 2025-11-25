@@ -187,7 +187,7 @@ export default function Sidebar() {
                         ? "lg:h-6 lg:w-6 h-5 w-5" 
                         : "h-5 w-5"
                     } ${itemActive ? "text-primary dark:text-primary-foreground" : "group-hover:text-primary dark:group-hover:text-primary"}`} />
-                    <span className={`transition-opacity duration-200 ${isCollapsed ? "lg:hidden" : ""}`}>
+                    <span className={`transition-opacity duration-200 text-[#000000] ${isCollapsed ? "lg:hidden" : ""}`}>
                       {item.name}
                     </span>
                   </Link>
