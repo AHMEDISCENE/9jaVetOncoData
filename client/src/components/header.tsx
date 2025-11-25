@@ -75,11 +75,14 @@ export default function Header() {
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
+    refetchInterval: 5000, // Refresh every 5 seconds to keep notifications fresh
+    staleTime: 2000, // Consider data stale after 2 seconds
   });
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds to match notifications
+    staleTime: 2000,
   });
 
   const markAsReadMutation = useMutation({
