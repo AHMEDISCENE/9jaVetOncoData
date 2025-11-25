@@ -1301,7 +1301,8 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       }
 
       // Get cases with full details - fetch all matching cases without pagination for export
-      const casesForExport = await storage.getCases(undefined, { ...apiFilters, limit: 10000, offset: 0 });
+      // Fetch all cases by getting a large number (no effective limit)
+      const casesForExport = await storage.getCases(undefined, { ...apiFilters, limit: 999999, offset: 0 });
 
       if (format === 'csv') {
         // Build CSV content manually for reliable export
@@ -1427,82 +1428,74 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         const margin = 12;
         const pageWidth = doc.internal.pageSize.getWidth();
         const maxWidth = pageWidth - 2 * margin;
+        const colWidth = maxWidth / 2;
+        const lineHeight = 5;
 
-        // Draw each case as a card
+        // Draw each case as a table row
         casesForExport.forEach((c: any, idx: number) => {
-          // Check if we need a new page
-          if (currentY > pageHeight - 30) {
+          // Check if we need a new page (need space for case info)
+          if (currentY > pageHeight - 25) {
             doc.addPage();
             currentY = 15;
           }
 
-          // Case card background
-          doc.setFillColor(245, 245, 245);
-          doc.setDrawColor(200, 200, 200);
-          doc.rect(margin, currentY, maxWidth, 38, 'FD');
-
-          // Case ID and Status
-          doc.setFont('', 'bold');
-          doc.setFontSize(10);
-          doc.setTextColor(0);
-          doc.text(`Case #${c.caseNumber}`, margin + 2, currentY + 5);
-          
-          doc.setFontSize(8);
-          doc.setFont('', 'normal');
+          // Prepare data
           const statusText = outcomeLabels[c.outcome as string] || c.outcome || 'Unknown';
-          doc.setTextColor(76, 175, 80);
-          doc.text(statusText, pageWidth - margin - 30, currentY + 5);
+          const diagDate = c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : 'N/A';
+          
+          // Case card background
+          doc.setFillColor(250, 250, 250);
+          doc.setDrawColor(220, 220, 220);
+          doc.rect(margin, currentY, maxWidth, 20, 'FD');
 
-          // Patient info
+          // Case ID and Status (Top row)
+          doc.setFont('', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(0);
+          doc.text(`Case #${c.caseNumber}`, margin + 2, currentY + 4);
+          
+          doc.setFont('', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(76, 175, 80);
+          const statusX = margin + colWidth;
+          doc.text(`Status: ${statusText}`, statusX, currentY + 4);
+
+          // Middle row: Patient, Species, State
           doc.setTextColor(0);
           doc.setFont('', 'bold');
-          doc.setFontSize(8);
-          doc.text('Patient:', margin + 2, currentY + 12);
+          doc.setFontSize(7);
+          doc.text('Patient:', margin + 2, currentY + 9);
           doc.setFont('', 'normal');
-          doc.text((c.patientName || 'N/A').substring(0, 40), margin + 20, currentY + 12);
-
-          // Species and Breed
-          doc.setFont('', 'bold');
-          doc.text('Species:', margin + 2, currentY + 18);
-          doc.setFont('', 'normal');
-          doc.text(c.species || 'N/A', margin + 20, currentY + 18);
-          
-          doc.setFont('', 'bold');
-          doc.text('Breed:', margin + 75, currentY + 18);
-          doc.setFont('', 'normal');
-          doc.text((c.breed || 'N/A').substring(0, 20), margin + 90, currentY + 18);
-
-          // Tumour and Site
-          doc.setFont('', 'bold');
-          doc.text('Tumour:', margin + 2, currentY + 24);
-          doc.setFont('', 'normal');
-          doc.text((c.tumourType?.name || c.tumourTypeCustom || 'N/A').substring(0, 35), margin + 20, currentY + 24);
+          doc.text((c.patientName || 'N/A').substring(0, 25), margin + 18, currentY + 9);
 
           doc.setFont('', 'bold');
-          doc.text('Site:', margin + 75, currentY + 24);
+          doc.text('Species:', statusX, currentY + 9);
           doc.setFont('', 'normal');
-          doc.text((c.anatomicalSite?.name || c.anatomicalSiteCustom || 'N/A').substring(0, 20), margin + 90, currentY + 24);
+          doc.text((c.species || 'N/A').substring(0, 20), statusX + 16, currentY + 9);
 
-          // Location and Diagnosis Date
+          // Bottom row: Clinic, Diagnosis Date, Tumour
           doc.setFont('', 'bold');
-          doc.text('State:', margin + 2, currentY + 30);
+          doc.text('Clinic:', margin + 2, currentY + 13);
           doc.setFont('', 'normal');
-          doc.text(c.state || 'N/A', margin + 20, currentY + 30);
+          doc.text((c.clinic?.name || 'N/A').substring(0, 25), margin + 18, currentY + 13);
 
           doc.setFont('', 'bold');
-          doc.text('Clinic:', margin + 75, currentY + 30);
+          doc.text('State:', statusX, currentY + 13);
           doc.setFont('', 'normal');
-          doc.text((c.clinic?.name || 'N/A').substring(0, 20), margin + 90, currentY + 30);
+          doc.text((c.state || 'N/A').substring(0, 20), statusX + 16, currentY + 13);
 
-          // Diagnosis info
+          // Fourth row: Diagnosis Date and Tumour Type
           doc.setFont('', 'bold');
-          doc.text('Diagnosis:', margin + 2, currentY + 36);
+          doc.text('Diagnosis:', margin + 2, currentY + 17);
           doc.setFont('', 'normal');
-          const diagDate = c.diagnosisDate ? new Date(c.diagnosisDate).toLocaleDateString() : 'N/A';
-          const diagMethod = c.diagnosisMethod || 'N/A';
-          doc.text(`${diagDate} (${diagMethod})`, margin + 20, currentY + 36);
+          doc.text(diagDate, margin + 24, currentY + 17);
 
-          currentY += 42;
+          doc.setFont('', 'bold');
+          doc.text('Tumour:', statusX, currentY + 17);
+          doc.setFont('', 'normal');
+          doc.text((c.tumourType?.name || c.tumourTypeCustom || 'N/A').substring(0, 15), statusX + 14, currentY + 17);
+
+          currentY += 22;
         });
 
         res.setHeader('Content-Type', 'application/pdf');
