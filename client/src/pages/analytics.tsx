@@ -1152,6 +1152,59 @@ export default function Analytics() {
         </DialogContent>
       </Dialog>
 
+      {/* Tumour Distribution by Age Detail */}
+      <Dialog open={selectedChart === 'ageDistribution'} onOpenChange={() => setSelectedChart(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tumour Distribution by Age - Detailed View</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="h-64 w-full">
+              {stats && stats.tumourDistributionByAge.length > 0 && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.tumourDistributionByAge}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-semibold">Age Group Breakdown:</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Age Group</th>
+                      <th className="p-3 text-right">Cases</th>
+                      <th className="p-3 text-right">% of Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats?.tumourDistributionByAge.map((item) => {
+                      const total = stats.tumourDistributionByAge.reduce((sum, t) => sum + t.count, 0);
+                      return (
+                        <tr key={item.name} className="border-t">
+                          <td className="p-3 font-medium">{item.name}</td>
+                          <td className="p-3 text-right font-semibold">{item.count}</td>
+                          <td className="p-3 text-right text-muted-foreground">{Math.round((item.count / total) * 100)}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 mt-3">
+                <p>💡 <strong>Total Age Groups:</strong> {stats?.tumourDistributionByAge.length} | <strong>Total Cases:</strong> {stats?.tumourDistributionByAge.reduce((sum, t) => sum + t.count, 0) || 0}</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Metric Drilldown */}
       <MetricDrilldown
         metric={selectedMetric}
