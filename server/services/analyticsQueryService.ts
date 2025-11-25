@@ -116,7 +116,10 @@ A: SELECT COUNT(*) as feline_count FROM cases c JOIN clinics cl ON c.clinic_id =
 Q: "Which clinic has the highest number of remission cases?"
 A: SELECT cl.name, COUNT(*) as remission_count FROM cases c JOIN clinics cl ON c.clinic_id = cl.id WHERE c.outcome = 'REMISSION' GROUP BY cl.id, cl.name ORDER BY remission_count DESC LIMIT 100`;
 
-const DANGEROUS_KEYWORDS = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'CREATE', 'EXEC', 'EXECUTE', '--', ';'];
+// Dangerous SQL keywords (matched as whole words only, not substrings)
+const DANGEROUS_KEYWORDS = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'CREATE', 'EXEC', 'EXECUTE'];
+// SQL comments are checked separately
+const COMMENT_PATTERNS = ['--', '/*', '*/'];
 
 export interface QueryResult {
   summary: string;
@@ -126,35 +129,52 @@ export interface QueryResult {
 
 /**
  * Validate SQL query for safety
+ * Uses proper word boundary checking to avoid false positives (e.g., CURRENT_DATE contains CREATE)
  */
 export function validateSQL(sql: string): { valid: boolean; error?: string } {
-  const cleanedSQL = sql.trim().toUpperCase();
+  const trimmedSQL = sql.trim();
+  const cleanedSQL = trimmedSQL.toUpperCase();
 
   // Must start with SELECT
   if (!cleanedSQL.startsWith('SELECT')) {
     return { valid: false, error: 'Query must start with SELECT' };
   }
 
-  // Check for dangerous keywords
+  // Check for SQL comments
+  for (const comment of COMMENT_PATTERNS) {
+    if (cleanedSQL.includes(comment)) {
+      return { valid: false, error: 'SQL comments are not allowed' };
+    }
+  }
+
+  // Check for dangerous keywords using word boundaries (not substring match)
   for (const keyword of DANGEROUS_KEYWORDS) {
-    if (cleanedSQL.includes(keyword)) {
+    // Use word boundary regex to match only complete keywords
+    const keywordRegex = new RegExp(`\\b${keyword}\\b`, 'gi');
+    if (keywordRegex.test(cleanedSQL)) {
       return { valid: false, error: `Query contains forbidden keyword: ${keyword}` };
     }
   }
 
-  // Check for multiple statements (semicolon not at end)
-  const semicolonCount = (sql.match(/;/g) || []).length;
-  if (semicolonCount > 0) {
-    return { valid: false, error: 'Multiple statements not allowed' };
+  // Check for multiple statements (multiple semicolons or statements)
+  // Allow a trailing semicolon but nothing after it
+  const trimmedEnd = trimmedSQL.trimEnd();
+  if (trimmedEnd.endsWith(';')) {
+    const beforeSemicolon = trimmedEnd.slice(0, -1);
+    if (beforeSemicolon.includes(';')) {
+      return { valid: false, error: 'Multiple SQL statements not allowed' };
+    }
+  } else if (trimmedSQL.includes(';')) {
+    return { valid: false, error: 'SQL statements must end with SELECT...LIMIT 100 (no semicolon)' };
   }
 
   // Only allow whitelisted tables
-  const allowedTables = ['cases', 'clinics', 'tumour_types', 'anatomical_sites'];
-  const tablePattern = /\b(FROM|JOIN)\s+(\w+)/gi;
+  const allowedTables = ['cases', 'clinics', 'tumour_types', 'anatomical_sites', 'ng_states'];
+  const tablePattern = /\b(FROM|JOIN|INTO)\s+(\w+)/gi;
   let match;
   const usedTables = new Set<string>();
   
-  while ((match = tablePattern.exec(sql)) !== null) {
+  while ((match = tablePattern.exec(trimmedSQL)) !== null) {
     const tableName = match[2].toLowerCase();
     if (!allowedTables.includes(tableName)) {
       return { valid: false, error: `Table not allowed: ${tableName}` };
