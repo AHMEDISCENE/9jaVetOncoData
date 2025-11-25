@@ -110,6 +110,25 @@ export async function executeAnalyticsQuery(
     // Validate the SQL
     const validation = validateSQL(sqlQuery);
     if (!validation.valid) {
+      // In universal mode, provide general knowledge when SQL generation fails
+      if (mode === "universal") {
+        const generalKnowledgePrompt = `Your VetOncoData database couldn't generate a query for: "${question}"
+
+Please provide general information about this topic from your veterinary/oncology knowledge. Keep your response brief (1-2 sentences) and informative. Remind users this general knowledge is not a substitute for professional veterinary advice.`;
+
+        const summary = await callChatGPT({
+          userMessage: generalKnowledgePrompt,
+          mode,
+        });
+
+        return {
+          summary,
+          columns: [],
+          rows: [],
+        };
+      }
+
+      // In strict mode, return the error
       return {
         summary: `I couldn't generate a safe query: ${validation.error}. Please rephrase your question more specifically.`,
         columns: [],
