@@ -16,7 +16,9 @@ class NotificationManager {
     this.wss = new WebSocketServer({ noServer: true });
 
     server.on('upgrade', (request: IncomingMessage, socket, head) => {
-      if (request.url === '/ws/notifications') {
+      // Parse URL to check just the path, ignoring query parameters
+      const urlPath = new URL(request.url || '', 'http://localhost').pathname;
+      if (urlPath === '/ws/notifications') {
         this.wss.handleUpgrade(request, socket, head, (ws) => {
           this.wss.emit('connection', ws, request);
         });
@@ -26,17 +28,19 @@ class NotificationManager {
     });
 
     this.wss.on('connection', (ws: AuthenticatedWebSocket, request: IncomingMessage) => {
-      // Extract userId from session/auth header
+      // Extract userId from query parameters
       const url = new URL(request.url || '', 'http://localhost');
       const userId = url.searchParams.get('userId');
 
       if (!userId) {
+        console.warn('[Notifications] WebSocket connection without userId');
         ws.close(1008, 'Unauthorized');
         return;
       }
 
       ws.userId = userId;
       ws.isAlive = true;
+      console.log('[Notifications] User connected:', userId);
 
       // Add to user connections
       if (!this.userConnections.has(userId)) {
