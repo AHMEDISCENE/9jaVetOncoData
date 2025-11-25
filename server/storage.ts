@@ -1549,6 +1549,29 @@ export class DatabaseStorage implements IStorage {
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 
+      // Tumour distribution by age group
+      const ageGroupCounts = new Map<string, number>();
+      const getAgeGroup = (ageYears?: number | null): string => {
+        if (ageYears === null || ageYears === undefined) return 'Unknown Age';
+        if (ageYears < 1) return 'Juvenile (<1 year)';
+        if (ageYears < 3) return 'Young (1-3 years)';
+        if (ageYears < 7) return 'Adult (3-7 years)';
+        return 'Senior (7+ years)';
+      };
+
+      allCases.forEach(c => {
+        const ageGroup = getAgeGroup(c.ageYears);
+        ageGroupCounts.set(ageGroup, (ageGroupCounts.get(ageGroup) || 0) + 1);
+      });
+
+      const tumourDistributionByAge = Array.from(ageGroupCounts.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => {
+          // Sort by age group order
+          const order = ['Juvenile (<1 year)', 'Young (1-3 years)', 'Adult (3-7 years)', 'Senior (7+ years)', 'Unknown Age'];
+          return order.indexOf(a.name) - order.indexOf(b.name);
+        });
+
       // Cases by state
       const stateCounts = new Map<string, number>();
       allCases.forEach(c => {
@@ -1599,6 +1622,7 @@ export class DatabaseStorage implements IStorage {
         treatmentOutcomes,
         casesByState,
         clinicsByCount,
+        tumourDistributionByAge,
         recentActivity: [],
       };
     } catch (error) {
@@ -1614,6 +1638,7 @@ export class DatabaseStorage implements IStorage {
         treatmentOutcomes: [],
         casesByState: [],
         clinicsByCount: [],
+        tumourDistributionByAge: [],
         recentActivity: [],
       };
     }
@@ -1634,8 +1659,11 @@ export class DatabaseStorage implements IStorage {
       remissionRate: number;
       activeClinics: number;
     };
-    casesOverTime: Array<{ date: string; count: number }>;
-    tumourDistribution: Array<{ name: string; count: number }>;
+    casesByMonth: Array<{ month: string; count: number }>;
+    topTumourTypes: Array<{ name: string; count: number }>;
+    casesBySpecies: Array<{ name: string; count: number }>;
+    treatmentOutcomes: Array<{ name: string; count: number }>;
+    tumourDistributionByAge: Array<{ name: string; count: number }>;
   }> {
     try {
       // Reuse dashboard stats logic
@@ -1644,11 +1672,11 @@ export class DatabaseStorage implements IStorage {
       // Map to analytics format
       return {
         totals: dashboardStats.totals,
-        casesOverTime: dashboardStats.casesByMonth.map(item => ({
-          date: item.month, // YYYY-MM format
-          count: item.count
-        })),
-        tumourDistribution: dashboardStats.topTumourTypes
+        casesByMonth: dashboardStats.casesByMonth,
+        topTumourTypes: dashboardStats.topTumourTypes,
+        casesBySpecies: dashboardStats.casesBySpecies,
+        treatmentOutcomes: dashboardStats.treatmentOutcomes,
+        tumourDistributionByAge: dashboardStats.tumourDistributionByAge
       };
     } catch (error) {
       console.error('[getSharedAnalyticsStats] Error:', error);
@@ -1659,8 +1687,11 @@ export class DatabaseStorage implements IStorage {
           remissionRate: 0,
           activeClinics: 0,
         },
-        casesOverTime: [],
-        tumourDistribution: [],
+        casesByMonth: [],
+        topTumourTypes: [],
+        casesBySpecies: [],
+        treatmentOutcomes: [],
+        tumourDistributionByAge: [],
       };
     }
   }

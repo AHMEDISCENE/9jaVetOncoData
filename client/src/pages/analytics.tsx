@@ -221,6 +221,7 @@ export default function Analytics() {
   const tumourDistributionChartRef = useRef<HTMLDivElement>(null);
   const speciesChartRef = useRef<HTMLDivElement>(null);
   const outcomeChartRef = useRef<HTMLDivElement>(null);
+  const ageDistributionChartRef = useRef<HTMLDivElement>(null);
   
   // Helper to capture chart as image
   const captureChartImage = async (chartRef: React.RefObject<HTMLDivElement>) => {
@@ -482,6 +483,27 @@ export default function Analytics() {
       successRate: remissionPercent,
       recordCount: outcomeRows.length,
     }, format, outcomeChartRef);
+  };
+
+  const ageRows = stats.tumourDistributionByAge.map((item) => ({
+    age_group: item.name,
+    cases: item.count,
+  }));
+  const hasAgeData = ageRows.length > 0;
+
+  const handleAgeExport = async (format: 'csv' | 'xlsx' | 'pdf' = 'csv') => {
+    if (!hasAgeData) {
+      return;
+    }
+
+    const totalCases = ageRows.reduce((sum, row) => sum + (row.cases || 0), 0);
+    const avgCases = totalCases / ageRows.length;
+
+    await handleAnalyticsExport('Tumour Distribution by Age', ['age_group', 'cases'], ageRows, {
+      total: totalCases,
+      average: Math.round(avgCases * 100) / 100,
+      recordCount: ageRows.length,
+    }, format, ageDistributionChartRef);
   };
 
   return (
@@ -801,6 +823,57 @@ export default function Analytics() {
                   <div className="text-center">
                     <i className="fas fa-heart text-4xl mb-2"></i>
                     <p>No treatment outcome data available</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Age Distribution */}
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('ageDistribution')}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle>Tumour Distribution by Age</CardTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="outline" size="sm" disabled={!hasAgeData} data-testid="button-export-age-chart">
+                  Export <ChevronDown className="ml-1 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAgeExport('csv'); }} data-testid="button-export-age-chart-csv">CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAgeExport('xlsx'); }} data-testid="button-export-age-chart-xlsx">Excel</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAgeExport('pdf'); }} data-testid="button-export-age-chart-pdf">PDF</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardHeader>
+          <CardContent>
+            <div ref={ageDistributionChartRef} className="h-80">
+              {stats.tumourDistributionByAge.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.tumourDistributionByAge}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255,255,255,0.95)",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px"
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#8b5cf6"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <i className="fas fa-birthday-cake text-4xl mb-2"></i>
+                    <p>No age distribution data available</p>
                   </div>
                 </div>
               )}
