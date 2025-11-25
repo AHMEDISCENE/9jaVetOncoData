@@ -3719,56 +3719,6 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
-  // AI Case Form Suggestion endpoint - extract case fields from clinical notes
-  app.post("/api/ai/case-form-suggest", requireAuth, async (req, res) => {
-    try {
-      const { text } = req.body;
-      
-      if (!text || typeof text !== 'string') {
-        return res.status(400).json({ message: "text field is required and must be a string" });
-      }
-
-      const systemPrompt = `You help pre-fill a veterinary oncology case form from free-text clinical notes.
-Extract the following fields if present: species, breed, sex, ageYears, ageMonths, tumourType, anatomicalSite, stage, diagnosisMethod, notesSummary.
-If you cannot determine a field with reasonable confidence, use null.
-Respond ONLY with valid JSON matching this exact format:
-{
-  "species": string | null,
-  "breed": string | null,
-  "sex": "Male" | "Female" | "Unknown" | null,
-  "ageYears": number | null,
-  "ageMonths": number | null,
-  "tumourType": string | null,
-  "anatomicalSite": string | null,
-  "stage": string | null,
-  "diagnosisMethod": "FNA" | "Biopsy" | "Imaging" | "Clinical" | "Unknown" | null,
-  "notesSummary": string | null
-}`;
-
-      // Call ChatGPT to extract case fields
-      const response = await callChatGPT({
-        systemPrompt,
-        userMessage: text,
-      });
-
-      // Parse the response safely
-      let suggested = {};
-      try {
-        suggested = JSON.parse(response);
-      } catch (parseError) {
-        console.error("[ai.case-form-suggest] JSON parsing failed:", parseError instanceof Error ? parseError.message : String(parseError));
-      }
-
-      res.json({ suggested });
-    } catch (error) {
-      console.error("[ai.case-form-suggest]", error);
-      res.status(500).json({ 
-        suggested: {},
-        error: "ai_suggest_failed"
-      });
-    }
-  });
-
   // AI Analytics Query endpoint - generates safe SQL from natural language
   app.post("/api/ai/analytics-query", requireAuth, async (req, res) => {
     try {
