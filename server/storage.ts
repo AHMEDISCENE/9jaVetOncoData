@@ -1083,31 +1083,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCaseFiles(caseId: string): Promise<any[]> {
-    return await db
-      .select({
-        ...getTableColumns(caseFiles),
-        uploadedByUser: {
-          id: users.id,
-          name: users.name,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          image: users.image,
-          title: users.title,
-          jobTitle: users.jobTitle,
-          specialty: users.specialty,
-          bio: users.bio,
-          phone: users.phone,
-          linkedIn: users.linkedIn,
-          googleScholar: users.googleScholar,
-        }
-      })
+    const files = await db
+      .select()
       .from(caseFiles)
-      .leftJoin(users, eq(caseFiles.uploadedBy, users.id))
       .where(and(
         eq(caseFiles.caseId, caseId),
         isNull(caseFiles.deletedAt)
       ))
       .orderBy(desc(caseFiles.createdAt));
+    
+    // Fetch uploader details for each file
+    const filesWithUploaders = await Promise.all(
+      files.map(async (file) => {
+        const uploader = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            image: users.image,
+            title: users.title,
+            jobTitle: users.jobTitle,
+            specialty: users.specialty,
+            bio: users.bio,
+            phone: users.phone,
+            linkedIn: users.linkedIn,
+            googleScholar: users.googleScholar,
+          })
+          .from(users)
+          .where(eq(users.id, file.uploadedBy))
+          .then(results => results[0] || null);
+        
+        return {
+          ...file,
+          uploadedByUser: uploader,
+        };
+      })
+    );
+    
+    return filesWithUploaders;
   }
 
   async softDeleteCaseFile(id: string): Promise<void> {
