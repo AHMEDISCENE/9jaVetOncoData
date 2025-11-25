@@ -81,10 +81,19 @@ export default function Settings() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: (data: ProfileFormData) => apiRequest("PATCH", "/api/users/profile", data),
-    onSuccess: () => {
+    onSuccess: (response: any) => {
       toast({ description: "Profile updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
+      // Manually update the query cache with the new user data
+      const currentData = queryClient.getQueryData(["/api/auth/me"]) as any;
+      if (currentData && response?.user) {
+        queryClient.setQueryData(["/api/auth/me"], {
+          ...currentData,
+          user: {
+            ...currentData.user,
+            ...response.user,
+          },
+        });
+      }
     },
     onError: (error: any) => {
       toast({ 
@@ -128,10 +137,16 @@ export default function Settings() {
   // Update clinic mutation
   const updateClinicMutation = useMutation({
     mutationFn: (data: ClinicFormData) => apiRequest("PATCH", "/api/clinics/update", data),
-    onSuccess: () => {
+    onSuccess: (response: any) => {
       toast({ description: "Clinic information updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
+      // Manually update the query cache with the new clinic data
+      const currentData = queryClient.getQueryData(["/api/auth/me"]) as any;
+      if (currentData && response?.clinic) {
+        queryClient.setQueryData(["/api/auth/me"], {
+          ...currentData,
+          clinic: response.clinic,
+        });
+      }
     },
     onError: (error: any) => {
       toast({ 
@@ -149,9 +164,18 @@ export default function Settings() {
       credentials: "include",
       body: JSON.stringify({ theme }),
     }).then(res => res.json()),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
+    onSuccess: (response: any) => {
+      // Manually update the query cache
+      const currentData = queryClient.getQueryData(["/api/auth/me"]) as any;
+      if (currentData && response?.user) {
+        queryClient.setQueryData(["/api/auth/me"], {
+          ...currentData,
+          user: {
+            ...currentData.user,
+            ...response.user,
+          },
+        });
+      }
     },
   });
 
