@@ -15,6 +15,7 @@ import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import path from "path";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 import { sendPasswordResetEmail } from "./email";
 
 const PgSession = ConnectPgSimple(session);
