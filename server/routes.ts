@@ -1251,7 +1251,33 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         return res.status(403).json({ message: "Only case creator or admins can delete cases" });
       }
       
+      const caseNumber = caseData.caseNumber;
       await storage.deleteCase(req.params.id, clinicId);
+      
+      // Create notification for all clinic users (non-blocking)
+      try {
+        const clinicUsers = await storage.getUsersByClinic(clinicId);
+        for (const user of clinicUsers) {
+          const notification = await storage.createNotification({
+            userId: user.id,
+            type: 'CASE_UPDATED',
+            title: user.id === userId ? 'Case Deleted' : 'Case Deleted',
+            message: user.id === userId
+              ? `You deleted case "${caseData.patientName || 'Case ' + caseNumber}"`
+              : `Case "${caseData.patientName || 'Case ' + caseNumber}" has been deleted`,
+            linkUrl: undefined,
+            metadata: { caseId: req.params.id },
+          });
+          
+          // Send real-time notification via WebSocket
+          if (notificationManager) {
+            notificationManager.sendNotification(user.id, notification);
+          }
+        }
+      } catch (notifError) {
+        console.error("[WARNING] Failed to create notifications:", notifError);
+        // Don't block case deletion if notifications fail
+      }
       
       await storage.createAuditLog({
         actorId: userId,
@@ -1550,6 +1576,22 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         // Convert to buffer and send
         const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
         res.send(pdfBuffer);
+        
+        // Create notification after successful export (non-blocking)
+        try {
+          const user = await storage.getUser(userId);
+          if (user) {
+            await storage.createNotification({
+              userId,
+              type: 'CASE_UPDATED',
+              title: 'Cases Exported',
+              message: `Your export of ${casesForExport.length} case(s) as PDF has been downloaded`,
+              metadata: { caseCount: casesForExport.length, format: 'PDF' },
+            });
+          }
+        } catch (notifError) {
+          console.error("[WARNING] Failed to create export notification:", notifError);
+        }
       }
     } catch (error) {
       console.error("[ERROR] Cases export failed:", error);
@@ -1628,6 +1670,29 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       });
 
       const savedFile = await storage.createCaseFile(caseFile);
+
+      // Create notification for clinic users (non-blocking)
+      try {
+        const clinicUsers = await storage.getUsersByClinic(clinicId);
+        for (const user of clinicUsers) {
+          const notification = await storage.createNotification({
+            userId: user.id,
+            type: 'CASE_UPDATED',
+            title: user.id === userId ? 'File Uploaded' : 'File Uploaded to Case',
+            message: user.id === userId
+              ? `You uploaded "${req.file!.originalname}" to case "${caseData.patientName || 'Case ' + caseData.caseNumber}"`
+              : `A file "${req.file!.originalname}" was uploaded to case "${caseData.patientName || 'Case ' + caseData.caseNumber}"`,
+            linkUrl: `/cases/${caseId}`,
+            metadata: { caseId, fileId: savedFile.id, fileName: req.file!.originalname },
+          });
+          
+          if (notificationManager) {
+            notificationManager.sendNotification(user.id, notification);
+          }
+        }
+      } catch (notifError) {
+        console.error("[WARNING] Failed to create file upload notification:", notifError);
+      }
 
       await storage.createAuditLog({
         actorId: userId,
@@ -2351,6 +2416,31 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       });
       
       const newPost = await storage.createFeedPost(post);
+      
+      // Create notification for all clinic users (non-blocking)
+      try {
+        const clinicUsers = await storage.getUsersByClinic(clinicId);
+        const author = await storage.getUser(userId);
+        for (const user of clinicUsers) {
+          const notification = await storage.createNotification({
+            userId: user.id,
+            type: 'CASE_UPDATED',
+            title: user.id === userId ? 'You posted to feed' : 'New Feed Post',
+            message: user.id === userId
+              ? `Your feed post: "${newPost.title || newPost.content?.substring(0, 50)}"`
+              : `${author?.name || 'A colleague'} posted: "${newPost.title || newPost.content?.substring(0, 50)}"`,
+            linkUrl: `/feeds`,
+            metadata: { postId: newPost.id, authorId: userId },
+          });
+          
+          if (notificationManager) {
+            notificationManager.sendNotification(user.id, notification);
+          }
+        }
+      } catch (notifError) {
+        console.error("[WARNING] Failed to create feed notification:", notifError);
+      }
+      
       res.json(newPost);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create feed post" });
@@ -2908,6 +2998,22 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
         format,
         data: reportData,
       });
+      
+      // Create notification for user (non-blocking)
+      try {
+        const user = await storage.getUser(userId);
+        if (user) {
+          await storage.createNotification({
+            userId,
+            type: 'CASE_UPDATED',
+            title: 'Report Generated',
+            message: `Your report (template ${templateId}) covering ${duration} has been generated successfully`,
+            metadata: { templateId, duration, format },
+          });
+        }
+      } catch (notifError) {
+        console.error("[WARNING] Failed to create report notification:", notifError);
+      }
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to generate report" });
     }
