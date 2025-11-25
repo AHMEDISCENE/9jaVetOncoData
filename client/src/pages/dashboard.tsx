@@ -450,19 +450,31 @@ export default function Dashboard() {
             </div>
           }
           backContent={
-            <div className="p-4 h-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-950">
-              <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-3">Cases by Species</p>
-              <div className="space-y-1.5 max-h-[100px] overflow-y-auto">
-                {stats.casesBySpecies?.slice(0, 5).map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-blue-700 dark:text-blue-300 truncate max-w-[70%]">{item.name}</span>
-                    <span className="font-semibold text-blue-800 dark:text-blue-200">{item.count}</span>
-                  </div>
-                ))}
-                {(!stats.casesBySpecies || stats.casesBySpecies.length === 0) && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400">No data available</p>
-                )}
+            <div className="p-4 h-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-950 flex flex-col justify-between">
+              <div>
+                <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Cases by Species</p>
+                <div className="space-y-1 max-h-[80px] overflow-y-auto">
+                  {stats.casesBySpecies?.slice(0, 5).map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-blue-700 dark:text-blue-300 truncate max-w-[70%]">{item.name}</span>
+                      <span className="font-semibold text-blue-800 dark:text-blue-200">{item.count}</span>
+                    </div>
+                  ))}
+                  {(!stats.casesBySpecies || stats.casesBySpecies.length === 0) && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400">No data available</p>
+                  )}
+                </div>
               </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMetricClick("totalCases");
+                }}
+                className="mt-2 w-full text-xs font-semibold px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                data-testid="button-view-more-total-cases"
+              >
+                View More
+              </button>
             </div>
           }
         />
@@ -495,19 +507,31 @@ export default function Dashboard() {
             </div>
           }
           backContent={
-            <div className="p-4 h-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-950">
-              <p className="text-sm font-bold text-purple-800 dark:text-purple-200 mb-3">Monthly Trend</p>
-              <div className="space-y-1.5 max-h-[100px] overflow-y-auto">
-                {stats.casesByMonth?.slice(-5).reverse().map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-purple-700 dark:text-purple-300">{item.month}</span>
-                    <span className="font-semibold text-purple-800 dark:text-purple-200">{item.count}</span>
-                  </div>
-                ))}
-                {(!stats.casesByMonth || stats.casesByMonth.length === 0) && (
-                  <p className="text-xs text-purple-600 dark:text-purple-400">No data available</p>
-                )}
+            <div className="p-4 h-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-950 flex flex-col justify-between">
+              <div>
+                <p className="text-sm font-bold text-purple-800 dark:text-purple-200 mb-2">Monthly Trend</p>
+                <div className="space-y-1 max-h-[80px] overflow-y-auto">
+                  {stats.casesByMonth?.slice(-5).reverse().map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-purple-700 dark:text-purple-300">{item.month}</span>
+                      <span className="font-semibold text-purple-800 dark:text-purple-200">{item.count}</span>
+                    </div>
+                  ))}
+                  {(!stats.casesByMonth || stats.casesByMonth.length === 0) && (
+                    <p className="text-xs text-purple-600 dark:text-purple-400">No data available</p>
+                  )}
+                </div>
               </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMetricClick("newThisMonth");
+                }}
+                className="mt-2 w-full text-xs font-semibold px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
+                data-testid="button-view-more-new-this-month"
+              >
+                View More
+              </button>
             </div>
           }
         />
@@ -540,19 +564,31 @@ export default function Dashboard() {
             </div>
           }
           backContent={
-            <div className="p-4 h-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-950">
-              <p className="text-sm font-bold text-amber-800 dark:text-amber-200 mb-3">Cases by State</p>
-              <div className="space-y-1.5 max-h-[100px] overflow-y-auto">
-                {stats.casesByState?.slice(0, 5).map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-amber-700 dark:text-amber-300 truncate max-w-[70%]">{item.state}</span>
-                    <span className="font-semibold text-amber-800 dark:text-amber-200">{item.count}</span>
-                  </div>
-                ))}
-                {(!stats.casesByState || stats.casesByState.length === 0) && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">No data available</p>
-                )}
+            <div className="p-4 h-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-950 flex flex-col justify-between">
+              <div>
+                <p className="text-sm font-bold text-amber-800 dark:text-amber-200 mb-2">Cases by State</p>
+                <div className="space-y-1 max-h-[80px] overflow-y-auto">
+                  {stats.casesByState?.slice(0, 5).map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-amber-700 dark:text-amber-300 truncate max-w-[70%]">{item.state}</span>
+                      <span className="font-semibold text-amber-800 dark:text-amber-200">{item.count}</span>
+                    </div>
+                  ))}
+                  {(!stats.casesByState || stats.casesByState.length === 0) && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">No data available</p>
+                  )}
+                </div>
               </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMetricClick("activeClinics");
+                }}
+                className="mt-2 w-full text-xs font-semibold px-2 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors"
+                data-testid="button-view-more-active-clinics"
+              >
+                View More
+              </button>
             </div>
           }
         />
@@ -585,19 +621,31 @@ export default function Dashboard() {
             </div>
           }
           backContent={
-            <div className="p-4 h-full bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-950">
-              <p className="text-sm font-bold text-green-800 dark:text-green-200 mb-3">Treatment Outcomes</p>
-              <div className="space-y-1.5 max-h-[100px] overflow-y-auto">
-                {stats.treatmentOutcomes?.slice(0, 5).map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-green-700 dark:text-green-300 truncate max-w-[70%]">{item.name}</span>
-                    <span className="font-semibold text-green-800 dark:text-green-200">{item.count}</span>
-                  </div>
-                ))}
-                {(!stats.treatmentOutcomes || stats.treatmentOutcomes.length === 0) && (
-                  <p className="text-xs text-green-600 dark:text-green-400">No data available</p>
-                )}
+            <div className="p-4 h-full bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-950 flex flex-col justify-between">
+              <div>
+                <p className="text-sm font-bold text-green-800 dark:text-green-200 mb-2">Treatment Outcomes</p>
+                <div className="space-y-1 max-h-[80px] overflow-y-auto">
+                  {stats.treatmentOutcomes?.slice(0, 5).map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-green-700 dark:text-green-300 truncate max-w-[70%]">{item.name}</span>
+                      <span className="font-semibold text-green-800 dark:text-green-200">{item.count}</span>
+                    </div>
+                  ))}
+                  {(!stats.treatmentOutcomes || stats.treatmentOutcomes.length === 0) && (
+                    <p className="text-xs text-green-600 dark:text-green-400">No data available</p>
+                  )}
+                </div>
               </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMetricClick("remissionRate");
+                }}
+                className="mt-2 w-full text-xs font-semibold px-2 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                data-testid="button-view-more-remission-rate"
+              >
+                View More
+              </button>
             </div>
           }
         />

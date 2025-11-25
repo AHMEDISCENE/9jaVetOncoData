@@ -76,21 +76,23 @@ The system features comprehensive audit logging for all CUD operations and imple
 
 ## November 25, 2025
 
-### Dashboard Flip Card Animation
-- **Interactive Stat Cards**: Added smooth 3D flip animation to all 4 dashboard stat cards
-  - **Total Cases Card**: Flips to show breakdown by species (top 5)
-  - **New This Month Card**: Flips to show monthly trend (last 5 months)
-  - **Active Clinics Card**: Flips to show cases by state (top 5)
-  - **Remission Rate Card**: Flips to show treatment outcomes breakdown
+### Dashboard Flip Card Animation with View More
+- **Interactive Stat Cards**: Added smooth 3D flip animation to all 4 dashboard stat cards with retained full functionality
+  - **Total Cases Card**: Flips to show breakdown by species (top 5) with "View More" button
+  - **New This Month Card**: Flips to show monthly trend (last 5 months) with "View More" button
+  - **Active Clinics Card**: Flips to show cases by state (top 5) with "View More" button
+  - **Remission Rate Card**: Flips to show treatment outcomes breakdown with "View More" button
 - **Animation Details**:
   - Uses Framer Motion for smooth 3D rotateY animation (0.6s ease-in-out)
   - CSS `transform-style: preserve-3d` and `backface-visibility: hidden` for proper 3D effect
   - Cards maintain their gradient styling on both front and back sides
-  - Rotate icon indicates card can be flipped back
-- **UX Improvements**:
-  - Click hint text ("Click to see breakdown", etc.)
-  - Cards respond to both click and keyboard (Enter/Space) for accessibility
+- **Enhanced UX**:
+  - "View More" button on each card's back side opens full drilldown modal
   - Compact breakdown display with scrollable content
+  - Color-matched buttons (blue, purple, amber, green) for visual consistency
+  - Click hint text ("Click to see breakdown", etc.) on front
+  - Full accessibility with keyboard support (Enter/Space)
+  - Retains all original functionality (detailed charts, analytics)
 
 ### Mobile Navigation Alignment & Squicircle Design
 - **Perfect Squicircle Selection Box**: Updated active nav item styling to use `border-radius: 1.25rem`
