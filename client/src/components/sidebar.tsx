@@ -249,7 +249,12 @@ export default function Sidebar() {
               </div>
             ) : (
               <>
-                <div className="flex items-center space-x-2 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-900 border border-border">
+                <Link 
+                  href="/settings"
+                  className="flex items-center space-x-2 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-900 border border-border hover:bg-gray-200 dark:hover:bg-gray-800 hover:border-primary/40 transition-all duration-200 cursor-pointer"
+                  data-testid="link-user-profile"
+                  onClick={() => setIsMobileOpen(false)}
+                >
                   <motion.div 
                     className="h-10 w-10 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-primary/20 overflow-hidden relative"
                     whileHover={{ scale: 1.05 }}
@@ -275,7 +280,7 @@ export default function Sidebar() {
                       {clinic?.name || "No Clinic"}
                     </p>
                   </div>
-                </div>
+                </Link>
                 <div className="space-y-1.5">
                   <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
                     <Link 
