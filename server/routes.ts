@@ -18,6 +18,7 @@ import { jsPDF } from "jspdf";
 // @ts-ignore - jspdf-autotable modifies jsPDF prototype
 import { autoTable } from "jspdf-autotable";
 import { sendPasswordResetEmail } from "./email";
+import { callChatGPT } from "./services/openaiClient";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -3675,6 +3676,23 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     } catch (error) {
       console.error("[ERROR] Analytics export failed:", error);
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to export analytics" });
+    }
+  });
+
+  // AI Chat endpoint for testing ChatGPT integration
+  app.post("/api/ai/test", requireAuth, async (req, res) => {
+    try {
+      const { question } = req.body;
+      
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ message: "question field is required and must be a string" });
+      }
+
+      const answer = await callChatGPT({ userMessage: question });
+      res.json({ answer });
+    } catch (error) {
+      console.error("[ai.test]", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get AI response" });
     }
   });
 

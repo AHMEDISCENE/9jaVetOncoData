@@ -24,6 +24,7 @@ import SetupClinic from "@/pages/setup-clinic";
 import Settings from "@/pages/settings";
 import Profile from "@/pages/profile";
 import UserManagement from "@/pages/user-management";
+import AITest from "@/pages/ai-test";
 import { SidebarProvider, useSidebar } from "@/contexts/sidebar-context";
 import { AnalyticsDateRangeProvider } from "@/contexts/analytics-date-range-context";
 import { AnalyticsFiltersProvider } from "@/contexts/analytics-filters-context";
@@ -52,6 +53,7 @@ function AuthenticatedLayout() {
             <Route path="/profile" component={Profile} />
             <Route path="/settings" component={Settings} />
             <Route path="/admin/users" component={UserManagement} />
+            <Route path="/dev/ai-test" component={AITest} />
             <Route component={NotFound} />
           </Switch>
         </main>
