@@ -511,6 +511,7 @@ export const updateFeedPostSchema = z.object({
   title: z.string().min(1).optional(),
   body: z.string().min(1).optional(),
   tags: z.array(z.string()).optional(),
+  attachments: z.array(z.string()).optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
 });
 
