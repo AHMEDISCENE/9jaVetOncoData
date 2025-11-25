@@ -124,8 +124,27 @@ export async function executeAnalyticsQuery(
     const result = await dbExecutor(sqlQuery);
 
     if (!result || result.length === 0) {
+      // In universal mode, provide general knowledge when no data is found
+      if (mode === "universal") {
+        const generalKnowledgePrompt = `Your VetOncoData database has no cases matching the query: "${question}"
+
+Please provide general information about this topic from your veterinary/oncology knowledge. Keep your response brief (1-2 sentences) and informative. Remind users this general knowledge is not a substitute for professional veterinary advice.`;
+
+        const summary = await callChatGPT({
+          userMessage: generalKnowledgePrompt,
+          mode,
+        });
+
+        return {
+          summary,
+          columns: [],
+          rows: [],
+        };
+      }
+
+      // In strict mode, just report no data
       return {
-        summary: 'No data found matching your query.',
+        summary: 'No data found matching your query in VetOncoData.',
         columns: [],
         rows: [],
       };
