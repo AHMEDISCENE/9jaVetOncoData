@@ -1,0 +1,52 @@
+You are working inside the VetOncoData project.
+
+Phase 2 goal:
+Add an AI helper to the **New Case** form so that when a vet pastes free-text notes (history, clinical signs, diagnosis text), ChatGPT suggests structured values for the form fields. The suggestions must be editable, not final.
+
+Context:
+- ChatGPT is already integrated via a helper like `callChatGPT(...)` with optional `systemPrompt` and `context`.
+- Stack: React/TypeScript frontend, Node/Express + Postgres backend.
+- There is already a case creation form and a `cases` table.
+
+Backend:
+
+1. Create an endpoint:
+   - `POST /api/ai/case-form-suggest`
+   - Request body: `{ text: string }` where `text` = combined history/clinical notes/diagnosis text.
+   - Response: `{ suggested: { species?: string; breed?: string; sex?: string; ageYears?: number | null; ageMonths?: number | null; tumourType?: string | null; anatomicalSite?: string | null; stage?: string | null; diagnosisMethod?: string | null; notesSummary?: string | null; } }`
+
+2. In this route:
+   - Build a short schema description string for ChatGPT, including:
+     - Allowed species values (e.g. Dog, Cat, Cattle, etc.).
+     - Allowed sex values (Male, Female, Unknown).
+     - Typical stages (I, II, III, IV if applicable).
+     - Common diagnosis methods (FNA, Biopsy, Imaging, Clinical, Unknown).
+   - Call `callChatGPT` with:
+     - A system prompt telling it:
+       - It is helping to pre-fill a veterinary oncology case form in Nigeria.
+       - It must ONLY output valid JSON, no extra text.
+       - It must not invent impossible values; if unsure, use null.
+     - The user message should include:
+       - The raw `text` from the vet.
+       - The JSON schema we expect.
+   - Parse the model response as JSON.
+   - Validate types and clamp weird values (e.g. negative ages → null).
+   - Return `{ suggested: ... }` to the frontend.
+
+Frontend:
+
+3. On the **New Case** form:
+   - Add a textarea or expandable area labelled something like “Paste clinical notes / history for AI help”.
+   - Add a button: “AI-fill form”.
+   - When clicked:
+     - Send `{ text }` to `POST /api/ai/case-form-suggest`.
+     - On success, for each field in `suggested` that is not null/empty:
+       - Pre-fill the corresponding form field.
+       - Optionally highlight fields that were filled by AI (e.g. with a small “AI” badge).
+   - The user must be able to edit or override all values before saving.
+   - Show a small disclaimer near the button: “AI suggestions are for assistance only and must be reviewed by a veterinarian.”
+
+General:
+- Keep code changes small and focused.
+- Reuse existing form state management and API utilities.
+- Do not modify other analytics or AI features in this step.
