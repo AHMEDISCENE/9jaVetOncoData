@@ -2411,8 +2411,8 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
 
   app.get("/api/imports/template.csv", requireAuth, async (req, res) => {
     const csvContent = `name,species,breed,state,diagnosis_date,sex,age_years,age_months,tumour_type,tumour_type_custom,anatomical_site,anatomical_site_custom,laterality,stage,diagnosis_method,treatment_plan,treatment_start,outcome,last_follow_up,notes
-Fluffy,Canine,Labrador Retriever,Lagos,2025-01-15,MALE_NEUTERED,5,6,Melanoma,,Skin,,Left,,Histopathology,Chemotherapy,2025-01-20,TREATMENT_ONGOING,2025-02-20,Responding well to treatment
-Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bilateral,,Cytology,Palliative Care,2025-01-22,REMISSION,2025-02-10,Patient achieved remission`;
+Fluffy,Dog,Labrador Retriever,Lagos,2025-01-15,MALE_NEUTERED,5,6,Melanoma,,Skin,,Left,,Histopathology,Chemotherapy,2025-01-20,TREATMENT_ONGOING,2025-02-20,Responding well to treatment
+Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bilateral,,Cytology,Palliative Care,2025-01-22,REMISSION,2025-02-10,Patient achieved remission`;
     
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="9ja-vetonco-bulk-template.csv"');
