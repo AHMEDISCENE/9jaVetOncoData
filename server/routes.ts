@@ -3105,13 +3105,13 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
-      const { chartName, headers, rows } = req.body;
+      const { chartName, headers, rows, summary } = req.body;
 
       if (!chartName || !headers || !rows) {
         return res.status(400).json({ message: "Missing required fields: chartName, headers, rows" });
       }
 
-      // Build CSV content
+      // Build CSV content with metadata header
       const escapeCsvValue = (value: unknown): string => {
         if (value === null || value === undefined) return '';
         const stringValue = String(value);
@@ -3120,12 +3120,62 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
         return needsQuotes ? `"${escaped}"` : escaped;
       };
 
+      const csvLines: string[] = [];
+      
+      // Add metadata header
+      const now = new Date().toLocaleString();
+      const exporter = await storage.getUser(userId);
+      csvLines.push(`Analytics Export Report`);
+      csvLines.push(`Report Title,"${chartName}"`);
+      csvLines.push(`Exported By,"${exporter?.name || 'Unknown User'}"`);
+      csvLines.push(`Export Date,"${now}"`);
+      csvLines.push('');
+      
+      // Add summary statistics if provided
+      if (summary) {
+        csvLines.push('Summary Statistics');
+        if (summary.total !== undefined) csvLines.push(`Total,"${summary.total}"`);
+        if (summary.average !== undefined) csvLines.push(`Average,"${summary.average}"`);
+        if (summary.highest !== undefined) csvLines.push(`Highest,"${summary.highest}"`);
+        if (summary.lowest !== undefined) csvLines.push(`Lowest,"${summary.lowest}"`);
+        if (summary.successRate !== undefined) csvLines.push(`Success Rate,"${summary.successRate}%"`);
+        if (summary.recordCount !== undefined) csvLines.push(`Record Count,"${summary.recordCount}"`);
+        csvLines.push('');
+      }
+
+      // Add data table
+      csvLines.push('Data');
       const headerLine = (headers as string[]).map(h => escapeCsvValue(h)).join(',');
+      csvLines.push(headerLine);
+      
       const dataLines = (rows as any[]).map(row =>
         (headers as string[]).map(header => escapeCsvValue(row[header])).join(',')
       );
+      csvLines.push(...dataLines);
+      
+      // Add footer with totals for numeric columns if applicable
+      if (rows.length > 0) {
+        csvLines.push('');
+        csvLines.push('Summary Row');
+        const totals: string[] = [];
+        for (let i = 0; i < headers.length; i++) {
+          const header = headers[i];
+          if (header.toLowerCase().includes('cases') || header.toLowerCase().includes('count')) {
+            const total = (rows as any[]).reduce((sum, row) => {
+              const val = parseInt(row[header]) || 0;
+              return sum + val;
+            }, 0);
+            totals.push(i === 0 ? 'TOTAL' : String(total));
+          } else if (i === 0) {
+            totals.push('TOTAL');
+          } else {
+            totals.push('');
+          }
+        }
+        csvLines.push(totals.map(t => escapeCsvValue(t)).join(','));
+      }
 
-      const csvContent = [headerLine, ...dataLines].join('\r\n');
+      const csvContent = csvLines.join('\r\n');
       const blobContent = `\ufeff${csvContent}`;
 
       res.setHeader('Content-Type', 'text/csv;charset=utf-8');
@@ -3134,7 +3184,6 @@ Whiskers,Feline,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,
       // Create notification before sending response
       try {
         const clinicUsers = await storage.getUsersByClinic(clinicId);
-        const exporter = await storage.getUser(userId);
         for (const user of clinicUsers) {
           const notification = await storage.createNotification({
             userId: user.id,

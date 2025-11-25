@@ -325,10 +325,23 @@ export default function Analytics() {
     }
 
     try {
+      const totalCases = casesOverTimeRows.reduce((sum, row) => sum + (row.cases || 0), 0);
+      const avgCases = totalCases / casesOverTimeRows.length;
+      const caseValues = casesOverTimeRows.map(r => r.cases || 0);
+      const maxCases = Math.max(...caseValues);
+      const minCases = Math.min(...caseValues);
+
       const response = await apiRequest('POST', '/api/analytics/export', {
         chartName: 'Cases Over Time',
         headers: ['period', 'cases'],
         rows: casesOverTimeRows,
+        summary: {
+          total: totalCases,
+          average: Math.round(avgCases * 100) / 100,
+          highest: maxCases,
+          lowest: minCases,
+          recordCount: casesOverTimeRows.length,
+        },
       });
 
       const contentDisposition = response.headers.get('content-disposition');
@@ -364,10 +377,18 @@ export default function Analytics() {
     }
 
     try {
+      const totalCases = tumourDistributionRows.reduce((sum, row) => sum + (row.cases || 0), 0);
+      const topTumour = tumourDistributionRows[0];
+      const topPercent = topTumour ? Math.round((topTumour.cases / totalCases) * 100) : 0;
+
       const response = await apiRequest('POST', '/api/analytics/export', {
         chartName: 'Tumour Type Distribution',
         headers: ['tumour_type', 'cases', 'percent'],
         rows: tumourDistributionRows,
+        summary: {
+          total: totalCases,
+          recordCount: tumourDistributionRows.length,
+        },
       });
 
       const contentDisposition = response.headers.get('content-disposition');
@@ -409,10 +430,18 @@ export default function Analytics() {
     }
 
     try {
+      const totalCases = speciesRows.reduce((sum, row) => sum + (row.cases || 0), 0);
+      const avgCases = totalCases / speciesRows.length;
+
       const response = await apiRequest('POST', '/api/analytics/export', {
         chartName: 'Cases by Species',
         headers: ['species', 'cases'],
         rows: speciesRows,
+        summary: {
+          total: totalCases,
+          average: Math.round(avgCases * 100) / 100,
+          recordCount: speciesRows.length,
+        },
       });
 
       const contentDisposition = response.headers.get('content-disposition');
@@ -454,10 +483,19 @@ export default function Analytics() {
     }
 
     try {
+      const totalOutcomes = outcomeRows.reduce((sum, row) => sum + (row.count || 0), 0);
+      const remissionCount = outcomeRows.find(r => r.status?.toLowerCase().includes('remission'))?.count || 0;
+      const remissionPercent = totalOutcomes > 0 ? Math.round((remissionCount / totalOutcomes) * 100) : 0;
+
       const response = await apiRequest('POST', '/api/analytics/export', {
         chartName: 'Treatment Outcomes',
         headers: ['status', 'count'],
         rows: outcomeRows,
+        summary: {
+          total: totalOutcomes,
+          successRate: remissionPercent,
+          recordCount: outcomeRows.length,
+        },
       });
 
       const contentDisposition = response.headers.get('content-disposition');
