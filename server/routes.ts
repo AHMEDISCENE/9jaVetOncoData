@@ -2268,14 +2268,36 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           }
 
           // Final update
+          const finalStatus = successCount === 0 ? 'FAILED' : 'COMPLETED';
           await storage.updateImportJob(importId, {
-            status: successCount === 0 ? 'FAILED' : 'COMPLETED',
+            status: finalStatus,
             processedRows: parseResult.totalRows,
             successRows: successCount,
             errorRows: failedCount,
             errors: errors.slice(0, 100),
             completedAt: new Date()
           });
+          
+          // Create notification for user (non-blocking)
+          try {
+            const user = await storage.getUser(userId);
+            if (user) {
+              const clinicUsers = await storage.getUsersByClinic(clinicId);
+              for (const clinicUser of clinicUsers) {
+                await storage.createNotification({
+                  userId: clinicUser.id,
+                  type: 'CASE_UPDATED',
+                  title: finalStatus === 'COMPLETED' ? 'Import Completed' : 'Import Failed',
+                  message: clinicUser.id === userId
+                    ? `Your import of "${importJob.filename}" completed: ${successCount} successful, ${failedCount} failed`
+                    : `${user.name}'s import of "${importJob.filename}" completed: ${successCount} successful, ${failedCount} failed`,
+                  metadata: { importId, successCount, failedCount, fileName: importJob.filename },
+                });
+              }
+            }
+          } catch (notifError) {
+            console.error("[WARNING] Failed to create import completion notification:", notifError);
+          }
         } catch (error) {
           console.error('[ERROR] Import processing failed:', error);
           await storage.updateImportJob(importId, {
