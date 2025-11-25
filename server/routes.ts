@@ -15,7 +15,8 @@ import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import path from "path";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+// @ts-ignore - jspdf-autotable modifies jsPDF prototype
+import { autoTable } from "jspdf-autotable";
 import { sendPasswordResetEmail } from "./email";
 
 const PgSession = ConnectPgSimple(session);
@@ -3540,7 +3541,7 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
           tableData.push((headers as string[]).map(h => row[h] || ''));
         });
 
-        doc.autoTable({
+        autoTable(doc, {
           startY: yPos,
           head: [headers as string[]],
           body: (rows as any[]).map(row => (headers as string[]).map(h => row[h] || '')),
