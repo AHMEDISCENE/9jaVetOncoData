@@ -61,7 +61,7 @@ export async function callChatGPT({
   if (context) {
     messages.push({
       role: 'system',
-      content: `Here is relevant data from the VetOncoData database:\n${context}`,
+      content: `Context from VetOncoData:\n${context}`,
     });
   }
 

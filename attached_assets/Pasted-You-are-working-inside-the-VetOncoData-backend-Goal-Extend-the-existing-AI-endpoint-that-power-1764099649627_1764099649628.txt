@@ -1,0 +1,94 @@
+You are working inside the VetOncoData backend.
+
+Goal:
+Extend the existing AI endpoint that powers the “Ask AI About Your Data” panel on the Analytics page so it supports two modes:
+- "data_only"  → answer ONLY from VetOncoData (current behaviour).
+- "general"    → use VetOncoData results + general veterinary knowledge.
+
+Backend only. Do not change the frontend layout in this step.
+
+Context:
+- ChatGPT is already integrated via a helper like `callChatGPT({ systemPrompt?, userMessage, context? })`.
+- There is already an analytics AI endpoint (e.g. `/api/ai/analytics-query`) that:
+  - converts a natural-language question → SQL,
+  - runs the query,
+  - feeds the results back to ChatGPT to produce a summary/answer.
+
+Tasks:
+
+1. Update the ChatGPT helper
+- Find `callChatGPT` (or equivalent).
+- Add an optional `mode` parameter:
+
+  type ChatMode = "data_only" | "general";
+
+  callChatGPT({
+    systemPrompt,
+    userMessage,
+    context,
+    mode = "data_only",
+  }: {
+    systemPrompt: string;
+    userMessage: string;
+    context?: string;
+    mode?: ChatMode;
+  }): Promise<string>
+
+- Inside `callChatGPT`, build the `messages` array based on `mode`:
+
+  - If mode === "general":
+    // can use its own knowledge + context
+    messages = [
+      { role: "system", content: systemPrompt },
+      context ? { role: "system", content: "Context from VetOncoData:\n" + context } : null,
+      { role: "user", content: userMessage },
+    ].filter(Boolean)
+
+  - If mode === "data_only":
+    // must answer ONLY from context
+    messages = [
+      {
+        role: "system",
+        content:
+          systemPrompt +
+          " You must answer ONLY using the context provided. " +
+          "If the context is not enough, say you do not know. Do not use outside knowledge.",
+      },
+      context ? { role: "system", content: "Context from VetOncoData:\n" + context } : null,
+      { role: "user", content: userMessage },
+    ].filter(Boolean)
+
+- Keep existing error handling (try/catch) so a failed API call never crashes the server.
+
+2. Extend the analytics AI endpoint
+- Find the endpoint used by the “Ask AI About Your Data” card
+  (search for its route path or the UI text "Ask AI About Your Data").
+- Update this endpoint to accept an optional `mode` from the request body:
+
+  Request body: { question: string; mode?: "data_only" | "general" }
+
+- Default behaviour:
+  - If `mode` is missing, treat it as `"data_only"` to preserve current behaviour.
+
+- Wherever this endpoint calls `callChatGPT` to generate the final natural-language answer from the SQL result context:
+  - Pass the `mode` value through.
+  - For example:
+
+    const answer = await callChatGPT({
+      systemPrompt: somePromptString,
+      userMessage: question,
+      context: resultSummaryString,   // existing context built from SQL results
+      mode,                           // "data_only" or "general"
+    });
+
+- Do NOT change the SQL-generation logic or DB queries; just pass the mode through to the summarisation step.
+
+3. Keep it small and safe
+- No new routes or database changes.
+- No frontend changes yet (we’ll add a UI toggle later).
+- If `mode` is anything other than "data_only" or "general", fall back to "data_only".
+
+End result:
+The existing Analytics AI endpoint still works as before by default, but now supports a `mode` flag so the frontend can later choose between:
+- strict “database-only” answers, or
+- “database + general veterinary knowledge” answers.
