@@ -342,7 +342,20 @@ export function AIAnalyticsPanel() {
             {/* Summary */}
             <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
               <h3 className="font-semibold text-sm text-foreground mb-2">Summary</h3>
-              <p className="text-sm text-foreground leading-relaxed">{response.summary}</p>
+              <div className="text-sm text-foreground leading-relaxed space-y-2">
+                {response.summary.split('\n').map((paragraph, idx) => (
+                  <p key={idx} className="text-sm">
+                    {paragraph.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, i) => {
+                      if (part?.startsWith('**') && part?.endsWith('**')) {
+                        return <strong key={i} className="font-semibold text-blue-900 dark:text-blue-200">{part.slice(2, -2)}</strong>;
+                      } else if (part?.startsWith('*') && part?.endsWith('*')) {
+                        return <em key={i} className="italic text-blue-800 dark:text-blue-300">{part.slice(1, -1)}</em>;
+                      }
+                      return <span key={i}>{part}</span>;
+                    })}
+                  </p>
+                ))}
+              </div>
             </div>
 
             {/* Results Table */}
