@@ -1,0 +1,65 @@
+You are working inside the 9ja VetOncoData codebase.
+
+Goal:
+Audit and FIX the “Survival Analysis (Kaplan–Meier Curves)” feature so that it:
+- Uses real VetOncoData case data,
+- Computes a correct Kaplan–Meier curve,
+- Respects Species and Stage filters,
+- Shows useful survival stats (e.g. median survival, n at risk),
+- Gracefully handles “not enough data”.
+
+Right now the chart is mostly redundant and not clinically useful.
+
+Tasks (keep changes focused on this feature):
+
+1. Locate current implementation
+- Find the React component that renders “Survival Analysis (Kaplan–Meier Curves)” and identify:
+  - How the Species and Stage filters are wired,
+  - Which backend endpoint it calls (e.g. `/api/analytics/survival`).
+- Open the corresponding backend route / controller / service that returns survival data.
+
+2. Fix backend survival calculation
+- Make the survival endpoint accept query parameters:
+  - species (optional)
+  - stage (optional)
+  - date range if already supported
+- Use the real case schema to compute survival:
+  - Time variable: from `diagnosis_date` (or similar) to `last_follow_up_date` or `outcome_date`.
+  - Event flag: 1 if animal died of disease (based on `outcome` / `status` column), 0 if censored (alive, lost to follow-up, unknown).
+- Implement a simple Kaplan–Meier calculation server-side:
+  - Sort times,
+  - For each distinct event time, compute n_at_risk, n_events, and updated survival probability.
+- Return JSON like:
+  {
+    points: [{ time: number; survival: number; nAtRisk: number; nEvents: number }...],
+    stats: {
+      nCases: number;
+      nEvents: number;
+      medianSurvivalDays?: number | null;
+    }
+  }
+- If there are too few cases (e.g. < 5) after filtering, return an empty `points` array and `nCases` with a flag like `insufficientData: true` instead of a meaningless curve.
+
+3. Improve frontend behaviour (same component)
+- Wire Species and Stage dropdowns to the survival endpoint query params.
+- On “Update Curve”:
+  - Call the backend,
+  - If `insufficientData` is true OR `points` is empty:
+    - Do NOT render a fake horizontal line.
+    - Instead show a friendly message below the filters such as:
+      “Not enough cases to compute a survival curve for this selection. Try expanding your filters.”
+- When there is data:
+  - Plot the Kaplan–Meier step function using the returned `points`.
+  - Display key stats somewhere above or below the chart:
+    - “Cases included: nCases”
+    - “Events: nEvents”
+    - “Median survival: X days” (if available; otherwise say “not reached”).
+- Make sure the y-axis goes from 0 to 100 (%) and x-axis uses `time` in days as returned.
+
+4. Code quality & safety
+- Reuse existing DB access utilities and error handling.
+- Wrap the survival endpoint logic in try/catch and return a clear JSON error instead of crashing the app.
+- Do not change unrelated analytics features.
+
+End result:
+The Survival Analysis panel should show a correct KM curve that changes when Species/Stage filters change, with meaningful stats and graceful handling when data is sparse, instead of the current redundant/flat display.

@@ -2226,13 +2226,30 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       const nEvents = survivalData.filter(d => d.event === 1).length;
       const nCensored = validCases.length - nEvents;
 
+      // Calculate median survival (time when survival crosses 50%)
+      let medianSurvivalDays: number | null = null;
+      for (let i = 0; i < kmCurve.length - 1; i++) {
+        if (kmCurve[i].survival >= 50 && kmCurve[i + 1].survival < 50) {
+          // Linear interpolation
+          medianSurvivalDays = kmCurve[i].time + 
+            (50 - kmCurve[i].survival) / (kmCurve[i + 1].survival - kmCurve[i].survival) * 
+            (kmCurve[i + 1].time - kmCurve[i].time);
+          break;
+        }
+      }
+
+      // Flag insufficient data (less than 5 cases)
+      const insufficientData = validCases.length < 5;
+
       res.json({
-        data: kmCurve,
+        data: insufficientData ? [] : kmCurve,
         meta: {
           nAtRisk: validCases.length,
           nEvents,
           nCensored,
-          totalCases: validCases.length
+          totalCases: validCases.length,
+          medianSurvivalDays,
+          insufficientData
         }
       });
     } catch (error) {

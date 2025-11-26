@@ -62,6 +62,8 @@ interface SurvivalAnalysisResponse {
     nEvents: number;
     nCensored: number;
     totalCases: number;
+    medianSurvivalDays?: number | null;
+    insufficientData?: boolean;
   };
 }
 
@@ -135,66 +137,83 @@ function SurvivalAnalysisPanel({ filters }: SurvivalAnalysisPanelProps) {
           {/* Chart */}
           {showCurve && (
             <div className="space-y-4 mt-6">
-              <div className="h-80 w-full">
-                {isSurvivalLoading ? (
-                  <div className="h-full flex items-center justify-center">
-                    <Skeleton className="h-full w-full" />
+              {survivalData?.meta?.insufficientData || (survivalData?.data && survivalData.data.length === 0) ? (
+                <div className="p-6 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-center">
+                  <p className="text-amber-900 dark:text-amber-100 font-medium">
+                    Not enough cases to compute a survival curve for this selection.
+                  </p>
+                  <p className="text-amber-800 dark:text-amber-200 text-sm mt-2">
+                    Try expanding your filters (minimum {Math.max(5 - (survivalData?.meta?.totalCases || 0), 0)} more cases needed).
+                  </p>
+                </div>
+              ) : isSurvivalLoading ? (
+                <div className="h-80 w-full">
+                  <Skeleton className="h-full w-full" />
+                </div>
+              ) : survivalData?.data && survivalData.data.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="h-80 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={survivalData.data}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                        <XAxis dataKey="time" label={{ value: "Time (days)", position: "insideBottomRight", offset: -5 }} />
+                        <YAxis label={{ value: "Survival (%)", angle: -90, position: "insideLeft" }} domain={[0, 100]} />
+                        <Tooltip 
+                          formatter={(value) => [`${(value as number).toFixed(1)}%`, "Survival"]}
+                          labelFormatter={(label) => `Day ${label}`}
+                          contentStyle={{ 
+                            backgroundColor: "rgba(255,255,255,0.95)", 
+                            border: "1px solid #ccc",
+                            borderRadius: "4px"
+                          }}
+                        />
+                        <Line 
+                          type="stepAfter" 
+                          dataKey="survival" 
+                          stroke="#10b981" 
+                          strokeWidth={2}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
-                ) : survivalData?.data && survivalData.data.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={survivalData.data}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
-                      <XAxis dataKey="time" label={{ value: "Time (days)", position: "insideBottomRight", offset: -5 }} />
-                      <YAxis label={{ value: "Survival (%)", angle: -90, position: "insideLeft" }} domain={[0, 100]} />
-                      <Tooltip 
-                        formatter={(value) => [`${(value as number).toFixed(1)}%`, "Survival"]}
-                        labelFormatter={(label) => `Day ${label}`}
-                        contentStyle={{ 
-                          backgroundColor: "rgba(255,255,255,0.95)", 
-                          border: "1px solid #ccc",
-                          borderRadius: "4px"
-                        }}
-                      />
-                      <Line 
-                        type="stepAfter" 
-                        dataKey="survival" 
-                        stroke="#10b981" 
-                        strokeWidth={2}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <p>No sufficient data for survival analysis with current filters</p>
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              {/* Metadata */}
-              {survivalData?.meta && (
-                <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-                  <div className="text-center">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">N at Risk (baseline)</p>
-                    <p className="text-lg font-bold text-foreground" data-testid="text-survival-n-at-risk">
-                      {survivalData.meta.nAtRisk}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Events</p>
-                    <p className="text-lg font-bold text-red-600" data-testid="text-survival-events">
-                      {survivalData.meta.nEvents}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Censored</p>
-                    <p className="text-lg font-bold text-green-600" data-testid="text-survival-censored">
-                      {survivalData.meta.nCensored}
-                    </p>
-                  </div>
+                  {/* Metadata */}
+                  {survivalData?.meta && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+                      <div className="text-center">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Cases Included</p>
+                        <p className="text-lg font-bold text-foreground" data-testid="text-survival-cases">
+                          {survivalData.meta.totalCases}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Events</p>
+                        <p className="text-lg font-bold text-red-600" data-testid="text-survival-events">
+                          {survivalData.meta.nEvents}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Median Survival</p>
+                        <p className="text-lg font-bold text-foreground" data-testid="text-survival-median">
+                          {survivalData.meta.medianSurvivalDays !== null && survivalData.meta.medianSurvivalDays !== undefined
+                            ? `${Math.round(survivalData.meta.medianSurvivalDays)} days`
+                            : "Not reached"}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Censored</p>
+                        <p className="text-lg font-bold text-green-600" data-testid="text-survival-censored">
+                          {survivalData.meta.nCensored}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6 bg-muted/50 rounded-lg text-center">
+                  <p className="text-muted-foreground">No data available for the selected filters.</p>
                 </div>
               )}
             </div>
