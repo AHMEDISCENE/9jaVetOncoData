@@ -27,6 +27,29 @@ const MODE_DESCRIPTIONS: Record<AIMode, string> = {
   universal: "Uses VetOncoData + general veterinary knowledge.",
 };
 
+// Columns to hide from results table (internal IDs and timestamps)
+const HIDDEN_COLUMNS = new Set([
+  "id",
+  "clinic_id",
+  "created_by",
+  "created_at",
+  "updated_at",
+  "tumour_type_id",
+  "anatomical_site_id",
+  "attachments",
+  "extra",
+  "publishedAt",
+  "authorId",
+  "clinicId",
+  "importId",
+  "commentId"
+]);
+
+// Function to get display columns (exclude hidden ones)
+function getDisplayColumns(columns: string[]): string[] {
+  return columns.filter(col => !HIDDEN_COLUMNS.has(col));
+}
+
 export function AIAnalyticsPanel() {
   const [question, setQuestion] = useState("");
   const [aiMode, setAiMode] = useState<AIMode>("strict");
@@ -322,50 +345,58 @@ export function AIAnalyticsPanel() {
             </div>
 
             {/* Results Table */}
-            {response.rows.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-semibold text-sm text-foreground">Results ({response.rows.length} rows)</h3>
-                <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                        {response.columns.map((col) => (
-                          <th
-                            key={col}
-                            className="px-4 py-2 text-left font-medium text-foreground whitespace-nowrap"
-                          >
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {response.rows.slice(0, 10).map((row, idx) => (
-                        <tr
-                          key={idx}
-                          className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                        >
-                          {response.columns.map((col) => (
-                            <td
-                              key={`${idx}-${col}`}
-                              className="px-4 py-2 text-foreground text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-xs"
-                              title={String(row[col])}
+            {response.rows.length > 0 && (() => {
+              const displayColumns = getDisplayColumns(response.columns);
+              return displayColumns.length > 0 ? (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm text-foreground">Results ({response.rows.length} rows)</h3>
+                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                          {displayColumns.map((col) => (
+                            <th
+                              key={col}
+                              className="px-4 py-2 text-left font-medium text-foreground whitespace-nowrap"
                             >
-                              {row[col] !== null ? String(row[col]) : <span className="text-slate-400">—</span>}
-                            </td>
+                              {col.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2")}
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {response.rows.length > 10 && (
-                    <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
-                      Showing 10 of {response.rows.length} rows
-                    </div>
-                  )}
+                      </thead>
+                      <tbody>
+                        {response.rows.slice(0, 10).map((row, idx) => (
+                          <tr
+                            key={idx}
+                            className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                          >
+                            {displayColumns.map((col) => (
+                              <td
+                                key={`${idx}-${col}`}
+                                className="px-4 py-2 text-foreground text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-sm"
+                                title={String(row[col])}
+                              >
+                                {row[col] !== null && row[col] !== undefined && row[col] !== "" 
+                                  ? String(row[col]).length > 30 
+                                    ? String(row[col]).substring(0, 27) + "..."
+                                    : String(row[col])
+                                  : <span className="text-slate-400">—</span>
+                                }
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {response.rows.length > 10 && (
+                      <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
+                        Showing 10 of {response.rows.length} rows
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : null;
+            })()}
           </div>
         )}
       </CardContent>
