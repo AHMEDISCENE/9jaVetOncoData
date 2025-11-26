@@ -158,6 +158,7 @@ export function FilterBar() {
                 
                 const value = filters[key as keyof typeof filters];
                 const hasValue = !!value;
+                const stringValue = typeof value === 'string' ? value : (Array.isArray(value) ? "all" : "all");
                 
                 return (
                   <div key={key} className="space-y-1">
@@ -168,7 +169,7 @@ export function FilterBar() {
                       {label}
                     </Label>
                     <Select
-                      value={value || "all"}
+                      value={stringValue}
                       onValueChange={(val) => updateFilter(key as any, val === "all" ? undefined : val)}
                     >
                       <SelectTrigger
