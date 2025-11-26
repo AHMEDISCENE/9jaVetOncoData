@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,7 +20,8 @@ import { NIGERIA_STATES, getZoneForState, formatStateName, formatZoneName, SPECI
 import { useAttachmentQueue } from "@/hooks/use-attachment-queue";
 import { Paperclip, X, Upload, FileText, Image as ImageIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CaseAIHelper } from "@/components/case-ai-helper";
+
+const CaseAIHelper = lazy(() => import("@/components/case-ai-helper").then(m => ({ default: m.CaseAIHelper })));
 
 const caseSchema = z.object({
   state: z.string().min(1, "State is required"),
