@@ -932,6 +932,62 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Breed Distribution */}
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('breedDistribution')}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle>Tumour Distribution by Breed</CardTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="outline" size="sm" disabled={!hasBreedData} data-testid="button-export-breed-chart">
+                  Export <ChevronDown className="ml-1 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleBreedExport('csv'); }} data-testid="button-export-breed-chart-csv">CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleBreedExport('xlsx'); }} data-testid="button-export-breed-chart-xlsx">Excel</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleBreedExport('pdf'); }} data-testid="button-export-breed-chart-pdf">PDF</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardHeader>
+          <CardContent>
+            <div ref={breedDistributionChartRef} className="h-80">
+              {hasBreedData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={breedRows} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="breed" type="category" width={100} tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255,255,255,0.95)",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px"
+                      }}
+                    />
+                    <Bar
+                      dataKey="cases"
+                      fill="#06b6d4"
+                      radius={[0, 8, 8, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <i className="fas fa-paw text-4xl mb-2"></i>
+                    <p>No breed distribution data available</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            {breedRows.length > 5 && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Showing top 5 breeds.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Survival Analysis (Kaplan-Meier) */}
