@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertClinicSchema, insertCaseSchema, insertTumourTypeSchema, insertAnatomicalSiteSchema, insertFeedPostSchema, updateFeedPostSchema, insertFollowUpSchema, insertCaseFileSchema } from "@shared/schema";
+import { insertUserSchema, insertClinicSchema, insertCaseSchema, insertTumourTypeSchema, insertAnatomicalSiteSchema, insertFeedPostSchema, updateFeedPostSchema, insertFollowUpSchema, insertCaseFileSchema, reportHistory } from "@shared/schema";
 import bcrypt from "bcrypt";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
@@ -3183,6 +3183,15 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
         endDate: dateEnd,
       });
 
+      // Map template IDs to template names
+      const templateNameMap: Record<string, string> = {
+        "1": "Monthly Oncology Summary",
+        "2": "Tumour Incidence Analysis",
+        "3": "Treatment Outcomes",
+        "4": "Clinic Performance Dashboard"
+      };
+      const templateName = templateNameMap[templateId] || `Report Template ${templateId}`;
+
       // Generate report data based on template type
       let reportData: any = {};
       
@@ -3382,6 +3391,20 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="${reportName}-${new Date().toISOString().split('T')[0]}.xlsx"`);
 
+        // Save to report history
+        try {
+          await db.insert(reportHistory).values({
+            clinicId,
+            createdBy: userId,
+            template: templateName,
+            format: 'XLSX',
+            status: 'completed',
+            downloadUrl: '#'
+          });
+        } catch (historyError) {
+          console.error("[WARNING] Failed to save report to history:", historyError);
+        }
+
         // Notification
         try {
           const notification = await storage.createNotification({
@@ -3449,6 +3472,20 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${reportName}-${new Date().toISOString().split('T')[0]}.pdf"`);
 
+        // Save to report history
+        try {
+          await db.insert(reportHistory).values({
+            clinicId,
+            createdBy: userId,
+            template: templateName,
+            format: 'PDF',
+            status: 'completed',
+            downloadUrl: '#'
+          });
+        } catch (historyError) {
+          console.error("[WARNING] Failed to save report to history:", historyError);
+        }
+
         // Notification
         try {
           const notification = await storage.createNotification({
@@ -3466,6 +3503,20 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
         return res.send(pdfBuffer);
       } else {
         // JSON format (default)
+        // Save to report history
+        try {
+          await db.insert(reportHistory).values({
+            clinicId,
+            createdBy: userId,
+            template: templateName,
+            format: 'JSON',
+            status: 'completed',
+            downloadUrl: '#'
+          });
+        } catch (historyError) {
+          console.error("[WARNING] Failed to save report to history:", historyError);
+        }
+
         try {
           const notification = await storage.createNotification({
             userId,
