@@ -125,7 +125,7 @@ export default function Header() {
   const unreadCount = unreadData?.count || 0;
 
   return (
-    <header className="sticky top-0 z-50 border-b" style={{ backgroundImage: `url(${doodleHeaderImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+    <header className="sticky top-0 z-30 border-b" style={{ backgroundImage: `url(${doodleHeaderImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
       {/* Overlay for text readability */}
       <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/90 to-white/85 dark:from-gray-950/95 dark:via-gray-950/90 dark:to-gray-950/85 pointer-events-none" />
       
