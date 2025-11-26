@@ -179,16 +179,19 @@ export function validateSQL(sql: string): { valid: boolean; error?: string } {
 
   // Only allow whitelisted tables
   const allowedTables = ['cases', 'clinics', 'tumour_types', 'anatomical_sites', 'ng_states'];
-  const tablePattern = /\b(FROM|JOIN|INTO)\s+(\w+)/gi;
+  
+  // Check that only allowed tables are used
+  // Pattern matches: FROM|JOIN <tablename> [alias|AS alias]
+  const tablePattern = /\b(FROM|JOIN|INTO)\s+(\w+)(?:\s+(?:AS\s+)?(\w+))?\b/gi;
   let match;
   const usedTables = new Set<string>();
   
   while ((match = tablePattern.exec(trimmedSQL)) !== null) {
-    const tableName = match[2].toLowerCase();
-    if (!allowedTables.includes(tableName)) {
-      return { valid: false, error: `Table not allowed: ${tableName}` };
+    const actualTableName = match[2].toLowerCase();
+    if (!allowedTables.includes(actualTableName)) {
+      return { valid: false, error: `Table not allowed: ${actualTableName}` };
     }
-    usedTables.add(tableName);
+    usedTables.add(actualTableName);
   }
 
   return { valid: true };
