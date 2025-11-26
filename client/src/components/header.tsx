@@ -195,26 +195,35 @@ export default function Header() {
                 )}
               </motion.button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="end">
-              <div className="flex items-center justify-between p-4 border-b gap-2">
-                <h3 className="font-semibold">Notifications</h3>
-                <div className="flex gap-1">
+            <PopoverContent className="w-96 p-0" align="end">
+              <div className="border-b bg-muted/20 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-base">Notifications</h3>
+                  {notifications.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {notifications.length} total
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
                   {unreadCount > 0 && (
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={() => markAllAsReadMutation.mutate()}
                       data-testid="button-mark-all-read"
+                      className="flex-1 text-xs"
                     >
-                      Mark all as read
+                      Mark as read
                     </Button>
                   )}
                   {notifications.length > 0 && (
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={() => clearAllNotificationsMutation.mutate()}
                       data-testid="button-clear-all-notifications"
+                      className="flex-1 text-xs"
                     >
                       Clear all
                     </Button>
@@ -225,21 +234,21 @@ export default function Header() {
                 {notifications.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground">
                     <i className="fas fa-bell-slash text-4xl mb-2"></i>
-                    <p>No notifications</p>
+                    <p className="text-sm">No notifications</p>
                   </div>
                 ) : (
                   <div className="divide-y">
                     {notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-4 hover:bg-muted/50 transition-colors group ${
-                          !notification.isRead ? "bg-muted/30" : ""
+                        className={`p-4 hover:bg-muted/50 transition-colors group border-l-4 ${
+                          !notification.isRead ? "bg-muted/20 border-l-primary" : "border-l-transparent"
                         }`}
                         data-testid={`notification-${notification.id}`}
                       >
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start justify-between gap-3">
                           <div 
-                            className="flex-1 min-w-0 cursor-pointer"
+                            className="flex-1 min-w-0 cursor-pointer flex-start"
                             onClick={() => {
                               if (!notification.isRead) {
                                 markAsReadMutation.mutate(notification.id);
@@ -249,33 +258,32 @@ export default function Header() {
                               }
                             }}
                           >
-                            <p className="font-medium text-sm mb-1">
-                              <span className="mr-2">{getNotificationIcon(notification.type)}</span>
-                              {notification.title}
-                            </p>
-                            <p className="text-sm text-muted-foreground mb-1">
-                              {notification.message}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                            </p>
+                            <div className="flex items-start gap-2">
+                              <span className="text-lg flex-shrink-0 mt-0.5">{getNotificationIcon(notification.type)}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm leading-tight">
+                                  {notification.title}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-start gap-1">
-                            {!notification.isRead && (
-                              <div className="h-2 w-2 bg-primary rounded-full flex-shrink-0 mt-1" />
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteNotificationMutation.mutate(notification.id);
-                              }}
-                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity p-1"
-                              data-testid={`button-delete-notification-${notification.id}`}
-                              title="Delete notification"
-                            >
-                              <i className="fas fa-times text-sm" />
-                            </button>
-                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotificationMutation.mutate(notification.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1.5 flex-shrink-0"
+                            data-testid={`button-delete-notification-${notification.id}`}
+                            title="Delete notification"
+                          >
+                            <i className="fas fa-trash-alt text-xs" />
+                          </button>
                         </div>
                       </div>
                     ))}
