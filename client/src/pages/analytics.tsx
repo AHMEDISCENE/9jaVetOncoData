@@ -1312,6 +1312,59 @@ export default function Analytics() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Tumour Distribution by Breed Detail */}
+      <Dialog open={selectedChart === 'breedDistribution'} onOpenChange={() => setSelectedChart(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tumour Distribution by Breed - Detailed View</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="h-64 w-full">
+              {hasBreedData && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={breedRows} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="breed" type="category" width={100} tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Bar dataKey="cases" fill="#06b6d4" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-semibold">Breed Breakdown:</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Breed</th>
+                      <th className="p-3 text-right">Cases</th>
+                      <th className="p-3 text-right">% of Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {breedRows.map((item) => {
+                      const total = breedRows.reduce((sum, t) => sum + (t.cases || 0), 0);
+                      return (
+                        <tr key={item.breed} className="border-t">
+                          <td className="p-3 font-medium">{item.breed}</td>
+                          <td className="p-3 text-right font-semibold">{item.cases}</td>
+                          <td className="p-3 text-right text-muted-foreground">{total > 0 ? Math.round((item.cases / total) * 100) : 0}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 mt-3">
+                <p>💡 <strong>Total Breeds:</strong> {breedRows.length} | <strong>Total Cases:</strong> {breedRows.reduce((sum, t) => sum + (t.cases || 0), 0) || 0}</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
         </TabsContent>
 
         {/* AI Analytics Tab */}
