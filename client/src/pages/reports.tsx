@@ -146,7 +146,11 @@ export default function Reports() {
 
   const { data: reportHistory } = useQuery({
     queryKey: ["/api/reports/history"],
-    queryFn: () => Promise.resolve(mockReportHistory),
+    queryFn: async () => {
+      const response = await fetch("/api/reports/history");
+      if (!response.ok) throw new Error("Failed to fetch report history");
+      return response.json();
+    },
   });
 
   const runReportMutation = useMutation({
@@ -252,8 +256,11 @@ export default function Reports() {
       const response = await fetch("/api/reports/history", {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to clear history");
-      return { success: true };
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to clear history");
+      }
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -261,12 +268,15 @@ export default function Reports() {
         description: "Report history has been cleared successfully",
       });
       setClearHistoryDialogOpen(false);
+      // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ["/api/reports/history"] });
+      queryClient.refetchQueries({ queryKey: ["/api/reports/history"] });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Clear history error:", error);
       toast({
         title: "Error",
-        description: "Failed to clear report history. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to clear report history. Please try again.",
         variant: "destructive",
       });
     },
