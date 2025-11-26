@@ -624,7 +624,23 @@ export default function Analytics() {
         {/* Cases Trend */}
         <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('casesOverTime')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle>Cases Over Time</CardTitle>
+            <div>
+              <CardTitle>Cases Over Time</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                {filters.species ? `Species: ${filters.species}` : ""} 
+                {filters.species && filters.sex ? " • " : ""}
+                {filters.sex ? `Sex: ${filters.sex}` : ""} 
+                {(filters.species || filters.sex) && filters.zone ? " • " : ""}
+                {filters.zone ? `Zone: ${filters.zone}` : ""} 
+                {(filters.species || filters.sex || filters.zone) && filters.state ? " • " : ""}
+                {filters.state ? `State: ${filters.state}` : ""}
+                {(filters.species || filters.sex || filters.zone || filters.state) && filters.dateFrom ? " • " : ""}
+                {filters.dateFrom ? `From: ${filters.dateFrom}` : ""}
+                {filters.dateFrom && filters.dateTo ? " to " : ""}
+                {filters.dateTo ? `${filters.dateTo}` : ""}
+                {!filters.species && !filters.sex && !filters.zone && !filters.state && !filters.dateFrom ? "All data" : ""}
+              </p>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="outline" size="sm" disabled={!hasCasesOverTimeData} data-testid="button-export-trend-chart">
@@ -639,6 +655,9 @@ export default function Analytics() {
             </DropdownMenu>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border/50">
+              <p className="text-xs text-muted-foreground mb-2"><i className="fas fa-filter mr-2"></i>Use the filter panel above to customize data by species, sex, zone, state, and time period</p>
+            </div>
             <div ref={casesOverTimeChartRef} className="h-80">
               {stats.casesByMonth.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
