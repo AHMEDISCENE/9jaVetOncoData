@@ -105,7 +105,6 @@ export default function Reports() {
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "xlsx" | "csv">("pdf");
   const [reportTemplateForFormat, setReportTemplateForFormat] = useState<string | null>(null);
   const [runningReportId, setRunningReportId] = useState<string | null>(null);
-  const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -142,15 +141,6 @@ export default function Reports() {
   const { data: templates, isLoading } = useQuery({
     queryKey: ["/api/reports/templates"],
     queryFn: () => Promise.resolve(mockTemplates),
-  });
-
-  const { data: reportHistory } = useQuery({
-    queryKey: ["/api/reports/history"],
-    queryFn: async () => {
-      const response = await fetch("/api/reports/history");
-      if (!response.ok) throw new Error("Failed to fetch report history");
-      return response.json();
-    },
   });
 
   const runReportMutation = useMutation({
@@ -246,37 +236,6 @@ export default function Reports() {
       toast({
         title: "Error",
         description: "Failed to schedule the report. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const clearHistoryMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/reports/history", {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to clear history");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "History Cleared",
-        description: "Report history has been cleared successfully",
-      });
-      setClearHistoryDialogOpen(false);
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/history"] });
-      queryClient.refetchQueries({ queryKey: ["/api/reports/history"] });
-    },
-    onError: (error) => {
-      console.error("Clear history error:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to clear report history. Please try again.",
         variant: "destructive",
       });
     },
@@ -629,87 +588,6 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Report History */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="flex-1">Report History</CardTitle>
-          {reportHistory && reportHistory.length > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setClearHistoryDialogOpen(true)}
-              data-testid="button-clear-history"
-              className="flex-shrink-0 whitespace-nowrap"
-            >
-              Clear History
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent>
-          {reportHistory && reportHistory.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Report Template</TableHead>
-                  <TableHead>Generated</TableHead>
-                  <TableHead>Format</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reportHistory.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell className="font-medium">{report.template}</TableCell>
-                    <TableCell>
-                      {new Date(report.generatedAt).toLocaleDateString()} at{" "}
-                      {new Date(report.generatedAt).toLocaleTimeString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{report.format}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        className={
-                          report.status === "completed" 
-                            ? "bg-green-100 text-green-800"
-                            : report.status === "failed"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-blue-100 text-blue-800"
-                        }
-                      >
-                        {report.status}
-                      </Badge>
-                      {report.error && (
-                        <p className="text-xs text-destructive mt-1">{report.error}</p>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {report.status === "completed" && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          data-testid={`button-download-report-${report.id}`}
-                          onClick={() => handleDownloadReport(`${report.template.replace(/\s+/g, "_")}_${report.id}.${report.format.toLowerCase()}`)}
-                        >
-                          <i className="fas fa-download mr-2"></i>Download
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <i className="fas fa-file-alt text-4xl mb-4"></i>
-              <p className="text-lg font-medium mb-2">No reports generated yet</p>
-              <p className="text-sm">Start by running one of the available report templates above.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Customize Report Dialog */}
       <Dialog open={customizeDialogOpen} onOpenChange={setCustomizeDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -978,29 +856,6 @@ export default function Reports() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Clear History Confirmation Dialog */}
-      <AlertDialog open={clearHistoryDialogOpen} onOpenChange={setClearHistoryDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clear Report History?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. All report history entries will be permanently deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex gap-2 justify-end">
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => clearHistoryMutation.mutate()}
-              disabled={clearHistoryMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-confirm-clear-history"
-            >
-              {clearHistoryMutation.isPending ? "Clearing..." : "Clear All"}
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Schedule Report Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
