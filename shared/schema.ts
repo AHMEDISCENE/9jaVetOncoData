@@ -619,6 +619,8 @@ export type DashboardStats = {
   treatmentOutcomes: Array<{name: string; count: number}>;
   casesByState: Array<{state: string; count: number}>;
   clinicsByCount: Array<{id: string; name: string; count: number}>;
+  tumourDistributionByAge: Array<{name: string; count: number}>;
+  tumourDistributionByBreed: Array<{name: string; count: number}>;
   recentActivity: Array<{
     id: string;
     type: string;

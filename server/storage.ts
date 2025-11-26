@@ -1632,6 +1632,18 @@ export class DatabaseStorage implements IStorage {
           return order.indexOf(a.name) - order.indexOf(b.name);
         });
 
+      // Tumour distribution by breed (top 5)
+      const breedCounts = new Map<string, number>();
+      allCases.forEach(c => {
+        if (c.breed) {
+          breedCounts.set(c.breed, (breedCounts.get(c.breed) || 0) + 1);
+        }
+      });
+      const tumourDistributionByBreed = Array.from(breedCounts.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
       // Cases by state
       const stateCounts = new Map<string, number>();
       allCases.forEach(c => {
@@ -1683,6 +1695,7 @@ export class DatabaseStorage implements IStorage {
         casesByState,
         clinicsByCount,
         tumourDistributionByAge,
+        tumourDistributionByBreed,
         recentActivity: [],
       };
     } catch (error) {
@@ -1699,6 +1712,7 @@ export class DatabaseStorage implements IStorage {
         casesByState: [],
         clinicsByCount: [],
         tumourDistributionByAge: [],
+        tumourDistributionByBreed: [],
         recentActivity: [],
       };
     }

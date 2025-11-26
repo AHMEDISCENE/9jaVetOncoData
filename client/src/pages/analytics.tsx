@@ -243,6 +243,7 @@ export default function Analytics() {
   const speciesChartRef = useRef<HTMLDivElement>(null);
   const outcomeChartRef = useRef<HTMLDivElement>(null);
   const ageDistributionChartRef = useRef<HTMLDivElement>(null);
+  const breedDistributionChartRef = useRef<HTMLDivElement>(null);
   
   // Helper to capture chart as image
   const captureChartImage = async (chartRef: React.RefObject<HTMLDivElement>) => {
@@ -525,6 +526,27 @@ export default function Analytics() {
       average: Math.round(avgCases * 100) / 100,
       recordCount: ageRows.length,
     }, format, ageDistributionChartRef);
+  };
+
+  const breedRows = (stats.tumourDistributionByBreed || []).map((item) => ({
+    breed: item.name,
+    cases: item.count,
+  }));
+  const hasBreedData = breedRows.length > 0;
+
+  const handleBreedExport = async (format: 'csv' | 'xlsx' | 'pdf' = 'csv') => {
+    if (!hasBreedData) {
+      return;
+    }
+
+    const totalCases = breedRows.reduce((sum, row) => sum + (row.cases || 0), 0);
+    const avgCases = totalCases / breedRows.length;
+
+    await handleAnalyticsExport('Tumour Distribution by Breed', ['breed', 'cases'], breedRows, {
+      total: totalCases,
+      average: Math.round(avgCases * 100) / 100,
+      recordCount: breedRows.length,
+    }, format, breedDistributionChartRef);
   };
 
   return (
