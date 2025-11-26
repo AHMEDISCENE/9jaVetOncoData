@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,12 +133,55 @@ export default function Dashboard() {
     activeClinics: false,
     remissionRate: false,
   });
+  const [slideIndices, setSlideIndices] = useState<Record<string, number>>({
+    totalCases: 0,
+    newThisMonth: 0,
+    activeClinics: 0,
+    remissionRate: 0,
+  });
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const toggleCardFlip = (cardId: string) => {
     setFlippedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
   };
+
+  // Auto-rotate slides every 4 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSlideIndices(prev => {
+        const newIndices = { ...prev };
+        
+        // Total Cases: main + top 5 species
+        const totalCasesSlides = stats?.casesBySpecies?.length || 0;
+        if (totalCasesSlides > 1) {
+          newIndices.totalCases = (prev.totalCases + 1) % (totalCasesSlides + 1);
+        }
+        
+        // New This Month: main + last 5 months
+        const newThisMonthSlides = stats?.casesByMonth?.length || 0;
+        if (newThisMonthSlides > 1) {
+          newIndices.newThisMonth = (prev.newThisMonth + 1) % (newThisMonthSlides + 1);
+        }
+        
+        // Active Clinics: main + top 5 clinics
+        const activeClinicsSlides = stats?.clinicsByCount?.length || 0;
+        if (activeClinicsSlides > 1) {
+          newIndices.activeClinics = (prev.activeClinics + 1) % (activeClinicsSlides + 1);
+        }
+        
+        // Remission Rate: main + top 5 outcomes
+        const remissionRateSlides = stats?.treatmentOutcomes?.length || 0;
+        if (remissionRateSlides > 1) {
+          newIndices.remissionRate = (prev.remissionRate + 1) % (remissionRateSlides + 1);
+        }
+        
+        return newIndices;
+      });
+    }, 4000);
+    
+    return () => clearInterval(interval);
+  }, [stats]);
 
   const handleMetricClick = (metric: MetricType) => {
     setSelectedMetric(metric);
@@ -428,12 +471,34 @@ export default function Dashboard() {
             <div className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
-                    Total Cases
-                  </p>
-                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-300" data-testid="stat-total-cases">
-                    {stats.totalCases.toLocaleString()}
-                  </p>
+                  {slideIndices.totalCases === 0 ? (
+                    <>
+                      <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                        Total Cases
+                      </p>
+                      <p className="text-4xl font-bold text-blue-600 dark:text-blue-300" data-testid="stat-total-cases">
+                        {stats.totalCases.toLocaleString()}
+                      </p>
+                    </>
+                  ) : stats.casesBySpecies && slideIndices.totalCases - 1 < stats.casesBySpecies.length ? (
+                    <>
+                      <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                        {stats.casesBySpecies[slideIndices.totalCases - 1].name}
+                      </p>
+                      <p className="text-4xl font-bold text-blue-600 dark:text-blue-300">
+                        {stats.casesBySpecies[slideIndices.totalCases - 1].count}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                        Total Cases
+                      </p>
+                      <p className="text-4xl font-bold text-blue-600 dark:text-blue-300">
+                        {stats.totalCases.toLocaleString()}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="h-14 w-14 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
                   <i className="fas fa-clipboard-list text-blue-600 dark:text-blue-300 text-xl"></i>
@@ -483,12 +548,34 @@ export default function Dashboard() {
             <div className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
-                    New This Month
-                  </p>
-                  <p className="text-4xl font-bold text-purple-600 dark:text-purple-300" data-testid="stat-new-this-month">
-                    {stats.newThisMonth.toLocaleString()}
-                  </p>
+                  {slideIndices.newThisMonth === 0 ? (
+                    <>
+                      <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                        New This Month
+                      </p>
+                      <p className="text-4xl font-bold text-purple-600 dark:text-purple-300" data-testid="stat-new-this-month">
+                        {stats.newThisMonth.toLocaleString()}
+                      </p>
+                    </>
+                  ) : stats.casesByMonth && slideIndices.newThisMonth - 1 < stats.casesByMonth.length ? (
+                    <>
+                      <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                        {stats.casesByMonth[stats.casesByMonth.length - (slideIndices.newThisMonth)].month}
+                      </p>
+                      <p className="text-4xl font-bold text-purple-600 dark:text-purple-300">
+                        {stats.casesByMonth[stats.casesByMonth.length - (slideIndices.newThisMonth)].count}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                        New This Month
+                      </p>
+                      <p className="text-4xl font-bold text-purple-600 dark:text-purple-300">
+                        {stats.newThisMonth.toLocaleString()}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="h-14 w-14 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center">
                   <i className="fas fa-plus text-purple-600 dark:text-purple-300 text-xl"></i>
@@ -538,12 +625,34 @@ export default function Dashboard() {
             <div className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
-                    Active Clinics
-                  </p>
-                  <p className="text-4xl font-bold text-amber-600 dark:text-amber-300" data-testid="stat-active-clinics">
-                    {stats.activeClinics.toLocaleString()}
-                  </p>
+                  {slideIndices.activeClinics === 0 ? (
+                    <>
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                        Active Clinics
+                      </p>
+                      <p className="text-4xl font-bold text-amber-600 dark:text-amber-300" data-testid="stat-active-clinics">
+                        {stats.activeClinics.toLocaleString()}
+                      </p>
+                    </>
+                  ) : stats.clinicsByCount && slideIndices.activeClinics - 1 < stats.clinicsByCount.length ? (
+                    <>
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                        {stats.clinicsByCount[slideIndices.activeClinics - 1].name}
+                      </p>
+                      <p className="text-4xl font-bold text-amber-600 dark:text-amber-300">
+                        {stats.clinicsByCount[slideIndices.activeClinics - 1].count}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                        Active Clinics
+                      </p>
+                      <p className="text-4xl font-bold text-amber-600 dark:text-amber-300">
+                        {stats.activeClinics.toLocaleString()}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="h-14 w-14 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
                   <i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-xl"></i>
@@ -593,12 +702,34 @@ export default function Dashboard() {
             <div className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-700 dark:text-green-200">
-                    Remission Rate
-                  </p>
-                  <p className="text-4xl font-bold text-green-600 dark:text-green-300" data-testid="stat-remission-rate">
-                    {stats.remissionRate}%
-                  </p>
+                  {slideIndices.remissionRate === 0 ? (
+                    <>
+                      <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                        Remission Rate
+                      </p>
+                      <p className="text-4xl font-bold text-green-600 dark:text-green-300" data-testid="stat-remission-rate">
+                        {stats.remissionRate}%
+                      </p>
+                    </>
+                  ) : stats.treatmentOutcomes && slideIndices.remissionRate - 1 < stats.treatmentOutcomes.length ? (
+                    <>
+                      <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                        {stats.treatmentOutcomes[slideIndices.remissionRate - 1].name}
+                      </p>
+                      <p className="text-4xl font-bold text-green-600 dark:text-green-300">
+                        {stats.treatmentOutcomes[slideIndices.remissionRate - 1].count}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                        Remission Rate
+                      </p>
+                      <p className="text-4xl font-bold text-green-600 dark:text-green-300">
+                        {stats.remissionRate}%
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="h-14 w-14 bg-green-200 dark:bg-green-800 rounded-full flex items-center justify-center">
                   <i className="fas fa-heart text-green-600 dark:text-green-300 text-xl"></i>
