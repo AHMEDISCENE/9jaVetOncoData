@@ -109,6 +109,14 @@ export default function Header() {
     },
   });
 
+  const clearAllNotificationsMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/notifications/clear-all"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
+    },
+  });
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'CASE_UPDATED':
@@ -188,18 +196,30 @@ export default function Header() {
               </motion.button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0" align="end">
-              <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center justify-between p-4 border-b gap-2">
                 <h3 className="font-semibold">Notifications</h3>
-                {unreadCount > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => markAllAsReadMutation.mutate()}
-                    data-testid="button-mark-all-read"
-                  >
-                    Mark all as read
-                  </Button>
-                )}
+                <div className="flex gap-1">
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => markAllAsReadMutation.mutate()}
+                      data-testid="button-mark-all-read"
+                    >
+                      Mark all as read
+                    </Button>
+                  )}
+                  {notifications.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => clearAllNotificationsMutation.mutate()}
+                      data-testid="button-clear-all-notifications"
+                    >
+                      Clear all
+                    </Button>
+                  )}
+                </div>
               </div>
               <ScrollArea className="h-[400px]">
                 {notifications.length === 0 ? (
