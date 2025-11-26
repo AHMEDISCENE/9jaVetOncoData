@@ -75,7 +75,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
     resolver: zodResolver(caseSchema),
     defaultValues: {
       state: "",
-      clinicId: userClinic?.id || "",
+      clinicId: userClinic?.name || userClinic?.id || "",
       patientName: "",
       species: "",
       breed: "",
@@ -188,15 +188,26 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
   // Prefill clinic when user clinic is available
   useEffect(() => {
     if (userClinic?.id && !form.getValues("clinicId")) {
-      form.setValue("clinicId", userClinic.id);
+      form.setValue("clinicId", userClinic.name || userClinic.id);
     }
   }, [userClinic, form]);
 
   const caseMutation = useMutation({
     mutationFn: async (data: CaseFormData) => {
       // Transform data to properly handle custom vs selected values
+      let clinicIdValue = data.clinicId;
+      
+      // Resolve clinic name to clinic ID if needed
+      if (clinicIdValue && clinics) {
+        const clinic = clinics.find(c => c.name === clinicIdValue || c.id === clinicIdValue);
+        if (clinic) {
+          clinicIdValue = clinic.id;
+        }
+      }
+      
       const transformedData = {
         ...data,
+        clinicId: clinicIdValue,
         // If tumourTypeId is "OTHER", clear it and use tumourTypeCustom instead
         tumourTypeId: data.tumourTypeId === "OTHER" ? undefined : data.tumourTypeId,
         tumourTypeCustom: data.tumourTypeId === "OTHER" ? data.tumourTypeCustom : undefined,
