@@ -175,35 +175,41 @@ export function AIAnalyticsPanel() {
   const downloadAsPDF = () => {
     if (!response) return;
 
+    // Helper to clean markdown formatting from text
+    const cleanMarkdown = (text: string) => {
+      return text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+    };
+
     const pdf = new jsPDF();
     let yPosition = 15;
 
     // Title
     pdf.setFontSize(16);
     pdf.text("AI Analytics Report", 15, yPosition);
-    yPosition += 10;
+    yPosition += 12;
 
     // Metadata
     pdf.setFontSize(9);
     pdf.text(`Generated: ${new Date().toLocaleString()}`, 15, yPosition);
     yPosition += 5;
     pdf.text(`Mode: ${aiMode}`, 15, yPosition);
-    yPosition += 10;
+    yPosition += 12;
 
     // Summary
     pdf.setFontSize(11);
     pdf.text("Summary", 15, yPosition);
-    yPosition += 5;
+    yPosition += 7;
     pdf.setFontSize(9);
-    const summaryLines = pdf.splitTextToSize(response.summary, 170);
+    const cleanedSummary = cleanMarkdown(response.summary);
+    const summaryLines = pdf.splitTextToSize(cleanedSummary, 170);
     pdf.text(summaryLines, 15, yPosition);
-    yPosition += Math.min(summaryLines.length * 3.5 + 3, 50);
+    yPosition += summaryLines.length * 4 + 8;
 
     // Results header
-    if (response.rows.length > 0) {
+    if (response.rows.length > 0 && yPosition < 260) {
       pdf.setFontSize(11);
       pdf.text(`Results (${response.rows.length} rows)`, 15, yPosition);
-      yPosition += 7;
+      yPosition += 8;
 
       // Simple text table for first 10 rows
       pdf.setFontSize(8);
@@ -211,13 +217,15 @@ export function AIAnalyticsPanel() {
       const cols = response.columns.slice(0, colCount);
       const colWidth = (180 / colCount);
 
-      // Headers
+      // Headers with background
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(15, yPosition - 3, 180, 4, 'F');
       cols.forEach((col, i) => {
         pdf.text(col.substring(0, 15), 15 + (i * colWidth), yPosition);
       });
-      yPosition += 4;
-      pdf.setDrawColor(200);
-      pdf.line(15, yPosition - 1, 195, yPosition - 1);
+      yPosition += 5;
+      pdf.setDrawColor(180);
+      pdf.line(15, yPosition - 2, 195, yPosition - 2);
 
       // Rows
       response.rows.slice(0, 10).forEach(row => {
@@ -229,7 +237,7 @@ export function AIAnalyticsPanel() {
           const val = String(row[col] ?? "").substring(0, 12);
           pdf.text(val, 15 + (i * colWidth), yPosition);
         });
-        yPosition += 4;
+        yPosition += 5;
       });
 
       if (response.rows.length > 10) {
@@ -237,6 +245,39 @@ export function AIAnalyticsPanel() {
         pdf.setFontSize(8);
         pdf.text(`... and ${response.rows.length - 10} more rows`, 15, yPosition);
       }
+    } else if (response.rows.length > 0) {
+      // Add new page if running out of space
+      pdf.addPage();
+      yPosition = 15;
+      pdf.setFontSize(11);
+      pdf.text(`Results (${response.rows.length} rows)`, 15, yPosition);
+      yPosition += 8;
+
+      pdf.setFontSize(8);
+      const colCount = Math.min(response.columns.length, 5);
+      const cols = response.columns.slice(0, colCount);
+      const colWidth = (180 / colCount);
+
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(15, yPosition - 3, 180, 4, 'F');
+      cols.forEach((col, i) => {
+        pdf.text(col.substring(0, 15), 15 + (i * colWidth), yPosition);
+      });
+      yPosition += 5;
+      pdf.setDrawColor(180);
+      pdf.line(15, yPosition - 2, 195, yPosition - 2);
+
+      response.rows.slice(0, 10).forEach(row => {
+        if (yPosition > 270) {
+          pdf.addPage();
+          yPosition = 15;
+        }
+        cols.forEach((col, i) => {
+          const val = String(row[col] ?? "").substring(0, 12);
+          pdf.text(val, 15 + (i * colWidth), yPosition);
+        });
+        yPosition += 5;
+      });
     }
 
     pdf.save(`ai-analytics-${Date.now()}.pdf`);
