@@ -261,13 +261,13 @@ export default function Header() {
                             <div className="flex items-start gap-2">
                               <span className="text-lg flex-shrink-0 mt-0.5">{getNotificationIcon(notification.type)}</span>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm leading-tight">
+                                <p className="font-bold text-sm leading-tight text-foreground">
                                   {notification.title}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                <p className="text-sm text-foreground mt-1 leading-relaxed">
                                   {notification.message}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-2">
+                                <p className="text-xs text-muted-foreground/70 mt-2">
                                   {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                                 </p>
                               </div>
