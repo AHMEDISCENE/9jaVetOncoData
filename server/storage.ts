@@ -1425,6 +1425,7 @@ export class DatabaseStorage implements IStorage {
     species?: string[];
     outcome?: string;
     sex?: string[];
+    ageGroup?: string;
     tumourTypeIds?: string[];
     from?: string;
     to?: string;
@@ -1489,6 +1490,25 @@ export class DatabaseStorage implements IStorage {
 
       if (filters.sex && filters.sex.length > 0) {
         whereConditions.push(inArray(cases.sex, filters.sex as any));
+      }
+
+      if (filters.ageGroup && filters.ageGroup !== "") {
+        // Map age group to numeric ranges
+        const ageRanges: Record<string, [number, number]> = {
+          "<1": [0, 1],
+          "1-3": [1, 3],
+          "4-7": [4, 7],
+          "8+": [8, 150]  // 8+ means 8 and above
+        };
+        
+        const range = ageRanges[filters.ageGroup];
+        if (range) {
+          const [minAge, maxAge] = range;
+          whereConditions.push(and(
+            gte(cases.age, minAge),
+            lte(cases.age, maxAge)
+          ));
+        }
       }
 
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {

@@ -935,6 +935,12 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           : [req.query.sex];
       }
       
+      if (req.query.ageGroup) {
+        filters.ageGroup = Array.isArray(req.query.ageGroup) 
+          ? req.query.ageGroup[0] 
+          : req.query.ageGroup;
+      }
+      
       if (req.query.tumourTypeIds) {
         filters.tumourTypeIds = Array.isArray(req.query.tumourTypeIds) 
           ? req.query.tumourTypeIds 
