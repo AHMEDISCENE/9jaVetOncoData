@@ -1800,6 +1800,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(importJobs.createdAt));
   }
 
+  async deleteImportJob(id: string): Promise<void> {
+    await db.delete(importJobs).where(eq(importJobs.id, id));
+  }
+
+  async deleteImportJobsByClinic(clinicId: string): Promise<void> {
+    await db.delete(importJobs).where(eq(importJobs.clinicId, clinicId));
+  }
+
   async createAuditLog(log: {
     actorId?: string;
     clinicId?: string;

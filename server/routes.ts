@@ -2526,6 +2526,47 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
+  app.delete("/api/imports/:id", requireAuth, async (req, res) => {
+    try {
+      const importId = req.params.id;
+      const userId = (req.session as any).userId;
+      const userRole = (req.session as any).userRole;
+      const clinicId = (req.session as any).clinicId;
+
+      const importJob = await storage.getImportJobById(importId);
+      if (!importJob) {
+        return res.status(404).json({ success: false, error: "Import job not found" });
+      }
+
+      if (importJob.clinicId !== clinicId) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      const isCreator = importJob.createdBy === userId;
+      const isClinicAdmin = userRole === "ADMIN";
+      const isSuperAdmin = userRole === "SUPER_ADMIN";
+
+      if (!isCreator && !isClinicAdmin && !isSuperAdmin) {
+        return res.status(403).json({ success: false, error: "You can only delete your own uploads" });
+      }
+
+      await storage.deleteImportJob(importId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to delete import" });
+    }
+  });
+
+  app.delete("/api/imports", requireAuth, requireRole("ADMIN"), async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      await storage.deleteImportJobsByClinic(clinicId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to clear import history" });
+    }
+  });
+
   // Feed routes
   app.get("/api/feeds", requireAuth, async (req, res) => {
     try {

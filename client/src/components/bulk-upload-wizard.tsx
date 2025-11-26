@@ -74,10 +74,75 @@ export default function BulkUploadWizard() {
   const [importId, setImportId] = useState<string | null>(null);
   const [pollingStatus, setPollingStatus] = useState(false);
   const [selectedJobErrors, setSelectedJobErrors] = useState<Array<{row: number; error: string}> | null>(null);
+  const [userRole, setUserRole] = useState<string>("");
+
+  // Fetch current user
+  useEffect(() => {
+    const fetchUser = async () => {
+      const response = await fetch("/api/auth/me", { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        setUserRole(data.user?.role || "");
+      }
+    };
+    fetchUser();
+  }, []);
 
   // Fetch import jobs history
-  const { data: importJobs, isLoading: jobsLoading } = useQuery<ImportJob[]>({
+  const { data: importJobs, isLoading: jobsLoading, refetch: refetchJobs } = useQuery<ImportJob[]>({
     queryKey: ["/api/imports/recent"],
+  });
+
+  // Delete import mutation
+  const deleteImportMutation = useMutation({
+    mutationFn: async (importJobId: string) => {
+      const response = await fetch(`/api/imports/${importJobId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error("Failed to delete import");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Import deleted",
+        description: "The import has been successfully deleted.",
+      });
+      refetchJobs();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete the import.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Clear all imports mutation
+  const clearAllMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/imports', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error("Failed to clear all imports");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "All imports cleared",
+        description: "All import history has been deleted.",
+      });
+      refetchJobs();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to clear import history.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Poll import status
@@ -457,6 +522,104 @@ export default function BulkUploadWizard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Upload History */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle>Bulk Upload History</CardTitle>
+          {(userRole === "ADMIN" || userRole === "SUPER_ADMIN") && importJobs && importJobs.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => clearAllMutation.mutate()}
+              disabled={clearAllMutation.isPending}
+              data-testid="button-clear-all-imports"
+            >
+              <i className="fas fa-trash mr-2"></i>Clear All
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {jobsLoading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+          ) : importJobs && importJobs.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>File</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Records</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importJobs.map((job: any) => (
+                  <TableRow key={job.id}>
+                    <TableCell className="font-medium">{job.filename}</TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          job.status === "COMPLETED"
+                            ? "bg-green-100 text-green-800"
+                            : job.status === "FAILED"
+                            ? "bg-red-100 text-red-800"
+                            : job.status === "PROCESSING"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {job.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span data-testid={`job-records-${job.id}`}>
+                        {job.success || 0} / {job.total_rows || 0}
+                      </span>
+                      {job.failed && job.failed > 0 && (
+                        <span className="text-destructive ml-2">
+                          ({job.failed} errors)
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(job.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteImportMutation.mutate(job.id)}
+                        disabled={deleteImportMutation.isPending}
+                        data-testid={`button-delete-import-${job.id}`}
+                      >
+                        <i className="fas fa-trash text-red-500 mr-1"></i>Delete
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <i className="fas fa-upload text-4xl mb-4"></i>
+              <h3 className="text-lg font-medium mb-2">No uploads yet</h3>
+              <p className="text-sm">
+                Upload your first data file to get started with bulk importing cases.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Error Details Dialog */}
       <Dialog open={selectedJobErrors !== null} onOpenChange={() => setSelectedJobErrors(null)}>
