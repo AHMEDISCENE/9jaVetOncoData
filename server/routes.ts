@@ -3771,6 +3771,124 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
+  // AI Report Generation endpoint - generates PDF/Excel reports from analytics queries
+  app.post("/api/ai/generate-report", requireAuth, async (req, res) => {
+    try {
+      const { question, format = "json", mode = "strict" } = req.body;
+      const userId = req.user?.id;
+      
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ message: "question field is required" });
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID required" });
+      }
+
+      // Execute the analytics query
+      const queryResult = await executeAnalyticsQuery(
+        question,
+        async (sql: string) => {
+          const result = await pool.query(sql);
+          return result.rows;
+        },
+        mode
+      );
+
+      // For JSON format, return with full data
+      if (format === "json") {
+        return res.json({
+          reportId: `report-${Date.now()}`,
+          title: question,
+          generatedAt: new Date().toISOString(),
+          data: queryResult,
+          format: "json"
+        });
+      }
+
+      // For other formats, return data that can be processed by frontend
+      res.json({
+        reportId: `report-${Date.now()}`,
+        title: question,
+        generatedAt: new Date().toISOString(),
+        data: queryResult,
+        format,
+        message: `Report generated in ${format} format. Use this data to export to ${format.toUpperCase()}.`
+      });
+    } catch (error) {
+      console.error("[ai.generate-report]", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to generate report"
+      });
+    }
+  });
+
+  // AI Case Extraction endpoint - extracts specific cases based on criteria
+  app.post("/api/ai/extract-cases", requireAuth, async (req, res) => {
+    try {
+      const { criteria, limit = 50 } = req.body;
+      const userId = req.user?.id;
+      
+      if (!criteria || typeof criteria !== 'string') {
+        return res.status(400).json({ message: "criteria field is required" });
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID required" });
+      }
+
+      // Use AI to generate SQL for case extraction
+      const sqlQuery = await callChatGPT({
+        systemPrompt: `You are a SQL query generator for VetOncoData veterinary database. 
+Generate a SELECT query to extract cases based on criteria: "${criteria}"
+
+IMPORTANT: You MUST include these fields in SELECT:
+- c.id
+- c.case_number
+- c.patient_name
+- c.species
+- c.breed
+- c.age_years
+- c.outcome
+- cl.name as clinic_name
+
+Always include clinic join:
+JOIN clinics cl ON c.clinic_id = cl.id
+
+LIMIT ${Math.min(limit, 100)}
+
+Only output the SQL query, no explanations.`,
+        userMessage: `Extract cases where: ${criteria}`
+      });
+
+      // Validate and execute
+      const validation = validateSQL(sqlQuery);
+      if (!validation.valid) {
+        return res.status(400).json({ 
+          message: "Could not generate valid query for extraction criteria",
+          error: validation.error 
+        });
+      }
+
+      const result = await pool.query(sqlQuery);
+      const cases = result.rows.map((row: any) => ({
+        ...row,
+        link: `/cases/${row.id}`
+      }));
+
+      res.json({
+        criteria,
+        totalFound: cases.length,
+        cases
+      });
+    } catch (error) {
+      console.error("[ai.extract-cases]", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to extract cases"
+      });
+    }
+  });
+
   // Ensure unmatched API routes return JSON instead of falling back to the SPA HTML.
   app.use('/api', (_req, res) => {
     return res.status(404).json({ success: false, error: 'API route not found' });

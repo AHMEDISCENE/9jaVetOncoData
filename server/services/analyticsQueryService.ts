@@ -121,10 +121,19 @@ const DANGEROUS_KEYWORDS = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUN
 // SQL comments are checked separately
 const COMMENT_PATTERNS = ['--', '/*', '*/'];
 
+export interface CaseReference {
+  id: string;
+  case_number?: string;
+  patient_name?: string;
+  clinic_name?: string;
+}
+
 export interface QueryResult {
   summary: string;
   columns: string[];
   rows: any[];
+  caseReferences?: CaseReference[];
+  reportUrl?: string;
 }
 
 /**
@@ -183,6 +192,26 @@ export function validateSQL(sql: string): { valid: boolean; error?: string } {
   }
 
   return { valid: true };
+}
+
+/**
+ * Extract case references from query results for clickable links
+ */
+function extractCaseReferences(rows: any[]): CaseReference[] {
+  const caseRefs: CaseReference[] = [];
+  
+  for (const row of rows) {
+    if (row.id && (row.case_number || row.patient_name)) {
+      caseRefs.push({
+        id: row.id,
+        case_number: row.case_number || undefined,
+        patient_name: row.patient_name || undefined,
+        clinic_name: row.clinic_name || undefined,
+      });
+    }
+  }
+  
+  return caseRefs;
 }
 
 /**
@@ -354,10 +383,14 @@ Please provide a clear, natural-language explanation of these results. Include k
       mode,
     });
 
+    // Extract case references if available in results
+    const caseReferences = extractCaseReferences(rows);
+
     return {
       summary,
       columns,
       rows,
+      caseReferences: caseReferences.length > 0 ? caseReferences : undefined,
     };
   } catch (error) {
     console.error('[executeAnalyticsQuery] Error:', error);
