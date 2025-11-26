@@ -555,29 +555,30 @@ export default function Feeds() {
           posts.map((post) => (
             <Card key={post.id}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
                     <CardTitle className="text-lg mb-2">{post.title}</CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
+                      <span className="whitespace-nowrap">
                         <i className="fas fa-user mr-1"></i>
                         {(post as any).authorName || "Author"}
                       </span>
-                      <span>
+                      <span className="whitespace-nowrap">
                         <i className="fas fa-calendar mr-1"></i>
                         {new Date(post.createdAt).toLocaleDateString()}
                       </span>
                       {post.clinicId && (
-                        <Badge variant="outline">Clinic Post</Badge>
+                        <Badge variant="outline" className="whitespace-nowrap">Clinic Post</Badge>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 sm:flex-nowrap">
                     {canEditPost(post) && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditPost(post)}
+                        className="flex-1 sm:flex-none"
                         data-testid={`button-edit-post-${post.id}`}
                       >
                         <Pencil className="h-4 w-4 mr-1" />
@@ -589,6 +590,7 @@ export default function Feeds() {
                         variant="outline"
                         size="sm"
                         onClick={() => setDeletingPostId(post.id)}
+                        className="flex-1 sm:flex-none"
                         data-testid={`button-delete-post-${post.id}`}
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
