@@ -259,15 +259,15 @@ export default function Header() {
                             }}
                           >
                             <div className="flex items-start gap-2">
-                              <span className="text-lg flex-shrink-0 mt-0.5">{getNotificationIcon(notification.type)}</span>
+                              <span className="text-2xl flex-shrink-0 mt-0.5">{getNotificationIcon(notification.type)}</span>
                               <div className="flex-1 min-w-0">
-                                <p className="font-bold text-sm leading-tight text-foreground">
+                                <p className="font-extrabold text-base leading-snug text-foreground">
                                   {notification.title}
                                 </p>
-                                <p className="text-sm text-foreground mt-1 leading-relaxed">
+                                <p className="text-base text-foreground/90 mt-2 leading-relaxed font-medium">
                                   {notification.message}
                                 </p>
-                                <p className="text-xs text-muted-foreground/70 mt-2">
+                                <p className="text-sm text-muted-foreground mt-3 font-normal">
                                   {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                                 </p>
                               </div>
