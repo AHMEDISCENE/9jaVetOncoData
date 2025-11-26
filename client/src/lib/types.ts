@@ -41,6 +41,7 @@ export interface CaseFilters {
   endDate?: string;
   zone?: string[];
   state?: string[];
+  sex?: string[];
   clinicId?: string[];
   tumourTypeId?: string[];
   sort?: 'clinic' | 'zone' | 'state' | 'date' | 'case_number';
