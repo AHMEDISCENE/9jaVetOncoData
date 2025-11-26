@@ -102,25 +102,41 @@ export default function Sidebar() {
         
         <div className="relative flex flex-col h-full">
           {/* Logo Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border pl-[0px] pr-[0px] pt-[20px] pb-[20px]">
-            <div className="flex items-center gap-2 lg:gap-3 overflow-hidden flex-1">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border pl-[0px] pr-[0px] pt-[20px] pb-[20px]">
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 flex-1 overflow-hidden">
               {!isCollapsed && (
-                <motion.div 
-                  className="flex items-center gap-2 lg:gap-3 whitespace-nowrap"
-                  animate={{ x: ["0px", "-60px", "0px"] }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                >
-                  <img 
-                    src={logoImage} 
-                    alt="VetOncoData Logo"
-                    className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0 object-contain"
-                  />
-                  <span 
-                    className="text-primary tracking-tight text-lg lg:text-[26px] font-extrabold leading-tight"
+                <>
+                  {/* Mobile/Tablet Version (no animation) */}
+                  <div className="flex lg:hidden items-center gap-1 sm:gap-2 flex-1">
+                    <img 
+                      src={logoImage} 
+                      alt="VetOncoData Logo"
+                      className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 object-contain"
+                    />
+                    <span 
+                      className="text-primary tracking-tight text-sm sm:text-base font-extrabold leading-tight truncate"
+                    >
+                      9ja VetOncoData
+                    </span>
+                  </div>
+                  {/* Desktop Version (with animation) */}
+                  <motion.div 
+                    className="hidden lg:flex items-center gap-3 whitespace-nowrap"
+                    animate={{ x: ["0px", "-60px", "0px"] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
                   >
-                    9ja VetOncoData
-                  </span>
-                </motion.div>
+                    <img 
+                      src={logoImage} 
+                      alt="VetOncoData Logo"
+                      className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0 object-contain"
+                    />
+                    <span 
+                      className="text-primary tracking-tight text-lg lg:text-[26px] font-extrabold leading-tight"
+                    >
+                      9ja VetOncoData
+                    </span>
+                  </motion.div>
+                </>
               )}
               {isCollapsed && (
                 <img 
