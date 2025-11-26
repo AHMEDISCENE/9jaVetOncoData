@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { X, ChevronDown, RotateCcw, Filter } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -27,11 +28,14 @@ interface FilterCategory {
 }
 
 export function FilterBar() {
-  const { filters, updateFilter, clearFilters } = useAnalyticsFilters();
+  const { filters, updateFilter, updateMultiSelect, clearFilters } = useAnalyticsFilters();
   const [isOpen, setIsOpen] = useState(false);
 
   const hasActiveFilters = Object.values(filters).some(v => v);
-  const activeFilterCount = Object.values(filters).filter(v => v).length;
+  const activeFilterCount = Object.values(filters).filter(v => {
+    if (Array.isArray(v)) return v.length > 0;
+    return !!v;
+  }).length;
   
   // Collapsed by default unless filters are active
   const shouldShow = isOpen || hasActiveFilters;
@@ -142,6 +146,9 @@ export function FilterBar() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {filterCategories.flatMap((category) =>
               category.filters.map(({ label, key, options }) => {
+                // Skip sex filter in main grid - it will be rendered as checkboxes below
+                if (key === "sex") return null;
+                
                 const value = filters[key as keyof typeof filters];
                 const hasValue = !!value;
                 
@@ -182,6 +189,37 @@ export function FilterBar() {
               })
             )}
           </div>
+
+          {/* Sex Filter - Multi-select Checkboxes */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-2 pt-2 border-t border-border/20"
+          >
+            <Label className="text-xs font-medium text-foreground">Sex</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {SEX_OPTIONS.map(option => {
+                const selectedSex = (filters.sex as string[] | undefined) || [];
+                const isChecked = selectedSex.includes(option);
+                return (
+                  <div key={option} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`sex-${option}`}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => updateMultiSelect("sex", option, checked as boolean)}
+                      data-testid={`checkbox-sex-${option}`}
+                    />
+                    <label
+                      htmlFor={`sex-${option}`}
+                      className="text-xs cursor-pointer text-foreground/80 hover:text-foreground transition-colors"
+                    >
+                      {option}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
 
           {/* State Filter - Conditional */}
           {filters.zone && (
@@ -253,24 +291,50 @@ export function FilterBar() {
               transition={{ delay: 0.05 }}
               className="flex flex-wrap gap-1.5 pt-2 mt-2 border-t border-border/20"
             >
-              {Object.entries(filters).map(([key, value]) => value && (
-                <motion.div
-                  key={key}
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/15 text-primary rounded-full text-xs font-medium border border-primary/30 transition-all"
-                >
-                  <span className="truncate max-w-[100px]">{key === 'dateFrom' || key === 'dateTo' ? `${key}: ${value}` : value}</span>
-                  <button
-                    onClick={() => updateFilter(key as any, undefined)}
-                    className="ml-0.5 hover:bg-primary/20 rounded-full p-0.5 transition-colors"
-                    data-testid={`button-remove-filter-${key}`}
-                    title="Remove filter"
+              {Object.entries(filters).map(([key, value]) => {
+                if (!value || (Array.isArray(value) && value.length === 0)) return null;
+                
+                // Handle sex array
+                if (key === "sex" && Array.isArray(value)) {
+                  return value.map(sexValue => (
+                    <motion.div
+                      key={`${key}-${sexValue}`}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/15 text-primary rounded-full text-xs font-medium border border-primary/30 transition-all"
+                    >
+                      <span className="truncate max-w-[100px]">{sexValue}</span>
+                      <button
+                        onClick={() => updateMultiSelect("sex", sexValue, false)}
+                        className="ml-0.5 hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+                        data-testid={`button-remove-filter-sex-${sexValue}`}
+                        title="Remove filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    </motion.div>
+                  ));
+                }
+                
+                return (
+                  <motion.div
+                    key={key}
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/15 text-primary rounded-full text-xs font-medium border border-primary/30 transition-all"
                   >
-                    <X size={12} />
-                  </button>
-                </motion.div>
-              ))}
+                    <span className="truncate max-w-[100px]">{key === 'dateFrom' || key === 'dateTo' ? `${key}: ${value}` : value}</span>
+                    <button
+                      onClick={() => updateFilter(key as any, undefined)}
+                      className="ml-0.5 hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+                      data-testid={`button-remove-filter-${key}`}
+                      title="Remove filter"
+                    >
+                      <X size={12} />
+                    </button>
+                  </motion.div>
+                );
+              })}
             </motion.div>
           )}
         </motion.div>

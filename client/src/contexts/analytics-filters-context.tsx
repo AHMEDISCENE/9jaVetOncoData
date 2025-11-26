@@ -94,9 +94,16 @@ export function buildFilterParams(filters: AnalyticsFilters): URLSearchParams {
     params.append("states", filters.state);
   }
   
+  // Handle sex as array - append each selected sex value
+  if (filters.sex && Array.isArray(filters.sex) && filters.sex.length > 0) {
+    filters.sex.forEach(sexValue => {
+      params.append("sex", sexValue);
+    });
+  }
+  
   if (filters.tumourType) params.append("tumourTypeIds", filters.tumourType);
   if (filters.dateFrom) params.append("from", filters.dateFrom);
   if (filters.dateTo) params.append("to", filters.dateTo);
-  // Note: ageGroup, sex, status, breed, and clinic filters need backend support to be functional
+  // Note: ageGroup, status, breed, and clinic filters need backend support to be functional
   return params;
 }
