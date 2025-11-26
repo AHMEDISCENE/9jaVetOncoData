@@ -783,7 +783,7 @@ export default function Cases() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label className="text-sm font-medium text-foreground mb-1">Group By</Label>
-              <Select value={filters.groupBy || 'none'} onValueChange={(value) => handleFilterChange("groupBy", value as CaseFilters['groupBy'])}>
+              <Select value={(filters.groupBy || 'none') as string} onValueChange={(value) => handleFilterChange("groupBy", value as CaseFilters['groupBy'])}>
                 <SelectTrigger data-testid="filter-group-by">
                   <SelectValue />
                 </SelectTrigger>
@@ -802,7 +802,7 @@ export default function Cases() {
 
             <div>
               <Label className="text-sm font-medium text-foreground mb-1">Sort By</Label>
-              <Select value={filters.sort || 'date'} onValueChange={(value) => handleFilterChange("sort", value as CaseFilters['sort'])}>
+              <Select value={(filters.sort || 'date') as string} onValueChange={(value) => handleFilterChange("sort", value as CaseFilters['sort'])}>
                 <SelectTrigger data-testid="filter-sort-by">
                   <SelectValue />
                 </SelectTrigger>
@@ -818,7 +818,7 @@ export default function Cases() {
 
             <div>
               <Label className="text-sm font-medium text-foreground mb-1">Sort Order</Label>
-              <Select value={filters.order || 'desc'} onValueChange={(value) => handleFilterChange("order", value as CaseFilters['order'])}>
+              <Select value={(filters.order || 'desc') as string} onValueChange={(value) => handleFilterChange("order", value as CaseFilters['order'])}>
                 <SelectTrigger data-testid="filter-sort-order">
                   <SelectValue />
                 </SelectTrigger>
@@ -938,6 +938,7 @@ export default function Cases() {
                         <TableHead>Case ID</TableHead>
                         <TableHead>Upload Date</TableHead>
                         <TableHead>Patient</TableHead>
+                        <TableHead>Sex</TableHead>
                         <TableHead>Tumour Type</TableHead>
                         <TableHead>Clinic</TableHead>
                         <TableHead>Geo-Political Zone</TableHead>
@@ -969,6 +970,9 @@ export default function Cases() {
                                 {caseItem.ageYears ? `${caseItem.ageYears}y` : ""}{caseItem.ageMonths ? ` ${caseItem.ageMonths}m` : ""}
                               </div>
                             </div>
+                          </TableCell>
+                          <TableCell data-testid={`sex-${caseItem.id}`}>
+                            {caseItem.sex ? sexOptions.find(o => o.value === caseItem.sex)?.label || caseItem.sex : "Not specified"}
                           </TableCell>
                           <TableCell>
                             {caseItem.tumourType?.name || caseItem.tumourTypeCustom || "Not specified"}
