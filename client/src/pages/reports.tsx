@@ -626,14 +626,15 @@ export default function Reports() {
 
       {/* Report History */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Report History</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <CardTitle className="flex-1">Report History</CardTitle>
           {reportHistory && reportHistory.length > 0 && (
             <Button
               variant="destructive"
               size="sm"
               onClick={() => setClearHistoryDialogOpen(true)}
               data-testid="button-clear-history"
+              className="flex-shrink-0 whitespace-nowrap"
             >
               Clear History
             </Button>
