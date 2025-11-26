@@ -97,17 +97,21 @@ CRITICAL RULES:
 2. ALWAYS use LIMIT 100 to prevent too many results
 3. Use table aliases (e.g., 'c' for cases, 'cl' for clinics) for clarity
 4. Always use explicit JOIN syntax (JOIN...ON) when combining tables
-5. For date filtering - VERY IMPORTANT:
+5. **COLUMN LOCATION - VERY IMPORTANT**:
+   - geo_zone is ONLY on cases table (c.geo_zone) - NEVER use cl.geo_zone
+   - state can be used from either table: c.state (case state) OR cl.state (clinic state) - be specific based on question
+   - created_at for cases is in cases table (c.created_at)
+6. For date filtering - VERY IMPORTANT:
    - TODAY: WHERE created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day'
    - THIS MONTH: WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)
    - THIS YEAR: WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
    - YEAR RANGE (e.g. "2021-2025"): WHERE created_at >= '2021-01-01' AND created_at < '2026-01-01'
    - DATE RANGE: WHERE created_at >= 'START_DATE' AND created_at <= 'END_DATE'
-6. Include relevant clinic information when useful (clinic name, state, etc)
-7. Use COUNT(*) for counts, GROUP BY for aggregations
-8. Only reference tables and columns that actually exist in the schema
-9. Make queries readable with proper formatting
-10. ALLOWED OPERATORS: WHERE, AND, OR, BETWEEN, JOIN, GROUP BY, ORDER BY, HAVING, COUNT, SUM, AVG, MAX, MIN, EXTRACT, DATE_TRUNC
+7. Include relevant clinic information when useful (clinic name, state, etc)
+8. Use COUNT(*) for counts, GROUP BY for aggregations
+9. Only reference tables and columns that actually exist in the schema
+10. Make queries readable with proper formatting
+11. ALLOWED OPERATORS: WHERE, AND, OR, BETWEEN, JOIN, GROUP BY, ORDER BY, HAVING, COUNT, SUM, AVG, MAX, MIN, EXTRACT, DATE_TRUNC
 
 Example Queries:
 Q: "How many cases were uploaded today?"
