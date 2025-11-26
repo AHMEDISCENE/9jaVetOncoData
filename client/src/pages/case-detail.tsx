@@ -230,68 +230,69 @@ export default function CaseDetail() {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      let yPosition = 15;
-      const lineHeight = 6;
       const margin = 12;
-      const contentWidth = pageWidth - 2 * margin;
-      const colWidth = contentWidth / 2 - 2;
+      const col1Width = 50;
+      const col2Width = pageWidth - 2 * margin - col1Width - 2;
+      
+      let yPosition = 15;
 
       // Title
-      doc.setFontSize(18);
+      doc.setFontSize(16);
       doc.setFont(undefined, "bold");
       doc.text(`Case Report: ${caseData.caseNumber}`, margin, yPosition);
-      yPosition += 10;
+      yPosition += 8;
 
       // Patient name
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.setFont(undefined, "bold");
-      doc.text(caseData.patientName || "Unnamed Patient", margin, yPosition);
+      doc.text(`Patient: ${caseData.patientName || "Unnamed Patient"}`, margin, yPosition);
       yPosition += 8;
 
       const data = formatData(caseData);
-      const entries = Object.entries(data);
 
-      // Two-column layout
+      // Draw table header
+      doc.setFillColor(100, 150, 130);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont(undefined, "bold");
       doc.setFontSize(9);
-      let leftColY = yPosition;
-      let rightColY = yPosition;
-      let col = 0;
+      doc.rect(margin, yPosition - 5, pageWidth - 2 * margin, 6, "F");
+      doc.text("Field", margin + 2, yPosition);
+      doc.text("Value", margin + col1Width + 2, yPosition);
+      yPosition += 8;
 
-      entries.forEach(([key, value], index) => {
-        const currentY = col === 0 ? leftColY : rightColY;
-        const xPos = col === 0 ? margin : margin + contentWidth / 2 + 2;
+      // Draw rows
+      doc.setTextColor(0, 0, 0);
+      doc.setFont(undefined, "normal");
+      let fillRow = false;
 
-        // Check if we need a new page
-        if (currentY > pageHeight - 20) {
+      Object.entries(data).forEach(([key, value]) => {
+        const valueStr = String(value);
+        const valueLines = doc.splitTextToSize(valueStr, col2Width - 2);
+        const rowHeight = Math.max(5, valueLines.length * 4) + 2;
+
+        // Check if we need new page
+        if (yPosition + rowHeight > pageHeight - 12) {
           doc.addPage();
-          leftColY = 15;
-          rightColY = 15;
-          col = 0;
+          yPosition = 12;
+          fillRow = false;
         }
 
-        const currentYUpdate = col === 0 ? leftColY : rightColY;
+        // Alternate row background
+        if (fillRow) {
+          doc.setFillColor(245, 245, 245);
+          doc.rect(margin, yPosition - 4, pageWidth - 2 * margin, rowHeight, "F");
+        }
 
-        // Label
+        // Draw label (column 1)
         doc.setFont(undefined, "bold");
-        const labelText = `${key}:`;
-        doc.text(labelText, xPos, currentYUpdate);
+        doc.text(key, margin + 2, yPosition);
 
-        // Value with wrapping
+        // Draw value (column 2) with text wrapping
         doc.setFont(undefined, "normal");
-        const valueText = String(value);
-        const textLines = doc.splitTextToSize(valueText, colWidth - 3);
-        doc.text(textLines, xPos + 1, currentYUpdate + lineHeight + 1);
+        doc.text(valueLines, margin + col1Width + 2, yPosition);
 
-        const lineCount = textLines.length;
-        const itemHeight = lineHeight + (lineHeight * lineCount) + 4;
-
-        if (col === 0) {
-          leftColY += itemHeight;
-          col = 1;
-        } else {
-          rightColY += itemHeight;
-          col = 0;
-        }
+        yPosition += rowHeight + 1;
+        fillRow = !fillRow;
       });
 
       doc.save(`${caseData.caseNumber}_${caseData.patientName || 'case'}.pdf`);
