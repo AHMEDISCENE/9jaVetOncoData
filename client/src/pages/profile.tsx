@@ -58,8 +58,8 @@ export default function Profile() {
       {/* Header with Back Button */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Link href="/settings">
-            <Button variant="outline" size="icon" data-testid="button-back-to-settings">
+          <Link href="/dashboard">
+            <Button variant="outline" size="icon" data-testid="button-back-to-dashboard">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
