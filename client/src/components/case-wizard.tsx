@@ -75,7 +75,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
     resolver: zodResolver(caseSchema),
     defaultValues: {
       state: "",
-      clinicId: userClinic?.name || userClinic?.id || "",
+      clinicId: "",
       patientName: "",
       species: "",
       breed: "",
@@ -133,7 +133,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
     if (isEditing && caseData && Object.keys(caseData).length > 0) {
       form.reset({
         state: caseData.geoZone ? Object.keys(NIGERIA_STATES).find(s => getZoneForState(s) === caseData.geoZone) || "" : "",
-        clinicId: caseData.clinic?.name || caseData.clinic?.id || userClinic?.id || "",
+        clinicId: caseData.clinic?.name || "",
         patientName: caseData.patientName || "",
         species: caseData.species || "",
         breed: caseData.breed || "",
@@ -185,12 +185,12 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
     enabled: !!watchedSpecies,
   });
 
-  // Prefill clinic when user clinic is available
+  // Prefill clinic name when user clinic is available (always override)
   useEffect(() => {
-    if (userClinic?.id && !form.getValues("clinicId")) {
-      form.setValue("clinicId", userClinic.name || userClinic.id);
+    if (userClinic?.name) {
+      form.setValue("clinicId", userClinic.name);
     }
-  }, [userClinic, form]);
+  }, [userClinic?.name, form]);
 
   const caseMutation = useMutation({
     mutationFn: async (data: CaseFormData) => {
