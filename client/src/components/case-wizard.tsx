@@ -402,7 +402,15 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
               {currentStep === 1 && (
                 <div className="space-y-6">
                   {/* AI Helper */}
-                  <CaseAIHelper onApplySuggestions={handleApplySuggestions} />
+                  <Suspense fallback={
+                    <div className="bg-muted rounded-lg p-4 animate-pulse">
+                      <div className="h-4 bg-muted-foreground/20 rounded w-3/4 mb-3"></div>
+                      <div className="h-3 bg-muted-foreground/20 rounded w-full mb-2"></div>
+                      <div className="h-3 bg-muted-foreground/20 rounded w-5/6"></div>
+                    </div>
+                  }>
+                    <CaseAIHelper onApplySuggestions={handleApplySuggestions} />
+                  </Suspense>
 
                   {/* State, Zone, and Clinic */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
