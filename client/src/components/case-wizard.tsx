@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,8 +20,7 @@ import { NIGERIA_STATES, getZoneForState, formatStateName, formatZoneName, SPECI
 import { useAttachmentQueue } from "@/hooks/use-attachment-queue";
 import { Paperclip, X, Upload, FileText, Image as ImageIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-const CaseAIHelper = lazy(() => import("@/components/case-ai-helper").then(m => ({ default: m.CaseAIHelper })));
+import { CaseAIHelper } from "@/components/case-ai-helper";
 
 const caseSchema = z.object({
   state: z.string().min(1, "State is required"),
@@ -174,19 +173,16 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
 
   const { data: clinics } = useQuery<Clinic[]>({
     queryKey: ["/api/clinics"],
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 
   const { data: tumourTypes } = useQuery<TumourType[]>({
     queryKey: ["/api/vocabulary/tumour-types", { species: watchedSpecies }],
     enabled: !!watchedSpecies,
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 
   const { data: anatomicalSites } = useQuery<AnatomicalSite[]>({
     queryKey: ["/api/vocabulary/anatomical-sites", { species: watchedSpecies }],
     enabled: !!watchedSpecies,
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 
   // Prefill clinic name when user clinic is available (always override)
@@ -402,15 +398,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
               {currentStep === 1 && (
                 <div className="space-y-6">
                   {/* AI Helper */}
-                  <Suspense fallback={
-                    <div className="bg-muted rounded-lg p-4 animate-pulse">
-                      <div className="h-4 bg-muted-foreground/20 rounded w-3/4 mb-3"></div>
-                      <div className="h-3 bg-muted-foreground/20 rounded w-full mb-2"></div>
-                      <div className="h-3 bg-muted-foreground/20 rounded w-5/6"></div>
-                    </div>
-                  }>
-                    <CaseAIHelper onApplySuggestions={handleApplySuggestions} />
-                  </Suspense>
+                  <CaseAIHelper onApplySuggestions={handleApplySuggestions} />
 
                   {/* State, Zone, and Clinic */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
