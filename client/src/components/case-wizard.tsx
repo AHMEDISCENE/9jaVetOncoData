@@ -173,16 +173,19 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
 
   const { data: clinics } = useQuery<Clinic[]>({
     queryKey: ["/api/clinics"],
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 
   const { data: tumourTypes } = useQuery<TumourType[]>({
     queryKey: ["/api/vocabulary/tumour-types", { species: watchedSpecies }],
     enabled: !!watchedSpecies,
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 
   const { data: anatomicalSites } = useQuery<AnatomicalSite[]>({
     queryKey: ["/api/vocabulary/anatomical-sites", { species: watchedSpecies }],
     enabled: !!watchedSpecies,
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 
   // Prefill clinic name when user clinic is available (always override)
