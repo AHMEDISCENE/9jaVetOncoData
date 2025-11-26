@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -104,6 +105,7 @@ export default function Reports() {
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "xlsx" | "csv">("pdf");
   const [reportTemplateForFormat, setReportTemplateForFormat] = useState<string | null>(null);
   const [runningReportId, setRunningReportId] = useState<string | null>(null);
+  const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -240,6 +242,31 @@ export default function Reports() {
       toast({
         title: "Error",
         description: "Failed to schedule the report. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const clearHistoryMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/reports/history", {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to clear history");
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: "History Cleared",
+        description: "Report history has been cleared successfully",
+      });
+      setClearHistoryDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/history"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to clear report history. Please try again.",
         variant: "destructive",
       });
     },
@@ -589,8 +616,18 @@ export default function Reports() {
 
       {/* Report History */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Report History</CardTitle>
+          {reportHistory && reportHistory.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setClearHistoryDialogOpen(true)}
+              data-testid="button-clear-history"
+            >
+              Clear History
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {reportHistory && reportHistory.length > 0 ? (
@@ -925,6 +962,29 @@ export default function Reports() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Clear History Confirmation Dialog */}
+      <AlertDialog open={clearHistoryDialogOpen} onOpenChange={setClearHistoryDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Report History?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. All report history entries will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-2 justify-end">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => clearHistoryMutation.mutate()}
+              disabled={clearHistoryMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-clear-history"
+            >
+              {clearHistoryMutation.isPending ? "Clearing..." : "Clear All"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Schedule Report Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
