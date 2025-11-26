@@ -28,7 +28,7 @@ import {
   Cell,
 } from "recharts";
 import { Filter, X, Rss, Plus, Upload, TrendingUp } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { DashboardStats } from "@/lib/types";
 import type { FeedPost } from "@shared/schema";
 
@@ -470,36 +470,44 @@ export default function Dashboard() {
           frontContent={
             <div className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <div>
-                  {slideIndices.totalCases === 0 ? (
-                    <>
-                      <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
-                        Total Cases
-                      </p>
-                      <p className="text-4xl font-bold text-blue-600 dark:text-blue-300" data-testid="stat-total-cases">
-                        {stats.totalCases.toLocaleString()}
-                      </p>
-                    </>
-                  ) : stats.casesBySpecies && slideIndices.totalCases - 1 < stats.casesBySpecies.length ? (
-                    <>
-                      <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
-                        {stats.casesBySpecies[slideIndices.totalCases - 1].name}
-                      </p>
-                      <p className="text-4xl font-bold text-blue-600 dark:text-blue-300">
-                        {stats.casesBySpecies[slideIndices.totalCases - 1].count}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
-                        Total Cases
-                      </p>
-                      <p className="text-4xl font-bold text-blue-600 dark:text-blue-300">
-                        {stats.totalCases.toLocaleString()}
-                      </p>
-                    </>
-                  )}
-                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={slideIndices.totalCases}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    {slideIndices.totalCases === 0 ? (
+                      <>
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                          Total Cases
+                        </p>
+                        <p className="text-4xl font-bold text-blue-600 dark:text-blue-300" data-testid="stat-total-cases">
+                          {stats.totalCases.toLocaleString()}
+                        </p>
+                      </>
+                    ) : stats.casesBySpecies && slideIndices.totalCases - 1 < stats.casesBySpecies.length ? (
+                      <>
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                          {stats.casesBySpecies[slideIndices.totalCases - 1].name}
+                        </p>
+                        <p className="text-4xl font-bold text-blue-600 dark:text-blue-300">
+                          {stats.casesBySpecies[slideIndices.totalCases - 1].count}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                          Total Cases
+                        </p>
+                        <p className="text-4xl font-bold text-blue-600 dark:text-blue-300">
+                          {stats.totalCases.toLocaleString()}
+                        </p>
+                      </>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
                 <div className="h-14 w-14 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
                   <i className="fas fa-clipboard-list text-blue-600 dark:text-blue-300 text-xl"></i>
                 </div>
@@ -547,36 +555,44 @@ export default function Dashboard() {
           frontContent={
             <div className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <div>
-                  {slideIndices.newThisMonth === 0 ? (
-                    <>
-                      <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
-                        New This Month
-                      </p>
-                      <p className="text-4xl font-bold text-purple-600 dark:text-purple-300" data-testid="stat-new-this-month">
-                        {stats.newThisMonth.toLocaleString()}
-                      </p>
-                    </>
-                  ) : stats.casesByMonth && slideIndices.newThisMonth - 1 < stats.casesByMonth.length ? (
-                    <>
-                      <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
-                        {stats.casesByMonth[stats.casesByMonth.length - (slideIndices.newThisMonth)].month}
-                      </p>
-                      <p className="text-4xl font-bold text-purple-600 dark:text-purple-300">
-                        {stats.casesByMonth[stats.casesByMonth.length - (slideIndices.newThisMonth)].count}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
-                        New This Month
-                      </p>
-                      <p className="text-4xl font-bold text-purple-600 dark:text-purple-300">
-                        {stats.newThisMonth.toLocaleString()}
-                      </p>
-                    </>
-                  )}
-                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={slideIndices.newThisMonth}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    {slideIndices.newThisMonth === 0 ? (
+                      <>
+                        <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                          New This Month
+                        </p>
+                        <p className="text-4xl font-bold text-purple-600 dark:text-purple-300" data-testid="stat-new-this-month">
+                          {stats.newThisMonth.toLocaleString()}
+                        </p>
+                      </>
+                    ) : stats.casesByMonth && slideIndices.newThisMonth - 1 < stats.casesByMonth.length ? (
+                      <>
+                        <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                          {stats.casesByMonth[stats.casesByMonth.length - (slideIndices.newThisMonth)].month}
+                        </p>
+                        <p className="text-4xl font-bold text-purple-600 dark:text-purple-300">
+                          {stats.casesByMonth[stats.casesByMonth.length - (slideIndices.newThisMonth)].count}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                          New This Month
+                        </p>
+                        <p className="text-4xl font-bold text-purple-600 dark:text-purple-300">
+                          {stats.newThisMonth.toLocaleString()}
+                        </p>
+                      </>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
                 <div className="h-14 w-14 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center">
                   <i className="fas fa-plus text-purple-600 dark:text-purple-300 text-xl"></i>
                 </div>
@@ -624,36 +640,44 @@ export default function Dashboard() {
           frontContent={
             <div className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <div>
-                  {slideIndices.activeClinics === 0 ? (
-                    <>
-                      <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
-                        Active Clinics
-                      </p>
-                      <p className="text-4xl font-bold text-amber-600 dark:text-amber-300" data-testid="stat-active-clinics">
-                        {stats.activeClinics.toLocaleString()}
-                      </p>
-                    </>
-                  ) : stats.clinicsByCount && slideIndices.activeClinics - 1 < stats.clinicsByCount.length ? (
-                    <>
-                      <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
-                        {stats.clinicsByCount[slideIndices.activeClinics - 1].name}
-                      </p>
-                      <p className="text-4xl font-bold text-amber-600 dark:text-amber-300">
-                        {stats.clinicsByCount[slideIndices.activeClinics - 1].count}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
-                        Active Clinics
-                      </p>
-                      <p className="text-4xl font-bold text-amber-600 dark:text-amber-300">
-                        {stats.activeClinics.toLocaleString()}
-                      </p>
-                    </>
-                  )}
-                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={slideIndices.activeClinics}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    {slideIndices.activeClinics === 0 ? (
+                      <>
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                          Active Clinics
+                        </p>
+                        <p className="text-4xl font-bold text-amber-600 dark:text-amber-300" data-testid="stat-active-clinics">
+                          {stats.activeClinics.toLocaleString()}
+                        </p>
+                      </>
+                    ) : stats.clinicsByCount && slideIndices.activeClinics - 1 < stats.clinicsByCount.length ? (
+                      <>
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                          {stats.clinicsByCount[slideIndices.activeClinics - 1].name}
+                        </p>
+                        <p className="text-4xl font-bold text-amber-600 dark:text-amber-300">
+                          {stats.clinicsByCount[slideIndices.activeClinics - 1].count}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                          Active Clinics
+                        </p>
+                        <p className="text-4xl font-bold text-amber-600 dark:text-amber-300">
+                          {stats.activeClinics.toLocaleString()}
+                        </p>
+                      </>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
                 <div className="h-14 w-14 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
                   <i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-xl"></i>
                 </div>
@@ -701,36 +725,44 @@ export default function Dashboard() {
           frontContent={
             <div className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <div>
-                  {slideIndices.remissionRate === 0 ? (
-                    <>
-                      <p className="text-sm font-medium text-green-700 dark:text-green-200">
-                        Remission Rate
-                      </p>
-                      <p className="text-4xl font-bold text-green-600 dark:text-green-300" data-testid="stat-remission-rate">
-                        {stats.remissionRate}%
-                      </p>
-                    </>
-                  ) : stats.treatmentOutcomes && slideIndices.remissionRate - 1 < stats.treatmentOutcomes.length ? (
-                    <>
-                      <p className="text-sm font-medium text-green-700 dark:text-green-200">
-                        {stats.treatmentOutcomes[slideIndices.remissionRate - 1].name}
-                      </p>
-                      <p className="text-4xl font-bold text-green-600 dark:text-green-300">
-                        {stats.treatmentOutcomes[slideIndices.remissionRate - 1].count}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-green-700 dark:text-green-200">
-                        Remission Rate
-                      </p>
-                      <p className="text-4xl font-bold text-green-600 dark:text-green-300">
-                        {stats.remissionRate}%
-                      </p>
-                    </>
-                  )}
-                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={slideIndices.remissionRate}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    {slideIndices.remissionRate === 0 ? (
+                      <>
+                        <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                          Remission Rate
+                        </p>
+                        <p className="text-4xl font-bold text-green-600 dark:text-green-300" data-testid="stat-remission-rate">
+                          {stats.remissionRate}%
+                        </p>
+                      </>
+                    ) : stats.treatmentOutcomes && slideIndices.remissionRate - 1 < stats.treatmentOutcomes.length ? (
+                      <>
+                        <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                          {stats.treatmentOutcomes[slideIndices.remissionRate - 1].name}
+                        </p>
+                        <p className="text-4xl font-bold text-green-600 dark:text-green-300">
+                          {stats.treatmentOutcomes[slideIndices.remissionRate - 1].count}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                          Remission Rate
+                        </p>
+                        <p className="text-4xl font-bold text-green-600 dark:text-green-300">
+                          {stats.remissionRate}%
+                        </p>
+                      </>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
                 <div className="h-14 w-14 bg-green-200 dark:bg-green-800 rounded-full flex items-center justify-center">
                   <i className="fas fa-heart text-green-600 dark:text-green-300 text-xl"></i>
                 </div>
