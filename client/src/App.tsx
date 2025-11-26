@@ -28,40 +28,35 @@ import AITest from "@/pages/ai-test";
 import { SidebarProvider, useSidebar } from "@/contexts/sidebar-context";
 import { AnalyticsDateRangeProvider } from "@/contexts/analytics-date-range-context";
 import { AnalyticsFiltersProvider } from "@/contexts/analytics-filters-context";
-import doodleImage from "@assets/generated_images/doodle_art_of_dog_cat_breeds_and_vet_materials.png";
 
 function AuthenticatedLayout() {
   const { isCollapsed } = useSidebar();
   
   return (
-    <div className="min-h-screen" style={{ backgroundImage: `url(${doodleImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
-      {/* Overlay for content readability */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/75 via-white/70 to-white/75 dark:from-gray-950/80 dark:via-gray-950/75 dark:to-gray-950/80 pointer-events-none" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }} />
-      <div className="relative z-10">
-        <Sidebar />
-        <div className={`transition-all duration-200 ${isCollapsed ? "lg:ml-20" : "lg:ml-64"}`}>
-          <Header />
-          <main>
-            <Switch>
-              <Route path="/" component={Dashboard} />
-              <Route path="/dashboard" component={Dashboard} />
-              <Route path="/cases" component={Cases} />
-              <Route path="/cases/new" component={NewCase} />
-              <Route path="/cases/:id/edit" component={EditCase} />
-              <Route path="/cases/:id" component={CaseDetail} />
-              <Route path="/bulk-upload" component={BulkUpload} />
-              <Route path="/analytics" component={Analytics} />
-              <Route path="/reports" component={Reports} />
-              <Route path="/feeds" component={Feeds} />
-              <Route path="/calendar" component={Calendar} />
-              <Route path="/profile" component={Profile} />
-              <Route path="/settings" component={Settings} />
-              <Route path="/admin/users" component={UserManagement} />
-              <Route path="/dev/ai-test" component={AITest} />
-              <Route component={NotFound} />
-            </Switch>
-          </main>
-        </div>
+    <div className="min-h-screen bg-background">
+      <Sidebar />
+      <div className={`transition-all duration-200 ${isCollapsed ? "lg:ml-20" : "lg:ml-64"}`}>
+        <Header />
+        <main>
+          <Switch>
+            <Route path="/" component={Dashboard} />
+            <Route path="/dashboard" component={Dashboard} />
+            <Route path="/cases" component={Cases} />
+            <Route path="/cases/new" component={NewCase} />
+            <Route path="/cases/:id/edit" component={EditCase} />
+            <Route path="/cases/:id" component={CaseDetail} />
+            <Route path="/bulk-upload" component={BulkUpload} />
+            <Route path="/analytics" component={Analytics} />
+            <Route path="/reports" component={Reports} />
+            <Route path="/feeds" component={Feeds} />
+            <Route path="/calendar" component={Calendar} />
+            <Route path="/profile" component={Profile} />
+            <Route path="/settings" component={Settings} />
+            <Route path="/admin/users" component={UserManagement} />
+            <Route path="/dev/ai-test" component={AITest} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
       </div>
     </div>
   );
