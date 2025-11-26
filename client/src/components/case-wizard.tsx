@@ -1048,12 +1048,13 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
           </Card>
 
           {/* Navigation & Actions */}
-          <div className="flex justify-between items-center pt-6">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 pt-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-4 order-2 sm:order-1">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setLocation("/cases")}
+                className="w-full sm:w-auto"
                 data-testid="button-cancel-case"
               >
                 Cancel
@@ -1063,18 +1064,20 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                 type="button"
                 variant="ghost"
                 onClick={clearDraft}
+                className="w-full sm:w-auto"
                 data-testid="button-clear-draft"
               >
                 Clear Draft
               </Button>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-4 order-1 sm:order-2">
               {currentStep > 1 && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={prevStep}
+                  className="w-full sm:w-auto"
                   data-testid="button-previous-step"
                 >
                   Previous
@@ -1085,6 +1088,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                 <Button
                   type="button"
                   onClick={nextStep}
+                  className="w-full sm:w-auto"
                   data-testid="button-next-step"
                 >
                   Next: {steps[currentStep].title}
@@ -1093,6 +1097,7 @@ export default function CaseWizard({ caseId }: CaseWizardProps) {
                 <Button
                   type="submit"
                   disabled={caseMutation.isPending}
+                  className="w-full sm:w-auto"
                   data-testid="button-submit-case"
                 >
                   {caseMutation.isPending ? (
