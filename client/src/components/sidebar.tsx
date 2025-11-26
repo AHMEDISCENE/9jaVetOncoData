@@ -198,22 +198,22 @@ export default function Sidebar() {
 
           {/* User Profile */}
           <motion.div 
-            className="border-t border-border/40 p-3 space-y-2"
+            className="border-t border-border/40 p-3 space-y-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
           >
             {isCollapsed ? (
-              <div className="flex flex-col items-center space-y-2">
+              <div className="flex flex-col items-center space-y-3 lg:space-y-2">
                 <Link 
                   href="/profile"
                   onClick={() => setIsMobileOpen(false)}
-                  className="w-full flex justify-center"
+                  className="w-full flex flex-col items-center gap-2 group"
                 >
                   <motion.div 
-                    className="h-10 w-10 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center shadow-md ring-2 ring-primary/20 overflow-hidden flex-shrink-0 relative cursor-pointer hover:ring-primary/40 transition-all" 
+                    className="h-12 w-12 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center shadow-md ring-2 ring-primary/20 overflow-hidden flex-shrink-0 relative cursor-pointer group-hover:ring-primary/40 transition-all" 
                     title={user?.name || "Unknown User"}
-                    whileHover={{ scale: 1.1 }}
+                    whileHover={{ scale: 1.08 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
                     data-testid="button-profile-avatar-collapsed"
                   >
@@ -224,35 +224,47 @@ export default function Sidebar() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span className="text-xs font-bold text-primary-foreground" data-testid="text-user-initials">
+                      <span className="text-sm font-bold text-primary-foreground" data-testid="text-user-initials">
                         {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
                       </span>
                     )}
                   </motion.div>
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-foreground dark:text-foreground line-clamp-1" data-testid="text-user-name-mobile">
+                      {user?.name || "User"}
+                    </p>
+                    <p className="text-[10px] font-medium text-foreground/50 dark:text-foreground/50 line-clamp-1" data-testid="text-clinic-name-mobile">
+                      {clinic?.name || "Clinic"}
+                    </p>
+                  </div>
                 </Link>
-                <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-                  <Link 
-                    href="/settings"
-                    className="block p-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary dark:text-primary-foreground dark:hover:text-primary-foreground transition-all duration-200 border border-primary/20 hover:border-primary/40"
-                    data-testid="link-settings"
-                    onClick={() => setIsMobileOpen(false)}
-                    title="Settings"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Link>
-                </motion.div>
-                <motion.div className="w-full" whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="w-full px-2 py-1.5 font-semibold shadow-md hover:shadow-lg transition-all duration-200 h-auto" 
-                    onClick={handleLogout}
-                    data-testid="button-logout"
-                    title="Logout"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </motion.div>
+                <div className="w-full flex gap-2 lg:flex-col lg:gap-1">
+                  <motion.div className="flex-1 lg:w-full" whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                    <Link 
+                      href="/settings"
+                      className="flex items-center justify-center gap-2 lg:gap-1.5 p-2 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary hover:text-primary dark:text-primary-foreground dark:hover:text-primary-foreground transition-all duration-200 border border-primary/30 hover:border-primary/50 lg:text-xs lg:font-semibold"
+                      data-testid="link-settings-mobile"
+                      onClick={() => setIsMobileOpen(false)}
+                      title="Settings"
+                    >
+                      <Settings className="h-4 w-4 lg:h-3.5 lg:w-3.5 flex-shrink-0" />
+                      <span className="hidden lg:inline">Settings</span>
+                    </Link>
+                  </motion.div>
+                  <motion.div className="flex-1 lg:w-full" whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="w-full px-2 py-2 font-semibold shadow-md hover:shadow-lg transition-all duration-200 h-auto flex items-center justify-center gap-2 lg:gap-1.5 lg:text-xs" 
+                      onClick={handleLogout}
+                      data-testid="button-logout-mobile"
+                      title="Logout"
+                    >
+                      <LogOut className="h-4 w-4 lg:h-3.5 lg:w-3.5 flex-shrink-0" />
+                      <span className="hidden lg:inline">Logout</span>
+                    </Button>
+                  </motion.div>
+                </div>
               </div>
             ) : (
               <>
