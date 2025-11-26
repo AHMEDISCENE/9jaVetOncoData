@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, ChevronDown } from "lucide-react";
+import { Loader2, Download, ChevronDown, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 import {
@@ -362,6 +363,7 @@ export function AIAnalyticsPanel() {
                               {col.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2")}
                             </th>
                           ))}
+                          <th className="px-4 py-2 text-left font-medium text-foreground whitespace-nowrap">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -384,6 +386,23 @@ export function AIAnalyticsPanel() {
                                 }
                               </td>
                             ))}
+                            <td className="px-4 py-2">
+                              {row.id ? (
+                                <Link href={`/cases/${row.id}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="gap-2 h-8"
+                                    data-testid={`button-view-case-${idx}`}
+                                  >
+                                    View
+                                    <ExternalLink className="h-3 w-3" />
+                                  </Button>
+                                </Link>
+                              ) : (
+                                <span className="text-slate-400 text-xs">—</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
