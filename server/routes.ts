@@ -20,7 +20,7 @@ import { autoTable } from "jspdf-autotable";
 import { sendPasswordResetEmail } from "./email";
 import { callChatGPT } from "./services/openaiClient";
 import { buildLiveDataContext } from "./services/buildLiveDataContext";
-import { executeAnalyticsQuery } from "./services/analyticsQueryService";
+import { executeAnalyticsQuery, validateSQL } from "./services/analyticsQueryService";
 import { suggestCaseFields } from "./services/caseSuggestionService";
 
 const PgSession = ConnectPgSimple(session);

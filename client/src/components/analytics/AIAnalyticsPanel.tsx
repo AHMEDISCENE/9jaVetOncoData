@@ -3,12 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
 
 interface AnalyticsQueryResponse {
   summary: string;
   columns: string[];
   rows: any[];
+  caseReferences?: Array<{ id: string; case_number?: string; patient_name?: string; clinic_name?: string }>;
 }
 
 type AIMode = "strict" | "universal";
@@ -63,6 +66,149 @@ export function AIAnalyticsPanel() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const downloadAsCSV = () => {
+    if (!response) return;
+
+    const headers = response.columns;
+    const rows = response.rows;
+
+    // Convert rows to CSV format
+    const csvContent = [
+      // Add summary as comment rows
+      [`# AI Analytics Report - ${new Date().toLocaleString()}`],
+      [`# Mode: ${aiMode}`],
+      [`# Summary: ${response.summary.substring(0, 100)}...`],
+      [],
+      // Add headers
+      headers.map(h => `"${h}"`).join(","),
+      // Add rows
+      ...rows.map(row =>
+        headers.map(col => {
+          const val = row[col];
+          if (val === null || val === undefined) return '""';
+          const strVal = String(val).replace(/"/g, '""');
+          return `"${strVal}"`;
+        }).join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ai-analytics-${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: "Report downloaded as CSV",
+    });
+  };
+
+  const downloadAsExcel = () => {
+    if (!response) return;
+
+    const workbook = XLSX.utils.book_new();
+
+    // Summary sheet
+    const summaryData = [
+      ["AI Analytics Report"],
+      ["Generated", new Date().toLocaleString()],
+      ["Mode", aiMode],
+      ["Summary", response.summary],
+      [],
+      ["Total Rows", response.rows.length],
+    ];
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    summarySheet["!cols"] = [{ wch: 20 }, { wch: 60 }];
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
+
+    // Results sheet
+    const dataArray = [response.columns, ...response.rows.map(row => response.columns.map(col => row[col]))];
+    const dataSheet = XLSX.utils.aoa_to_sheet(dataArray);
+    dataSheet["!cols"] = response.columns.map(() => ({ wch: 15 }));
+    XLSX.utils.book_append_sheet(workbook, dataSheet, "Results");
+
+    XLSX.writeFile(workbook, `ai-analytics-${Date.now()}.xlsx`);
+
+    toast({
+      title: "Success",
+      description: "Report downloaded as Excel",
+    });
+  };
+
+  const downloadAsPDF = () => {
+    if (!response) return;
+
+    const pdf = new jsPDF();
+    let yPosition = 10;
+
+    // Title
+    pdf.setFontSize(16);
+    pdf.text("AI Analytics Report", 10, yPosition);
+    yPosition += 10;
+
+    // Metadata
+    pdf.setFontSize(10);
+    pdf.text(`Generated: ${new Date().toLocaleString()}`, 10, yPosition);
+    yPosition += 6;
+    pdf.text(`Mode: ${aiMode}`, 10, yPosition);
+    yPosition += 10;
+
+    // Summary
+    pdf.setFontSize(12);
+    pdf.text("Summary", 10, yPosition);
+    yPosition += 6;
+    pdf.setFontSize(10);
+    const summaryLines = pdf.splitTextToSize(response.summary, 190);
+    pdf.text(summaryLines, 10, yPosition);
+    yPosition += summaryLines.length * 4 + 5;
+
+    // Table
+    if (response.rows.length > 0) {
+      pdf.setFontSize(12);
+      pdf.text("Results", 10, yPosition);
+      yPosition += 8;
+
+      const tableData = [
+        response.columns,
+        ...response.rows.slice(0, 20).map(row => response.columns.map(col => String(row[col] ?? ""))),
+      ];
+
+      (pdf as any).autoTable({
+        head: [response.columns],
+        body: response.rows.slice(0, 20).map(row => response.columns.map(col => String(row[col] ?? ""))),
+        startY: yPosition,
+        margin: { left: 10, right: 10 },
+        theme: "grid",
+        fontSize: 9,
+        columnStyles: {
+          ...response.columns.reduce((acc, col, i) => ({
+            ...acc,
+            [i]: { cellWidth: Math.max(15, 180 / response.columns.length) },
+          }), {}),
+        },
+      });
+
+      if (response.rows.length > 20) {
+        const lastPage = pdf.getNumberOfPages();
+        pdf.setPage(lastPage);
+        pdf.setFontSize(8);
+        pdf.text(`Showing first 20 of ${response.rows.length} rows`, 10, pdf.lastAutoTable.finalY + 5);
+      }
+    }
+
+    pdf.save(`ai-analytics-${Date.now()}.pdf`);
+
+    toast({
+      title: "Success",
+      description: "Report downloaded as PDF",
+    });
   };
 
   return (
@@ -135,6 +281,40 @@ export function AIAnalyticsPanel() {
 
         {response && (
           <div className="mt-6 space-y-4">
+            {/* Download Buttons */}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={downloadAsCSV}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                data-testid="button-download-csv"
+              >
+                <Download className="h-4 w-4" />
+                CSV
+              </Button>
+              <Button
+                onClick={downloadAsExcel}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                data-testid="button-download-excel"
+              >
+                <Download className="h-4 w-4" />
+                Excel
+              </Button>
+              <Button
+                onClick={downloadAsPDF}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                data-testid="button-download-pdf"
+              >
+                <Download className="h-4 w-4" />
+                PDF
+              </Button>
+            </div>
+
             {/* Summary */}
             <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
               <h3 className="font-semibold text-sm text-foreground mb-2">Summary</h3>
