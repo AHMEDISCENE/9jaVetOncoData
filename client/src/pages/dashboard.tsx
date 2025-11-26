@@ -190,6 +190,15 @@ export default function Dashboard() {
     },
   });
 
+  const { data: currentUser } = useQuery({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const response = await fetch("/api/auth/me");
+      if (!response.ok) throw new Error("Failed to fetch user");
+      return response.json();
+    },
+  });
+
   // Auto-rotate slides every 4 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -366,6 +375,15 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 sm:p-6">
+      {/* Welcome Message */}
+      {currentUser && (
+        <div className="mb-6">
+          <p className="text-xl font-semibold text-foreground">
+            Welcome back, <span className="text-blue-600 dark:text-blue-400">{currentUser.user?.name || currentUser.user?.email || 'User'}</span>!
+          </p>
+        </div>
+      )}
+
       {/* Header with Filters */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
