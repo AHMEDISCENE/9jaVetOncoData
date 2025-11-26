@@ -1,0 +1,66 @@
+You are working inside the VetOncoData backend.
+
+Problem:
+In the “Ask AI About Your Data” panel (Strictly VetOncoData mode), simple questions like
+  "Number of cases from 2021 - 2025"
+return the fallback message:
+  "I could not generate a valid query for this question…"
+instead of a correct answer. This means the natural-language → SQL step or the SQL validation is too strict or mis-configured.
+
+Goal:
+Fix the analytics AI endpoint so it can correctly handle year / date-range questions such as:
+- "Number of cases from 2021 - 2025"
+- "How many cases were uploaded today / this month / this year?"
+
+Keep the existing structure (question → SQL → DB → summary); just make it robust.
+
+Context:
+- There is an AI analytics route (e.g. POST /api/ai/analytics-query).
+- It calls ChatGPT to generate a SQL SELECT, validates the SQL, runs it on Postgres, then summarises the results.
+- The cases table has a timestamp column (e.g. `created_at`) that should be used for “uploaded” time.
+
+Tasks (backend only):
+
+1. Improve the system prompt for SQL generation
+- In the part where you call ChatGPT to generate SQL, update the system prompt to clearly explain:
+  - The schema for `cases` and any other relevant tables (include `created_at`).
+  - For questions like “from 2021–2025”, it should interpret this as a year range and generate something like:
+
+    SELECT COUNT(*) AS total_cases
+    FROM cases
+    WHERE created_at >= '2021-01-01' AND created_at < '2026-01-01';
+
+  - For “uploaded today / this month / this year”, it should use `created_at` with DATE functions.
+
+2. Relax and fix SQL validation (but keep it safe)
+- Check the SQL validation logic used before executing the query.
+- Make sure it allows:
+  - `BETWEEN`, `>=`, `<=`, `AND`, `OR`
+  - `COUNT(*)`, `GROUP BY`, date functions, etc.
+- Ensure it only blocks clearly dangerous things (INSERT, UPDATE, DELETE, DROP, ALTER, multiple statements, semicolons, etc.), not legitimate SELECT queries with date ranges.
+
+3. Add a simple fallback for date-range questions
+- After getting the SQL back from ChatGPT:
+  - If validation fails OR the query cannot be parsed:
+    - Detect simple patterns like “Number of cases from 2021 - 2025” or “from YEAR1 to YEAR2”.
+    - In that case, build a safe SQL query yourself without AI, e.g.:
+
+      SELECT COUNT(*) AS total_cases
+      FROM cases
+      WHERE created_at >= 'YEAR1-01-01' AND created_at < 'YEAR2+1-01-01';
+
+    - Run this query and return the result instead of the generic “could not generate a valid query” message.
+
+4. Keep Strict mode behaviour but with real answers
+- Strict mode should still:
+  - Use only VetOncoData data (no external knowledge).
+  - Describe counts and trends based solely on the SQL results.
+- Do NOT show the generic fallback message unless:
+  - The SQL is invalid AND the simple fallback also fails.
+
+Scope:
+- Only modify the analytics AI route, the SQL-generation prompt, and the SQL validation logic.
+- Do not change the frontend UI or other AI features.
+
+End result:
+Questions like “Number of cases from 2021 - 2025” in Strictly VetOncoData mode should now return a correct count and a short explanation based on the database, not the generic error message.

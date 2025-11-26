@@ -97,21 +97,30 @@ CRITICAL RULES:
 2. ALWAYS use LIMIT 100 to prevent too many results
 3. Use table aliases (e.g., 'c' for cases, 'cl' for clinics) for clarity
 4. Always use explicit JOIN syntax (JOIN...ON) when combining tables
-5. For date filtering:
-   - TODAY: WHERE DATE(cases.created_at) = CURRENT_DATE
-   - THIS MONTH: WHERE DATE_TRUNC('month', cases.created_at) = DATE_TRUNC('month', CURRENT_DATE)
-   - THIS YEAR: WHERE EXTRACT(YEAR FROM cases.created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+5. For date filtering - VERY IMPORTANT:
+   - TODAY: WHERE created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day'
+   - THIS MONTH: WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)
+   - THIS YEAR: WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+   - YEAR RANGE (e.g. "2021-2025"): WHERE created_at >= '2021-01-01' AND created_at < '2026-01-01'
+   - DATE RANGE: WHERE created_at >= 'START_DATE' AND created_at <= 'END_DATE'
 6. Include relevant clinic information when useful (clinic name, state, etc)
 7. Use COUNT(*) for counts, GROUP BY for aggregations
 8. Only reference tables and columns that actually exist in the schema
 9. Make queries readable with proper formatting
+10. ALLOWED OPERATORS: WHERE, AND, OR, BETWEEN, JOIN, GROUP BY, ORDER BY, HAVING, COUNT, SUM, AVG, MAX, MIN, EXTRACT, DATE_TRUNC
 
 Example Queries:
 Q: "How many cases were uploaded today?"
-A: SELECT COUNT(*) as total_cases FROM cases WHERE DATE(cases.created_at) = CURRENT_DATE
+A: SELECT COUNT(*) as total_cases FROM cases WHERE created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day'
+
+Q: "Number of cases from 2021 - 2025"
+A: SELECT COUNT(*) as total_cases FROM cases WHERE created_at >= '2021-01-01' AND created_at < '2026-01-01'
 
 Q: "How many feline cases from Lagos this year?"
 A: SELECT COUNT(*) as feline_count FROM cases c JOIN clinics cl ON c.clinic_id = cl.id WHERE c.species = 'Feline' AND cl.state = 'LAGOS' AND EXTRACT(YEAR FROM c.created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+
+Q: "Cases by species breakdown"
+A: SELECT species, COUNT(*) as count FROM cases GROUP BY species ORDER BY count DESC LIMIT 100
 
 Q: "Which clinic has the highest number of remission cases?"
 A: SELECT cl.name, COUNT(*) as remission_count FROM cases c JOIN clinics cl ON c.clinic_id = cl.id WHERE c.outcome = 'REMISSION' GROUP BY cl.id, cl.name ORDER BY remission_count DESC LIMIT 100`;
@@ -120,6 +129,47 @@ A: SELECT cl.name, COUNT(*) as remission_count FROM cases c JOIN clinics cl ON c
 const DANGEROUS_KEYWORDS = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'CREATE', 'EXEC', 'EXECUTE'];
 // SQL comments are checked separately
 const COMMENT_PATTERNS = ['--', '/*', '*/'];
+
+/**
+ * Try to parse a simple date-range question like "number of cases from 2021-2025"
+ * Returns a safe SQL query if pattern matches, otherwise null
+ */
+function trySimpleDateRangeFallback(question: string): string | null {
+  const question_lower = question.toLowerCase();
+  
+  // Pattern 1: "number of cases from YEAR1 - YEAR2" or "cases from YEAR1-YEAR2"
+  const yearRangeMatch = question_lower.match(/(?:number of )cases from (\d{4})\s*[-–to]+\s*(\d{4})/i);
+  if (yearRangeMatch) {
+    const year1 = parseInt(yearRangeMatch[1]);
+    const year2 = parseInt(yearRangeMatch[2]);
+    const startYear = Math.min(year1, year2);
+    const endYear = Math.max(year1, year2);
+    return `SELECT COUNT(*) as total_cases FROM cases WHERE created_at >= '${startYear}-01-01' AND created_at < '${endYear + 1}-01-01'`;
+  }
+
+  // Pattern 2: "cases from YEAR1 to YEAR2"
+  const yearToMatch = question_lower.match(/cases from (\d{4}) to (\d{4})/i);
+  if (yearToMatch) {
+    const year1 = parseInt(yearToMatch[1]);
+    const year2 = parseInt(yearToMatch[2]);
+    const startYear = Math.min(year1, year2);
+    const endYear = Math.max(year1, year2);
+    return `SELECT COUNT(*) as total_cases FROM cases WHERE created_at >= '${startYear}-01-01' AND created_at < '${endYear + 1}-01-01'`;
+  }
+
+  // Pattern 3: "uploaded this month/year/today"
+  if (question_lower.includes('uploaded') && question_lower.includes('today')) {
+    return `SELECT COUNT(*) as total_cases FROM cases WHERE created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day'`;
+  }
+  if (question_lower.includes('uploaded') && question_lower.includes('month')) {
+    return `SELECT COUNT(*) as total_cases FROM cases WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)`;
+  }
+  if (question_lower.includes('uploaded') && question_lower.includes('year')) {
+    return `SELECT COUNT(*) as total_cases FROM cases WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)`;
+  }
+
+  return null;
+}
 
 export interface CaseReference {
   id: string;
@@ -289,7 +339,7 @@ export async function executeAnalyticsQuery(
   try {
     // Step 1: Generate SQL using ChatGPT with comprehensive schema
     console.log(`[Analytics Query] Generating SQL for: "${question}"`);
-    const sqlQuery = await callChatGPT({
+    let sqlQuery = await callChatGPT({
       systemPrompt: SQL_GENERATION_SYSTEM_PROMPT,
       userMessage: question,
     });
@@ -297,7 +347,20 @@ export async function executeAnalyticsQuery(
     console.log(`[Analytics Query] Generated SQL: ${sqlQuery.substring(0, 100)}...`);
 
     // Step 2: Validate the SQL before execution
-    const validation = validateSQL(sqlQuery);
+    let validation = validateSQL(sqlQuery);
+    
+    // Step 2b: If validation failed in strict mode, try simple fallback patterns
+    if (!validation.valid && mode === "strict") {
+      console.log(`[Analytics Query] SQL validation failed: ${validation.error}, trying simple fallback...`);
+      const fallbackSQL = trySimpleDateRangeFallback(question);
+      
+      if (fallbackSQL) {
+        console.log(`[Analytics Query] Using fallback SQL: ${fallbackSQL}`);
+        sqlQuery = fallbackSQL;
+        validation = validateSQL(sqlQuery);
+      }
+    }
+    
     if (!validation.valid) {
       console.log(`[Analytics Query] SQL validation failed: ${validation.error}`);
       
