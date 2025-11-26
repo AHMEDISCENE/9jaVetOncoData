@@ -51,10 +51,10 @@ const outcomeLabels = {
 };
 
 const sexOptions = [
-  { value: "MALE_NEUTERED", label: "♂ Neutered" },
-  { value: "MALE_INTACT", label: "♂ Intact" },
-  { value: "FEMALE_SPAYED", label: "♀ Spayed" },
-  { value: "FEMALE_INTACT", label: "♀ Intact" },
+  { value: "MALE_NEUTERED", label: "Male Neutered" },
+  { value: "MALE_INTACT", label: "Male Intact" },
+  { value: "FEMALE_SPAYED", label: "Female Spayed" },
+  { value: "FEMALE_INTACT", label: "Female Intact" },
 ];
 
 interface NgState {
