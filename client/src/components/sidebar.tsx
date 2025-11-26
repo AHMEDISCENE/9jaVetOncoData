@@ -204,18 +204,19 @@ export default function Sidebar() {
             transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
           >
             {isCollapsed ? (
-              <div className="flex flex-col items-center space-y-3 lg:space-y-2">
+              <div className="flex flex-col items-center space-y-2 lg:space-y-2.5">
+                {/* Mobile: Avatar with user info */}
                 <Link 
                   href="/profile"
                   onClick={() => setIsMobileOpen(false)}
-                  className="w-full flex flex-col items-center gap-2 group"
+                  className="w-full flex lg:hidden flex-col items-center gap-2 group"
                 >
                   <motion.div 
                     className="h-12 w-12 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center shadow-md ring-2 ring-primary/20 overflow-hidden flex-shrink-0 relative cursor-pointer group-hover:ring-primary/40 transition-all" 
                     title={user?.name || "Unknown User"}
                     whileHover={{ scale: 1.08 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    data-testid="button-profile-avatar-collapsed"
+                    data-testid="button-profile-avatar-mobile"
                   >
                     {(user as any)?.image ? (
                       <img 
@@ -238,30 +239,83 @@ export default function Sidebar() {
                     </p>
                   </div>
                 </Link>
-                <div className="w-full flex gap-2 lg:flex-col lg:gap-1">
-                  <motion.div className="flex-1 lg:w-full" whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                {/* Desktop: Avatar only */}
+                <Link 
+                  href="/profile"
+                  onClick={() => setIsMobileOpen(false)}
+                  className="hidden lg:flex w-full justify-center group"
+                >
+                  <motion.div 
+                    className="h-10 w-10 bg-gradient-to-br from-primary/90 to-primary/70 rounded-full flex items-center justify-center shadow-md ring-2 ring-primary/20 overflow-hidden flex-shrink-0 relative cursor-pointer group-hover:ring-primary/40 transition-all" 
+                    title={user?.name || "Unknown User"}
+                    whileHover={{ scale: 1.08 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    data-testid="button-profile-avatar-collapsed"
+                  >
+                    {(user as any)?.image ? (
+                      <img 
+                        src={`${window.location.origin}${(user as any).image}?t=${Date.now()}`}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-bold text-primary-foreground" data-testid="text-user-initials">
+                        {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "??"}
+                      </span>
+                    )}
+                  </motion.div>
+                </Link>
+                {/* Mobile: Buttons with text */}
+                <div className="w-full flex gap-2 lg:hidden">
+                  <motion.div className="flex-1" whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
                     <Link 
                       href="/settings"
-                      className="flex items-center justify-center gap-2 lg:gap-1.5 p-2 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary hover:text-primary dark:text-primary-foreground dark:hover:text-primary-foreground transition-all duration-200 border border-primary/30 hover:border-primary/50 lg:text-xs lg:font-semibold"
+                      className="flex items-center justify-center gap-2 p-2 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary hover:text-primary dark:text-primary-foreground dark:hover:text-primary-foreground transition-all duration-200 border border-primary/30 hover:border-primary/50"
                       data-testid="link-settings-mobile"
                       onClick={() => setIsMobileOpen(false)}
                       title="Settings"
                     >
-                      <Settings className="h-4 w-4 lg:h-3.5 lg:w-3.5 flex-shrink-0" />
-                      <span className="hidden lg:inline">Settings</span>
+                      <Settings className="h-4 w-4 flex-shrink-0" />
+                      <span>Settings</span>
                     </Link>
                   </motion.div>
-                  <motion.div className="flex-1 lg:w-full" whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                  <motion.div className="flex-1" whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
                     <Button 
                       variant="default" 
                       size="sm" 
-                      className="w-full px-2 py-2 font-semibold shadow-md hover:shadow-lg transition-all duration-200 h-auto flex items-center justify-center gap-2 lg:gap-1.5 lg:text-xs" 
+                      className="w-full px-2 py-2 font-semibold shadow-md hover:shadow-lg transition-all duration-200 h-auto flex items-center justify-center gap-2" 
                       onClick={handleLogout}
                       data-testid="button-logout-mobile"
                       title="Logout"
                     >
-                      <LogOut className="h-4 w-4 lg:h-3.5 lg:w-3.5 flex-shrink-0" />
-                      <span className="hidden lg:inline">Logout</span>
+                      <LogOut className="h-4 w-4 flex-shrink-0" />
+                      <span>Logout</span>
+                    </Button>
+                  </motion.div>
+                </div>
+                {/* Desktop: Icon-only buttons */}
+                <div className="hidden lg:flex w-full flex-col gap-1.5">
+                  <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                    <Link 
+                      href="/settings"
+                      className="flex items-center justify-center p-2.5 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary hover:text-primary dark:text-primary-foreground dark:hover:text-primary-foreground transition-all duration-200 border border-primary/30 hover:border-primary/50"
+                      data-testid="link-settings"
+                      onClick={() => setIsMobileOpen(false)}
+                      title="Settings"
+                    >
+                      <Settings className="h-4 w-4 flex-shrink-0" />
+                    </Link>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="w-full px-2 py-2.5 font-semibold shadow-md hover:shadow-lg transition-all duration-200 h-auto flex items-center justify-center" 
+                      onClick={handleLogout}
+                      data-testid="button-logout"
+                      title="Logout"
+                    >
+                      <LogOut className="h-4 w-4 flex-shrink-0" />
                     </Button>
                   </motion.div>
                 </div>
