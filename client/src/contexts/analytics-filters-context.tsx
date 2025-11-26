@@ -9,7 +9,7 @@ export interface AnalyticsFilters {
   zone?: string;
   state?: string;
   clinic?: string;
-  status?: string;
+  outcome?: string;
   dateFrom?: string;
   dateTo?: string;
 }
@@ -101,9 +101,10 @@ export function buildFilterParams(filters: AnalyticsFilters): URLSearchParams {
     });
   }
   
+  if (filters.outcome) params.append("outcome", filters.outcome);
   if (filters.tumourType) params.append("tumourTypeIds", filters.tumourType);
   if (filters.dateFrom) params.append("from", filters.dateFrom);
   if (filters.dateTo) params.append("to", filters.dateTo);
-  // Note: ageGroup, status, breed, and clinic filters need backend support to be functional
+  // Note: ageGroup, breed, and clinic filters need backend support to be functional
   return params;
 }

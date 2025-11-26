@@ -11,12 +11,12 @@ const SPECIES_OPTIONS = ["Dog", "Cat"];
 const AGE_GROUPS = ["<1", "1-3", "4-7", "8+"];
 const SEX_OPTIONS = ["MALE_NEUTERED", "MALE_INTACT", "FEMALE_SPAYED", "FEMALE_INTACT"];
 const SEX_LABELS: Record<string, { label: string; icon: string; color: string }> = {
-  "MALE_NEUTERED": { label: "♂ Neutered", icon: "🔵", color: "from-blue-500/20 to-blue-400/10 border-blue-500/30 hover:from-blue-500/30 hover:to-blue-400/20" },
-  "MALE_INTACT": { label: "♂ Intact", icon: "🔵", color: "from-blue-600/20 to-blue-500/10 border-blue-600/30 hover:from-blue-600/30 hover:to-blue-500/20" },
-  "FEMALE_SPAYED": { label: "♀ Spayed", icon: "🔴", color: "from-pink-500/20 to-pink-400/10 border-pink-500/30 hover:from-pink-500/30 hover:to-pink-400/20" },
-  "FEMALE_INTACT": { label: "♀ Intact", icon: "🔴", color: "from-pink-600/20 to-pink-500/10 border-pink-600/30 hover:from-pink-600/30 hover:to-pink-500/20" }
+  "MALE_NEUTERED": { label: "Male Neutered", icon: "🔵", color: "from-blue-500/20 to-blue-400/10 border-blue-500/30 hover:from-blue-500/30 hover:to-blue-400/20" },
+  "MALE_INTACT": { label: "Male Intact", icon: "🔵", color: "from-blue-600/20 to-blue-500/10 border-blue-600/30 hover:from-blue-600/30 hover:to-blue-500/20" },
+  "FEMALE_SPAYED": { label: "Female Spayed", icon: "🔴", color: "from-pink-500/20 to-pink-400/10 border-pink-500/30 hover:from-pink-500/30 hover:to-pink-400/20" },
+  "FEMALE_INTACT": { label: "Female Intact", icon: "🔴", color: "from-pink-600/20 to-pink-500/10 border-pink-600/30 hover:from-pink-600/30 hover:to-pink-500/20" }
 };
-const STATUS_OPTIONS = ["DRAFT", "ACTIVE", "COMPLETED", "ARCHIVED"];
+const OUTCOME_OPTIONS = ["REMISSION", "MORTALITY", "EUTHANASIA", "TREATMENT_ONGOING", "MANAGEMENT"];
 const ZONES = ["NORTH_CENTRAL", "NORTH_EAST", "NORTH_WEST", "SOUTH_EAST", "SOUTH_SOUTH", "SOUTH_WEST"];
 const STATES = [
   "ABIA", "ADAMAWA", "AKWA_IBOM", "ANAMBRA", "BAUCHI", "BAYELSA", "BENUE", "BORNO",
@@ -59,7 +59,7 @@ export function FilterBar() {
       title: "Case Status",
       icon: "📋",
       filters: [
-        { label: "Status", key: "status", options: STATUS_OPTIONS },
+        { label: "Outcome", key: "outcome", options: OUTCOME_OPTIONS },
       ]
     },
     {
