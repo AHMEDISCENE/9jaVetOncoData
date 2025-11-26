@@ -66,6 +66,7 @@ const filterSchema = z.object({
   clinicId: z.union([z.string(), z.array(z.string())]).optional(), // Multi-select clinic filtering
   zone: z.union([z.string(), z.array(z.string())]).optional(),
   state: z.union([z.string(), z.array(z.string())]).optional(),
+  sex: z.union([z.string(), z.array(z.string())]).optional(), // Multi-select sex filtering
   tumourTypeId: z.union([z.string(), z.array(z.string())]).optional(),
   sort: z.enum(['clinic', 'zone', 'state', 'date', 'case_number']).optional(),
   order: z.enum(['asc', 'desc']).optional(),
@@ -1070,6 +1071,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         clinicIds: normalizeToArray(filters.clinicId),
         zones: zones,
         states: normalizeToArray(filters.state),
+        sexes: normalizeToArray(filters.sex),
         tumourTypeIds: normalizeToArray(filters.tumourTypeId),
         sort: filters.sort || 'date',
         order: filters.order || 'desc',

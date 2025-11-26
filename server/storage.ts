@@ -471,6 +471,7 @@ export class DatabaseStorage implements IStorage {
     clinicIds?: string[];
     zones?: string[];
     states?: string[];
+    sexes?: string[];
     tumourTypeIds?: string[];
     sort?: string;
     order?: string;
@@ -540,6 +541,9 @@ export class DatabaseStorage implements IStorage {
       }
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
         query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+      }
+      if (filters.sexes && filters.sexes.length > 0) {
+        query = query.where(inArray(cases.sex, filters.sexes as any));
       }
 
       // Sorting
