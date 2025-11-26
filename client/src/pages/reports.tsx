@@ -585,7 +585,12 @@ export default function Reports() {
         <h3 className="text-lg font-semibold mb-4">Available Report Templates</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {templates?.map((template) => (
-            <Card key={template.id} className="cursor-pointer hover:shadow-md transition-shadow">
+            <Card 
+              key={template.id} 
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleRunReport(template.id)}
+              data-testid={`card-report-template-${template.id}`}
+            >
               <CardHeader>
                 <CardTitle className="text-base">{template.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">{template.description}</p>
