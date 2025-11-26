@@ -50,6 +50,13 @@ const outcomeLabels = {
   LOST_TO_FOLLOWUP: "Lost to Follow-up",
 };
 
+const sexOptions = [
+  { value: "MALE_NEUTERED", label: "♂ Neutered" },
+  { value: "MALE_INTACT", label: "♂ Intact" },
+  { value: "FEMALE_SPAYED", label: "♀ Spayed" },
+  { value: "FEMALE_INTACT", label: "♀ Intact" },
+];
+
 interface NgState {
   code: string;
   name: string;
@@ -203,6 +210,7 @@ export default function Cases() {
     if (params.get('endDate')) urlFilters.endDate = params.get('endDate')!;
     if (params.getAll('zone').length) urlFilters.zone = params.getAll('zone');
     if (params.getAll('state').length) urlFilters.state = params.getAll('state');
+    if (params.getAll('sex').length) urlFilters.sex = params.getAll('sex');
     if (params.getAll('clinicId').length) urlFilters.clinicId = params.getAll('clinicId');
     if (params.getAll('tumourTypeId').length) urlFilters.tumourTypeId = params.getAll('tumourTypeId');
 
@@ -219,6 +227,7 @@ export default function Cases() {
     if (filters.endDate) params.set('endDate', filters.endDate);
     if (filters.zone) filters.zone.forEach(z => params.append('zone', z));
     if (filters.state) filters.state.forEach(s => params.append('state', s));
+    if (filters.sex) filters.sex.forEach(sx => params.append('sex', sx));
     if (filters.clinicId) filters.clinicId.forEach(c => params.append('clinicId', c));
     if (filters.tumourTypeId) filters.tumourTypeId.forEach(t => params.append('tumourTypeId', t));
     if (filters.groupBy && filters.groupBy !== 'none') params.set('groupBy', filters.groupBy);
@@ -758,6 +767,15 @@ export default function Cases() {
               placeholder="All Tumour Types"
               testId="filter-tumour-type"
               searchable
+            />
+
+            <MultiSelectFilter
+              label="Sex"
+              options={sexOptions}
+              selectedValues={filters.sex || []}
+              onSelectionChange={(values) => handleMultiSelectChange('sex', values)}
+              placeholder="All Sex"
+              testId="filter-sex"
             />
           </div>
 
