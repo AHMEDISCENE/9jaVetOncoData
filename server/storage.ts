@@ -1493,20 +1493,20 @@ export class DatabaseStorage implements IStorage {
       }
 
       if (filters.ageGroup && filters.ageGroup !== "") {
-        // Map age group to numeric ranges
+        // Map age group to numeric ranges for ageYears
         const ageRanges: Record<string, [number, number]> = {
-          "<1": [0, 1],
+          "<1": [0, 0],  // Less than 1 year
           "1-3": [1, 3],
           "4-7": [4, 7],
-          "8+": [8, 150]  // 8+ means 8 and above
+          "8+": [8, 150]  // 8 and above
         };
         
         const range = ageRanges[filters.ageGroup];
         if (range) {
           const [minAge, maxAge] = range;
           whereConditions.push(and(
-            gte(cases.age, minAge),
-            lte(cases.age, maxAge)
+            gte(cases.ageYears, minAge),
+            lte(cases.ageYears, maxAge)
           ));
         }
       }
