@@ -231,39 +231,67 @@ export default function CaseDetail() {
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       let yPosition = 15;
-      const lineHeight = 7;
-      const margin = 15;
+      const lineHeight = 6;
+      const margin = 12;
       const contentWidth = pageWidth - 2 * margin;
+      const colWidth = contentWidth / 2 - 2;
 
       // Title
-      doc.setFontSize(20);
+      doc.setFontSize(18);
+      doc.setFont(undefined, "bold");
       doc.text(`Case Report: ${caseData.caseNumber}`, margin, yPosition);
-      yPosition += 12;
+      yPosition += 10;
 
       // Patient name
-      doc.setFontSize(14);
+      doc.setFontSize(12);
+      doc.setFont(undefined, "bold");
       doc.text(caseData.patientName || "Unnamed Patient", margin, yPosition);
       yPosition += 8;
 
       const data = formatData(caseData);
+      const entries = Object.entries(data);
 
-      // Content
-      doc.setFontSize(10);
-      Object.entries(data).forEach(([key, value]) => {
-        if (yPosition > pageHeight - 15) {
+      // Two-column layout
+      doc.setFontSize(9);
+      let leftColY = yPosition;
+      let rightColY = yPosition;
+      let col = 0;
+
+      entries.forEach(([key, value], index) => {
+        const currentY = col === 0 ? leftColY : rightColY;
+        const xPos = col === 0 ? margin : margin + contentWidth / 2 + 2;
+
+        // Check if we need a new page
+        if (currentY > pageHeight - 20) {
           doc.addPage();
-          yPosition = 15;
+          leftColY = 15;
+          rightColY = 15;
+          col = 0;
         }
 
+        const currentYUpdate = col === 0 ? leftColY : rightColY;
+
+        // Label
         doc.setFont(undefined, "bold");
-        doc.text(`${key}:`, margin, yPosition);
-        
+        const labelText = `${key}:`;
+        doc.text(labelText, xPos, currentYUpdate);
+
+        // Value with wrapping
         doc.setFont(undefined, "normal");
-        const textLines = doc.splitTextToSize(String(value), contentWidth - 50);
-        doc.text(textLines, margin + 50, yPosition);
+        const valueText = String(value);
+        const textLines = doc.splitTextToSize(valueText, colWidth - 3);
+        doc.text(textLines, xPos + 1, currentYUpdate + lineHeight + 1);
 
         const lineCount = textLines.length;
-        yPosition += lineHeight * lineCount + 3;
+        const itemHeight = lineHeight + (lineHeight * lineCount) + 4;
+
+        if (col === 0) {
+          leftColY += itemHeight;
+          col = 1;
+        } else {
+          rightColY += itemHeight;
+          col = 0;
+        }
       });
 
       doc.save(`${caseData.caseNumber}_${caseData.patientName || 'case'}.pdf`);
