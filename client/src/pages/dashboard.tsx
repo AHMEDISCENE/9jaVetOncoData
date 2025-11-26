@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MetricDrilldown } from "@/components/analytics/MetricDrilldown";
+import { SlideCard, type Slide } from "@/components/SlideCard";
 import {
   Select,
   SelectContent,
@@ -31,57 +32,6 @@ import { Filter, X, Rss, Plus, Upload, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import type { DashboardStats } from "@/lib/types";
 import type { FeedPost } from "@shared/schema";
-
-interface FlipCardProps {
-  isFlipped: boolean;
-  onFlip: () => void;
-  frontContent: React.ReactNode;
-  backContent: React.ReactNode;
-  frontClassName?: string;
-  backClassName?: string;
-  testId?: string;
-}
-
-function FlipCard({ isFlipped, onFlip, frontContent, backContent, frontClassName, backClassName, testId }: FlipCardProps) {
-  return (
-    <div
-      className="flip-card-container h-[160px] cursor-pointer"
-      onClick={onFlip}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onFlip();
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      data-testid={testId}
-    >
-      <motion.div
-        className="relative w-full h-full"
-        style={{ transformStyle: "preserve-3d" }}
-        animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.6, ease: "easeInOut" }}
-      >
-        <div
-          className={`absolute inset-0 w-full h-full rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl ${frontClassName}`}
-          style={{ backfaceVisibility: "hidden" }}
-        >
-          {frontContent}
-        </div>
-        <div
-          className={`absolute inset-0 w-full h-full rounded-xl shadow-lg overflow-hidden ${backClassName}`}
-          style={{
-            backfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-          }}
-        >
-          {backContent}
-        </div>
-      </motion.div>
-    </div>
-  );
-}
 
 type MetricType = "totalCases" | "newThisMonth" | "remissionRate" | "activeClinics" | null;
 
@@ -415,226 +365,82 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Quick Stats with Flip Animation */}
+      {/* Quick Stats with Auto-rotating Slides */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Cases Card */}
-        <FlipCard
+        {/* Total Cases Slide Card */}
+        <SlideCard
+          slides={[
+            { title: "Total Cases", value: stats.totalCases.toLocaleString() },
+            ...stats.casesBySpecies?.slice(0, 4).map(s => ({ 
+              title: `${s.name}`, 
+              value: s.count, 
+              subtitle: `of total cases`
+            })) || []
+          ]}
+          icon={<i className="fas fa-clipboard-list text-blue-600 dark:text-blue-300 text-xl"></i>}
+          colorClass="blue"
+          frontLabel="Click to see breakdown"
+          autoPlayInterval={3000}
           isFlipped={flippedCards.totalCases}
           onFlip={() => toggleCardFlip("totalCases")}
           testId="card-total-cases"
-          frontClassName="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border border-blue-200 dark:border-blue-800"
-          backClassName="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-950 border border-blue-200 dark:border-blue-800"
-          frontContent={
-            <div className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
-                    Total Cases
-                  </p>
-                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-300" data-testid="stat-total-cases">
-                    {stats.totalCases.toLocaleString()}
-                  </p>
-                </div>
-                <div className="h-14 w-14 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
-                  <i className="fas fa-clipboard-list text-blue-600 dark:text-blue-300 text-xl"></i>
-                </div>
-              </div>
-              <p className="text-xs font-medium text-blue-600 dark:text-blue-300 mt-2">
-                Click to see breakdown
-              </p>
-            </div>
-          }
-          backContent={
-            <div className="p-3 h-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-950 flex flex-col">
-              <p className="text-xs font-bold text-blue-800 dark:text-blue-200 mb-2">Cases by Species</p>
-              <div className="flex-1 space-y-1 min-h-0 fancy-scroll">
-                {stats.casesBySpecies?.slice(0, 5).map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-blue-700 dark:text-blue-300 truncate max-w-[65%]">{item.name}</span>
-                    <span className="font-semibold text-blue-800 dark:text-blue-200 ml-2">{item.count}</span>
-                  </div>
-                ))}
-                {(!stats.casesBySpecies || stats.casesBySpecies.length === 0) && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400">No data available</p>
-                )}
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMetricClick("totalCases");
-                }}
-                className="mt-auto pt-2 w-full text-xs font-semibold px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                data-testid="button-view-more-total-cases"
-              >
-                View More
-              </button>
-            </div>
-          }
         />
 
-        {/* New This Month Card */}
-        <FlipCard
+        {/* New This Month Slide Card */}
+        <SlideCard
+          slides={[
+            { title: "New This Month", value: stats.newThisMonth.toLocaleString() },
+            ...stats.casesByMonth?.slice(-4).reverse().map(m => ({ 
+              title: m.month, 
+              value: m.count, 
+              subtitle: `cases in month`
+            })) || []
+          ]}
+          icon={<i className="fas fa-plus text-purple-600 dark:text-purple-300 text-xl"></i>}
+          colorClass="purple"
+          frontLabel="Click to see trend"
+          autoPlayInterval={3000}
           isFlipped={flippedCards.newThisMonth}
           onFlip={() => toggleCardFlip("newThisMonth")}
           testId="card-new-this-month"
-          frontClassName="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border border-purple-200 dark:border-purple-800"
-          backClassName="bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-950 border border-purple-200 dark:border-purple-800"
-          frontContent={
-            <div className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
-                    New This Month
-                  </p>
-                  <p className="text-4xl font-bold text-purple-600 dark:text-purple-300" data-testid="stat-new-this-month">
-                    {stats.newThisMonth.toLocaleString()}
-                  </p>
-                </div>
-                <div className="h-14 w-14 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center">
-                  <i className="fas fa-plus text-purple-600 dark:text-purple-300 text-xl"></i>
-                </div>
-              </div>
-              <p className="text-xs font-medium text-purple-600 dark:text-purple-300 mt-2">
-                Click to see trend
-              </p>
-            </div>
-          }
-          backContent={
-            <div className="p-3 h-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-950 flex flex-col">
-              <p className="text-xs font-bold text-purple-800 dark:text-purple-200 mb-2">Monthly Trend</p>
-              <div className="flex-1 space-y-1 min-h-0 fancy-scroll">
-                {stats.casesByMonth?.slice(-5).reverse().map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-purple-700 dark:text-purple-300">{item.month}</span>
-                    <span className="font-semibold text-purple-800 dark:text-purple-200 ml-2">{item.count}</span>
-                  </div>
-                ))}
-                {(!stats.casesByMonth || stats.casesByMonth.length === 0) && (
-                  <p className="text-xs text-purple-600 dark:text-purple-400">No data available</p>
-                )}
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMetricClick("newThisMonth");
-                }}
-                className="mt-auto pt-2 w-full text-xs font-semibold px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
-                data-testid="button-view-more-new-this-month"
-              >
-                View More
-              </button>
-            </div>
-          }
         />
 
-        {/* Active Clinics Card */}
-        <FlipCard
+        {/* Active Clinics Slide Card */}
+        <SlideCard
+          slides={[
+            { title: "Active Clinics", value: stats.activeClinics.toLocaleString() },
+            ...stats.clinicsByCount?.slice(0, 4).map(c => ({ 
+              title: c.name, 
+              value: c.count, 
+              subtitle: `cases`
+            })) || []
+          ]}
+          icon={<i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-xl"></i>}
+          colorClass="amber"
+          frontLabel="Click to see top clinics"
+          autoPlayInterval={3000}
           isFlipped={flippedCards.activeClinics}
           onFlip={() => toggleCardFlip("activeClinics")}
           testId="card-active-clinics"
-          frontClassName="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border border-amber-200 dark:border-amber-800"
-          backClassName="bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-950 border border-amber-200 dark:border-amber-800"
-          frontContent={
-            <div className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
-                    Active Clinics
-                  </p>
-                  <p className="text-4xl font-bold text-amber-600 dark:text-amber-300" data-testid="stat-active-clinics">
-                    {stats.activeClinics.toLocaleString()}
-                  </p>
-                </div>
-                <div className="h-14 w-14 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
-                  <i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-xl"></i>
-                </div>
-              </div>
-              <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-2">
-                Click to see top clinics
-              </p>
-            </div>
-          }
-          backContent={
-            <div className="p-3 h-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-950 flex flex-col">
-              <p className="text-xs font-bold text-amber-800 dark:text-amber-200 mb-2">Top Clinics</p>
-              <div className="flex-1 space-y-1 min-h-0 fancy-scroll">
-                {stats.clinicsByCount?.slice(0, 5).map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-amber-700 dark:text-amber-300 truncate max-w-[65%]">{item.name}</span>
-                    <span className="font-semibold text-amber-800 dark:text-amber-200 ml-2">{item.count}</span>
-                  </div>
-                ))}
-                {(!stats.clinicsByCount || stats.clinicsByCount.length === 0) && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">No data available</p>
-                )}
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMetricClick("activeClinics");
-                }}
-                className="mt-auto pt-2 w-full text-xs font-semibold px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors"
-                data-testid="button-view-more-active-clinics"
-              >
-                View More
-              </button>
-            </div>
-          }
         />
 
-        {/* Remission Rate Card */}
-        <FlipCard
+        {/* Remission Rate Slide Card */}
+        <SlideCard
+          slides={[
+            { title: "Remission Rate", value: `${stats.remissionRate}%` },
+            ...stats.treatmentOutcomes?.slice(0, 4).map(o => ({ 
+              title: o.name, 
+              value: o.count, 
+              subtitle: `cases`
+            })) || []
+          ]}
+          icon={<i className="fas fa-heart text-green-600 dark:text-green-300 text-xl"></i>}
+          colorClass="green"
+          frontLabel="Click to see outcomes"
+          autoPlayInterval={3000}
           isFlipped={flippedCards.remissionRate}
           onFlip={() => toggleCardFlip("remissionRate")}
           testId="card-remission-rate"
-          frontClassName="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border border-green-200 dark:border-green-800"
-          backClassName="bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-950 border border-green-200 dark:border-green-800"
-          frontContent={
-            <div className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-green-700 dark:text-green-200">
-                    Remission Rate
-                  </p>
-                  <p className="text-4xl font-bold text-green-600 dark:text-green-300" data-testid="stat-remission-rate">
-                    {stats.remissionRate}%
-                  </p>
-                </div>
-                <div className="h-14 w-14 bg-green-200 dark:bg-green-800 rounded-full flex items-center justify-center">
-                  <i className="fas fa-heart text-green-600 dark:text-green-300 text-xl"></i>
-                </div>
-              </div>
-              <p className="text-xs font-medium text-green-600 dark:text-green-300 mt-2">
-                Click to see outcomes
-              </p>
-            </div>
-          }
-          backContent={
-            <div className="p-3 h-full bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-950 flex flex-col">
-              <p className="text-xs font-bold text-green-800 dark:text-green-200 mb-2">Treatment Outcomes</p>
-              <div className="flex-1 space-y-1 min-h-0 fancy-scroll">
-                {stats.treatmentOutcomes?.slice(0, 5).map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-green-700 dark:text-green-300 truncate max-w-[65%]">{item.name}</span>
-                    <span className="font-semibold text-green-800 dark:text-green-200 ml-2">{item.count}</span>
-                  </div>
-                ))}
-                {(!stats.treatmentOutcomes || stats.treatmentOutcomes.length === 0) && (
-                  <p className="text-xs text-green-600 dark:text-green-400">No data available</p>
-                )}
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMetricClick("remissionRate");
-                }}
-                className="mt-auto pt-2 w-full text-xs font-semibold px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
-                data-testid="button-view-more-remission-rate"
-              >
-                View More
-              </button>
-            </div>
-          }
         />
       </div>
 
