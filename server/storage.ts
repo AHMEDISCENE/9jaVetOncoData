@@ -1423,6 +1423,8 @@ export class DatabaseStorage implements IStorage {
     geoZones?: string[];
     states?: string[];
     species?: string[];
+    outcome?: string;
+    sex?: string[];
     tumourTypeIds?: string[];
     from?: string;
     to?: string;
@@ -1479,6 +1481,14 @@ export class DatabaseStorage implements IStorage {
 
       if (filters.species && filters.species.length > 0) {
         whereConditions.push(inArray(cases.species, filters.species as any));
+      }
+
+      if (filters.outcome && filters.outcome !== "") {
+        whereConditions.push(eq(cases.outcome, filters.outcome as any));
+      }
+
+      if (filters.sex && filters.sex.length > 0) {
+        whereConditions.push(inArray(cases.sex, filters.sex as any));
       }
 
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {

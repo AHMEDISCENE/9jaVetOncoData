@@ -923,6 +923,18 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           : [req.query.species];
       }
       
+      if (req.query.outcome) {
+        filters.outcome = Array.isArray(req.query.outcome) 
+          ? req.query.outcome[0] 
+          : req.query.outcome;
+      }
+      
+      if (req.query.sex) {
+        filters.sex = Array.isArray(req.query.sex) 
+          ? req.query.sex 
+          : [req.query.sex];
+      }
+      
       if (req.query.tumourTypeIds) {
         filters.tumourTypeIds = Array.isArray(req.query.tumourTypeIds) 
           ? req.query.tumourTypeIds 
