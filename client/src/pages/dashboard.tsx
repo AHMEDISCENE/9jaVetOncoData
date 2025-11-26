@@ -146,43 +146,6 @@ export default function Dashboard() {
     setFlippedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
   };
 
-  // Auto-rotate slides every 4 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSlideIndices(prev => {
-        const newIndices = { ...prev };
-        
-        // Total Cases: main + top 5 species
-        const totalCasesSlides = stats?.casesBySpecies?.length || 0;
-        if (totalCasesSlides > 1) {
-          newIndices.totalCases = (prev.totalCases + 1) % (totalCasesSlides + 1);
-        }
-        
-        // New This Month: main + last 5 months
-        const newThisMonthSlides = stats?.casesByMonth?.length || 0;
-        if (newThisMonthSlides > 1) {
-          newIndices.newThisMonth = (prev.newThisMonth + 1) % (newThisMonthSlides + 1);
-        }
-        
-        // Active Clinics: main + top 5 clinics
-        const activeClinicsSlides = stats?.clinicsByCount?.length || 0;
-        if (activeClinicsSlides > 1) {
-          newIndices.activeClinics = (prev.activeClinics + 1) % (activeClinicsSlides + 1);
-        }
-        
-        // Remission Rate: main + top 5 outcomes
-        const remissionRateSlides = stats?.treatmentOutcomes?.length || 0;
-        if (remissionRateSlides > 1) {
-          newIndices.remissionRate = (prev.remissionRate + 1) % (remissionRateSlides + 1);
-        }
-        
-        return newIndices;
-      });
-    }, 4000);
-    
-    return () => clearInterval(interval);
-  }, [stats]);
-
   const handleMetricClick = (metric: MetricType) => {
     setSelectedMetric(metric);
     setIsDrilldownOpen(true);
@@ -226,6 +189,43 @@ export default function Dashboard() {
       return response.json();
     },
   });
+
+  // Auto-rotate slides every 4 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSlideIndices(prev => {
+        const newIndices = { ...prev };
+        
+        // Total Cases: main + top 5 species
+        const totalCasesSlides = stats?.casesBySpecies?.length || 0;
+        if (totalCasesSlides > 1) {
+          newIndices.totalCases = (prev.totalCases + 1) % (totalCasesSlides + 1);
+        }
+        
+        // New This Month: main + last 5 months
+        const newThisMonthSlides = stats?.casesByMonth?.length || 0;
+        if (newThisMonthSlides > 1) {
+          newIndices.newThisMonth = (prev.newThisMonth + 1) % (newThisMonthSlides + 1);
+        }
+        
+        // Active Clinics: main + top 5 clinics
+        const activeClinicsSlides = stats?.clinicsByCount?.length || 0;
+        if (activeClinicsSlides > 1) {
+          newIndices.activeClinics = (prev.activeClinics + 1) % (activeClinicsSlides + 1);
+        }
+        
+        // Remission Rate: main + top 5 outcomes
+        const remissionRateSlides = stats?.treatmentOutcomes?.length || 0;
+        if (remissionRateSlides > 1) {
+          newIndices.remissionRate = (prev.remissionRate + 1) % (remissionRateSlides + 1);
+        }
+        
+        return newIndices;
+      });
+    }, 4000);
+    
+    return () => clearInterval(interval);
+  }, [stats]);
 
   const clearFilters = () => {
     setZone("");
