@@ -251,6 +251,35 @@ export default function Reports() {
     },
   });
 
+  const deleteReportMutation = useMutation({
+    mutationFn: async (reportId: string) => {
+      const response = await fetch(`/api/reports/history/${reportId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete report");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Report Deleted",
+        description: "Report has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/history"] });
+      queryClient.refetchQueries({ queryKey: ["/api/reports/history"] });
+    },
+    onError: (error) => {
+      console.error("Delete report error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete report. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const clearHistoryMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch("/api/reports/history", {
@@ -685,16 +714,28 @@ export default function Reports() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {report.status === "completed" && (
+                      <div className="flex gap-2">
+                        {report.status === "completed" && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            data-testid={`button-download-report-${report.id}`}
+                            onClick={() => handleDownloadReport(`${report.template.replace(/\s+/g, "_")}_${report.id}.${report.format.toLowerCase()}`)}
+                          >
+                            <i className="fas fa-download mr-2"></i>Download
+                          </Button>
+                        )}
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          data-testid={`button-download-report-${report.id}`}
-                          onClick={() => handleDownloadReport(`${report.template.replace(/\s+/g, "_")}_${report.id}.${report.format.toLowerCase()}`)}
+                          data-testid={`button-delete-report-${report.id}`}
+                          onClick={() => deleteReportMutation.mutate(report.id)}
+                          disabled={deleteReportMutation.isPending}
+                          className="text-destructive hover:text-destructive"
                         >
-                          <i className="fas fa-download mr-2"></i>Download
+                          <i className="fas fa-trash mr-2"></i>{deleteReportMutation.isPending ? "Deleting..." : "Delete"}
                         </Button>
-                      )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -3142,7 +3142,31 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
-  // DELETE report history from database
+  // DELETE individual report from history
+  app.delete("/api/reports/history/:id", requireAuth, async (req, res) => {
+    try {
+      const clinicId = (req.session as any).clinicId;
+      const { id } = req.params;
+      
+      // Verify the report belongs to this clinic
+      const report = await db
+        .select()
+        .from(reportHistory)
+        .where(and(eq(reportHistory.id, id), eq(reportHistory.clinicId, clinicId)))
+        .limit(1);
+      
+      if (report.length === 0) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+      
+      await db.delete(reportHistory).where(eq(reportHistory.id, id));
+      res.json({ success: true, message: "Report deleted" });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to delete report" });
+    }
+  });
+
+  // DELETE all report history from database
   app.delete("/api/reports/history", requireAuth, async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
