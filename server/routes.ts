@@ -2392,7 +2392,6 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
                 const caseData = {
                   ...parsedRow.data,
                   species: normalizeSpecies(parsedRow.data.species),
-                  importJobId: importId,
                 };
                 await storage.createCase(caseData as any);
                 successCount++;

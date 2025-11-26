@@ -164,7 +164,6 @@ export const cases = pgTable("cases", {
   caseNumber: text("case_number").notNull().unique(),
   clinicId: uuid("clinic_id").references(() => clinics.id).notNull(),
   createdBy: uuid("created_by").references(() => users.id).notNull(),
-  importJobId: uuid("import_job_id").references(() => importJobs.id, { onDelete: "cascade" }),
   
   // Location context
   geoZone: geoPoliticalZoneEnum("geo_zone"),
