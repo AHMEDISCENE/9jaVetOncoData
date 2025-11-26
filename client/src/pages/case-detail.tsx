@@ -211,14 +211,21 @@ export default function CaseDetail() {
       "Treatment Plan": data.treatmentPlan || "Not specified",
       "Treatment Start": data.treatmentStart ? new Date(data.treatmentStart).toLocaleDateString() : "Not specified",
       "Outcome/Status": outcomeLabels[data.outcome!] || data.outcome || "Not specified",
+      "Last Follow-up": data.lastFollowUp ? new Date(data.lastFollowUp).toLocaleDateString() : "Not specified",
       "Notes": data.notes || "Not specified",
       "Clinic Name": data.clinic.name,
       "Clinic State": data.clinic.state ? data.clinic.state.replace(/_/g, ' ') : "Not specified",
       "Clinic City": data.clinic.city || "Not specified",
       "Clinic Address": data.clinic.address || "Not specified",
+      "Clinic Email": data.clinic.email || "Not specified",
+      "Clinic Phone": data.clinic.phone || "Not specified",
       "Created By": `${data.createdBy.title ? data.createdBy.title + ' ' : ''}${data.createdBy.name}`,
+      "Creator Email": data.createdBy.email,
+      "Creator Phone": data.createdBy.phone || "Not specified",
       "Job Title": data.createdBy.jobTitle || "Not specified",
       "Specialty": data.createdBy.specialty || "Not specified",
+      "Case Status": data.status,
+      "Created At": new Date(data.createdAt).toLocaleDateString(),
     };
   };
 
@@ -227,80 +234,103 @@ export default function CaseDetail() {
     
     try {
       setIsExporting(true);
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 12;
-      const col1Width = 50;
-      const col2Width = pageWidth - 2 * margin - col1Width - 2;
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const margin = 10;
+      const fieldWidth = 55;
+      const valueWidth = pageWidth - 2 * margin - fieldWidth - 2;
       
-      let yPosition = 15;
+      let yPos = margin;
+      const lineHeight = 5;
+      const pageBottom = pageHeight - margin - 5;
 
-      // Title
-      doc.setFontSize(16);
+      // Title section
+      doc.setFontSize(18);
       doc.setFont(undefined, "bold");
-      doc.text(`Case Report: ${caseData.caseNumber}`, margin, yPosition);
-      yPosition += 8;
+      doc.text(`CASE REPORT`, margin, yPos);
+      yPos += 8;
 
-      // Patient name
+      doc.setFontSize(12);
+      doc.setFont(undefined, "bold");
+      doc.text(`Case: ${caseData.caseNumber}`, margin, yPos);
+      yPos += 5;
+
       doc.setFontSize(11);
-      doc.setFont(undefined, "bold");
-      doc.text(`Patient: ${caseData.patientName || "Unnamed Patient"}`, margin, yPosition);
-      yPosition += 8;
+      doc.text(`Patient: ${caseData.patientName || "Unnamed Patient"}`, margin, yPos);
+      yPos += 7;
 
       const data = formatData(caseData);
+      let alternateRow = false;
 
-      // Draw table header
-      doc.setFillColor(100, 150, 130);
-      doc.setTextColor(255, 255, 255);
-      doc.setFont(undefined, "bold");
-      doc.setFontSize(9);
-      doc.rect(margin, yPosition - 5, pageWidth - 2 * margin, 6, "F");
-      doc.text("Field", margin + 2, yPosition);
-      doc.text("Value", margin + col1Width + 2, yPosition);
-      yPosition += 8;
-
-      // Draw rows
-      doc.setTextColor(0, 0, 0);
-      doc.setFont(undefined, "normal");
-      let fillRow = false;
-
-      Object.entries(data).forEach(([key, value]) => {
+      // Draw each field-value pair
+      Object.entries(data).forEach(([field, value]) => {
         const valueStr = String(value);
-        const valueLines = doc.splitTextToSize(valueStr, col2Width - 2);
-        const rowHeight = Math.max(5, valueLines.length * 4) + 2;
-
-        // Check if we need new page
-        if (yPosition + rowHeight > pageHeight - 12) {
-          doc.addPage();
-          yPosition = 12;
-          fillRow = false;
+        
+        // Check if we need a new page
+        if (yPos + lineHeight + 2 > pageBottom) {
+          // Add page number to current page
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageBottom + 2, { align: "center" });
+          
+          // Add new page
+          doc.addPage("p", "mm", "a4");
+          yPos = margin + 5;
+          alternateRow = false;
+          
+          // Add header on new page
+          doc.setFontSize(10);
+          doc.setTextColor(0, 0, 0);
+          doc.setFont(undefined, "bold");
+          doc.text(`${caseData.caseNumber} - ${caseData.patientName} (continued)`, margin, yPos);
+          yPos += 7;
         }
 
         // Alternate row background
-        if (fillRow) {
-          doc.setFillColor(245, 245, 245);
-          doc.rect(margin, yPosition - 4, pageWidth - 2 * margin, rowHeight, "F");
+        if (alternateRow) {
+          doc.setFillColor(240, 240, 240);
+          const textLines = doc.splitTextToSize(valueStr, valueWidth - 2);
+          const rowHeight = Math.max(lineHeight + 1, (textLines.length * lineHeight) + 1);
+          doc.rect(margin, yPos - lineHeight + 1, pageWidth - 2 * margin, rowHeight, "F");
         }
 
-        // Draw label (column 1)
+        // Field name (bold, left column)
         doc.setFont(undefined, "bold");
-        doc.text(key, margin + 2, yPosition);
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(field + ":", margin + 1, yPos);
 
-        // Draw value (column 2) with text wrapping
+        // Value (normal, right column, wrapped)
         doc.setFont(undefined, "normal");
-        doc.text(valueLines, margin + col1Width + 2, yPosition);
+        doc.setFontSize(9);
+        const textLines = doc.splitTextToSize(valueStr, valueWidth - 2);
+        doc.text(textLines, margin + fieldWidth + 2, yPos);
 
-        yPosition += rowHeight + 1;
-        fillRow = !fillRow;
+        // Move to next row
+        const rowHeight = Math.max(lineHeight + 1, (textLines.length * lineHeight) + 1);
+        yPos += rowHeight + 1;
+        alternateRow = !alternateRow;
       });
+
+      // Add final page number
+      if (doc.getNumberOfPages() > 0) {
+        const totalPages = doc.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageBottom + 2, { align: "center" });
+        }
+      }
 
       doc.save(`${caseData.caseNumber}_${caseData.patientName || 'case'}.pdf`);
       toast({
         title: "PDF exported successfully",
-        description: `Case ${caseData.caseNumber} has been exported as PDF.`,
+        description: `Case ${caseData.caseNumber} has been exported as PDF with all details.`,
       });
     } catch (error) {
+      console.error("PDF export error:", error);
       toast({
         title: "Export failed",
         description: "Failed to export case as PDF",
@@ -317,16 +347,59 @@ export default function CaseDetail() {
     try {
       setIsExporting(true);
       const data = formatData(caseData);
-      const worksheet = XLSX.utils.json_to_sheet([data]);
+      
+      // Convert to field-value pairs for better readability
+      const rows = Object.entries(data).map(([field, value]) => ({
+        "Field": field,
+        "Value": String(value)
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      
+      // Set column widths
+      worksheet['!cols'] = [
+        { wch: 30 },  // Field column
+        { wch: 50 }   // Value column
+      ];
+
+      // Apply header styling
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + "1";
+        if (!worksheet[address]) continue;
+        worksheet[address].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "648782" } },
+          alignment: { horizontal: "left", vertical: "top", wrapText: true }
+        };
+      }
+
+      // Apply row styling for data
+      for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+        const isAlternate = R % 2 === 0;
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const address = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!worksheet[address]) continue;
+          worksheet[address].s = {
+            fill: isAlternate ? { fgColor: { rgb: "F5F5F5" } } : { fgColor: { rgb: "FFFFFF" } },
+            alignment: { horizontal: "left", vertical: "top", wrapText: true }
+          };
+        }
+      }
+
+      // Set row heights
+      worksheet['!rows'] = Array(rows.length + 1).fill({ hpt: 20 });
+
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Case Data");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Case Report");
       XLSX.writeFile(workbook, `${caseData.caseNumber}_${caseData.patientName || 'case'}.xlsx`);
       
       toast({
         title: "Excel exported successfully",
-        description: `Case ${caseData.caseNumber} has been exported as Excel.`,
+        description: `Case ${caseData.caseNumber} has been exported as Excel with complete data.`,
       });
     } catch (error) {
+      console.error("Excel export error:", error);
       toast({
         title: "Export failed",
         description: "Failed to export case as Excel",
@@ -342,8 +415,61 @@ export default function CaseDetail() {
 
     try {
       setIsExporting(true);
-      const data = formatData(caseData);
-      const jsonString = JSON.stringify(data, null, 2);
+      
+      // Include all raw data plus formatted data for complete information
+      const completeData = {
+        exportDate: new Date().toISOString(),
+        exportedBy: user?.name || "Unknown",
+        caseReport: formatData(caseData),
+        rawData: {
+          case: {
+            id: caseData.id,
+            caseNumber: caseData.caseNumber,
+            patientName: caseData.patientName,
+            species: caseData.species,
+            breed: caseData.breed,
+            sex: caseData.sex,
+            ageYears: caseData.ageYears,
+            ageMonths: caseData.ageMonths,
+            diagnosisDate: caseData.diagnosisDate,
+            diagnosisMethod: caseData.diagnosisMethod,
+            tumourType: caseData.tumourType?.name || caseData.tumourTypeCustom,
+            anatomicalSite: caseData.anatomicalSite?.name || caseData.anatomicalSiteCustom,
+            laterality: caseData.laterality,
+            stage: caseData.stage,
+            treatmentPlan: caseData.treatmentPlan,
+            treatmentStart: caseData.treatmentStart,
+            outcome: caseData.outcome,
+            lastFollowUp: caseData.lastFollowUp,
+            notes: caseData.notes,
+            status: caseData.status,
+            createdAt: caseData.createdAt,
+            updatedAt: caseData.updatedAt,
+          },
+          clinic: {
+            id: caseData.clinic.id,
+            name: caseData.clinic.name,
+            state: caseData.clinic.state,
+            city: caseData.clinic.city,
+            lga: caseData.clinic.lga,
+            email: caseData.clinic.email,
+            phone: caseData.clinic.phone,
+            address: caseData.clinic.address,
+          },
+          createdBy: {
+            id: caseData.createdBy.id,
+            name: caseData.createdBy.name,
+            email: caseData.createdBy.email,
+            title: caseData.createdBy.title,
+            jobTitle: caseData.createdBy.jobTitle,
+            specialty: caseData.createdBy.specialty,
+            phone: caseData.createdBy.phone,
+            role: caseData.createdBy.role,
+          }
+        }
+      };
+
+      const jsonString = JSON.stringify(completeData, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -356,9 +482,10 @@ export default function CaseDetail() {
 
       toast({
         title: "JSON exported successfully",
-        description: `Case ${caseData.caseNumber} has been exported as JSON.`,
+        description: `Case ${caseData.caseNumber} has been exported as JSON with complete raw data.`,
       });
     } catch (error) {
+      console.error("JSON export error:", error);
       toast({
         title: "Export failed",
         description: "Failed to export case as JSON",
