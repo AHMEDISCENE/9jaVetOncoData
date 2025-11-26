@@ -3117,47 +3117,36 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
-  // Mock report history storage (would be in database in production)
-  let reportHistory = [
-    {
-      id: "1",
-      template: "Monthly Oncology Summary",
-      generatedAt: "2024-01-15T10:30:00Z",
-      format: "PDF",
-      status: "completed",
-      downloadUrl: "#"
-    },
-    {
-      id: "2",
-      template: "Tumour Incidence Analysis", 
-      generatedAt: "2024-01-10T14:20:00Z",
-      format: "XLSX",
-      status: "completed",
-      downloadUrl: "#"
-    },
-    {
-      id: "3",
-      template: "Monthly Oncology Summary",
-      generatedAt: "2024-01-01T09:00:00Z",
-      format: "PDF", 
-      status: "failed",
-      error: "Insufficient data for the selected period"
-    }
-  ];
-
-  // GET report history
+  // GET report history from database
   app.get("/api/reports/history", requireAuth, async (req, res) => {
     try {
-      res.json(reportHistory);
+      const clinicId = (req.session as any).clinicId;
+      const history = await db
+        .select()
+        .from(reportHistory)
+        .where(eq(reportHistory.clinicId, clinicId))
+        .orderBy(desc(reportHistory.generatedAt))
+        .limit(50);
+      
+      res.json(history.map(h => ({
+        id: h.id,
+        template: h.template,
+        generatedAt: h.generatedAt?.toISOString(),
+        format: h.format,
+        status: h.status,
+        downloadUrl: h.downloadUrl,
+        error: h.error
+      })));
     } catch (error) {
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to fetch report history" });
     }
   });
 
-  // DELETE report history
+  // DELETE report history from database
   app.delete("/api/reports/history", requireAuth, async (req, res) => {
     try {
-      reportHistory = [];
+      const clinicId = (req.session as any).clinicId;
+      await db.delete(reportHistory).where(eq(reportHistory.clinicId, clinicId));
       res.json({ success: true, message: "Report history cleared" });
     } catch (error) {
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to clear report history" });

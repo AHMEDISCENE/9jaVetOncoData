@@ -607,6 +607,22 @@ export const session = pgTable("session", {
   expire: timestamp("expire").notNull(),
 });
 
+// Report history tracking
+export const reportHistory = pgTable("report_history", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  clinicId: uuid("clinic_id").references(() => clinics.id).notNull(),
+  createdBy: uuid("created_by").references(() => users.id).notNull(),
+  template: text("template").notNull(),
+  format: text("format").notNull(),
+  status: text("status").notNull(), // completed, failed, pending
+  error: text("error"),
+  downloadUrl: text("download_url"),
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+}, (table) => ({
+  clinicIdx: index("report_history_clinic_idx").on(table.clinicId),
+  statusIdx: index("report_history_status_idx").on(table.status),
+}));
+
 // Dashboard stats type
 export type DashboardStats = {
   totalCases: number;
