@@ -3,9 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, ChevronDown } from "lucide-react";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AnalyticsQueryResponse {
   summary: string;
@@ -146,60 +152,66 @@ export function AIAnalyticsPanel() {
     if (!response) return;
 
     const pdf = new jsPDF();
-    let yPosition = 10;
+    let yPosition = 15;
 
     // Title
     pdf.setFontSize(16);
-    pdf.text("AI Analytics Report", 10, yPosition);
+    pdf.text("AI Analytics Report", 15, yPosition);
     yPosition += 10;
 
     // Metadata
-    pdf.setFontSize(10);
-    pdf.text(`Generated: ${new Date().toLocaleString()}`, 10, yPosition);
-    yPosition += 6;
-    pdf.text(`Mode: ${aiMode}`, 10, yPosition);
+    pdf.setFontSize(9);
+    pdf.text(`Generated: ${new Date().toLocaleString()}`, 15, yPosition);
+    yPosition += 5;
+    pdf.text(`Mode: ${aiMode}`, 15, yPosition);
     yPosition += 10;
 
     // Summary
-    pdf.setFontSize(12);
-    pdf.text("Summary", 10, yPosition);
-    yPosition += 6;
-    pdf.setFontSize(10);
-    const summaryLines = pdf.splitTextToSize(response.summary, 190);
-    pdf.text(summaryLines, 10, yPosition);
-    yPosition += summaryLines.length * 4 + 5;
+    pdf.setFontSize(11);
+    pdf.text("Summary", 15, yPosition);
+    yPosition += 5;
+    pdf.setFontSize(9);
+    const summaryLines = pdf.splitTextToSize(response.summary, 170);
+    pdf.text(summaryLines, 15, yPosition);
+    yPosition += Math.min(summaryLines.length * 3.5 + 3, 50);
 
-    // Table
+    // Results header
     if (response.rows.length > 0) {
-      pdf.setFontSize(12);
-      pdf.text("Results", 10, yPosition);
-      yPosition += 8;
+      pdf.setFontSize(11);
+      pdf.text(`Results (${response.rows.length} rows)`, 15, yPosition);
+      yPosition += 7;
 
-      const tableData = [
-        response.columns,
-        ...response.rows.slice(0, 20).map(row => response.columns.map(col => String(row[col] ?? ""))),
-      ];
+      // Simple text table for first 10 rows
+      pdf.setFontSize(8);
+      const colCount = Math.min(response.columns.length, 5);
+      const cols = response.columns.slice(0, colCount);
+      const colWidth = (180 / colCount);
 
-      (pdf as any).autoTable({
-        head: [response.columns],
-        body: response.rows.slice(0, 20).map(row => response.columns.map(col => String(row[col] ?? ""))),
-        startY: yPosition,
-        margin: { left: 10, right: 10 },
-        theme: "grid",
-        fontSize: 9,
-        columnStyles: {
-          ...response.columns.reduce((acc, col, i) => ({
-            ...acc,
-            [i]: { cellWidth: Math.max(15, 180 / response.columns.length) },
-          }), {}),
-        },
+      // Headers
+      cols.forEach((col, i) => {
+        pdf.text(col.substring(0, 15), 15 + (i * colWidth), yPosition);
+      });
+      yPosition += 4;
+      pdf.setDrawColor(200);
+      pdf.line(15, yPosition - 1, 195, yPosition - 1);
+
+      // Rows
+      response.rows.slice(0, 10).forEach(row => {
+        if (yPosition > 270) {
+          pdf.addPage();
+          yPosition = 15;
+        }
+        cols.forEach((col, i) => {
+          const val = String(row[col] ?? "").substring(0, 12);
+          pdf.text(val, 15 + (i * colWidth), yPosition);
+        });
+        yPosition += 4;
       });
 
-      if (response.rows.length > 20) {
-        const lastPage = pdf.getNumberOfPages();
-        pdf.setPage(lastPage);
+      if (response.rows.length > 10) {
+        yPosition += 3;
         pdf.setFontSize(8);
-        pdf.text(`Showing first 20 of ${response.rows.length} rows`, 10, pdf.lastAutoTable.finalY + 5);
+        pdf.text(`... and ${response.rows.length - 10} more rows`, 15, yPosition);
       }
     }
 
@@ -281,39 +293,27 @@ export function AIAnalyticsPanel() {
 
         {response && (
           <div className="mt-6 space-y-4">
-            {/* Download Buttons */}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={downloadAsCSV}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                data-testid="button-download-csv"
-              >
-                <Download className="h-4 w-4" />
-                CSV
-              </Button>
-              <Button
-                onClick={downloadAsExcel}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                data-testid="button-download-excel"
-              >
-                <Download className="h-4 w-4" />
-                Excel
-              </Button>
-              <Button
-                onClick={downloadAsPDF}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                data-testid="button-download-pdf"
-              >
-                <Download className="h-4 w-4" />
-                PDF
-              </Button>
-            </div>
+            {/* Download Button with Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2" data-testid="button-download">
+                  <Download className="h-4 w-4" />
+                  Download Report
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={downloadAsCSV} data-testid="menu-download-csv">
+                  CSV File
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadAsExcel} data-testid="menu-download-excel">
+                  Excel Spreadsheet
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadAsPDF} data-testid="menu-download-pdf">
+                  PDF Document
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Summary */}
             <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
