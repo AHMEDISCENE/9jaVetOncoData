@@ -5,7 +5,7 @@ export interface AnalyticsFilters {
   breed?: string;
   tumourType?: string;
   ageGroup?: string;
-  sex?: string;
+  sex?: string[];
   zone?: string;
   state?: string;
   clinic?: string;
@@ -18,6 +18,7 @@ interface AnalyticsFiltersContextValue {
   filters: AnalyticsFilters;
   setFilters: (filters: AnalyticsFilters) => void;
   updateFilter: (key: keyof AnalyticsFilters, value: string | undefined) => void;
+  updateMultiSelect: (key: keyof AnalyticsFilters, option: string, checked: boolean) => void;
   clearFilters: () => void;
 }
 
@@ -40,6 +41,17 @@ export function AnalyticsFiltersProvider({ children }: { children: ReactNode }) 
     });
   }, []);
 
+  const updateMultiSelect = useCallback((key: keyof AnalyticsFilters, option: string, checked: boolean) => {
+    setFiltersState((prev) => {
+      const current = prev[key] as string[] | undefined || [];
+      if (checked) {
+        return { ...prev, [key]: [...current, option] };
+      } else {
+        return { ...prev, [key]: current.filter(o => o !== option) };
+      }
+    });
+  }, []);
+
   const clearFilters = useCallback(() => {
     setFiltersState({});
   }, []);
@@ -49,9 +61,10 @@ export function AnalyticsFiltersProvider({ children }: { children: ReactNode }) 
       filters,
       setFilters,
       updateFilter,
+      updateMultiSelect,
       clearFilters,
     }),
-    [filters, setFilters, updateFilter, clearFilters]
+    [filters, setFilters, updateFilter, updateMultiSelect, clearFilters]
   );
 
   return (
