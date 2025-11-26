@@ -231,6 +231,7 @@ export interface IStorage {
   markNotificationAsRead(id: string, userId: string): Promise<void>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
   deleteNotification(id: string, userId: string): Promise<void>;
+  deleteAllNotifications(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1819,6 +1820,12 @@ export class DatabaseStorage implements IStorage {
         eq(notifications.id, id),
         eq(notifications.userId, userId)
       ));
+  }
+
+  async deleteAllNotifications(userId: string): Promise<void> {
+    await db
+      .delete(notifications)
+      .where(eq(notifications.userId, userId));
   }
 
   async getCasesByLocation(filters: {

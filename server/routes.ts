@@ -3057,6 +3057,17 @@ Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bil
     }
   });
 
+  app.delete("/api/notifications/clear-all", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      
+      await storage.deleteAllNotifications(userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to clear all notifications" });
+    }
+  });
+
   app.delete("/api/notifications/:id", requireAuth, async (req, res) => {
     try {
       const userId = (req.session as any).userId;
