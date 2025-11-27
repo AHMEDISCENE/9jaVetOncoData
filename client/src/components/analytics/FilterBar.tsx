@@ -183,13 +183,15 @@ export function FilterBar() {
                       >
                         <SelectValue placeholder="All" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent side="top" sideOffset={5} className="z-50">
                         <SelectItem value="all">All</SelectItem>
-                        {options.map(option => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
+                        {options && options.length > 0 ? (
+                          options.map(option => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))
+                        ) : null}
                       </SelectContent>
                     </Select>
                   </div>
@@ -267,13 +269,15 @@ export function FilterBar() {
                 >
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="top" sideOffset={5} className="z-50 max-h-64">
                   <SelectItem value="all">All</SelectItem>
-                  {STATES.map(state => (
-                    <SelectItem key={state} value={state}>
-                      {state}
-                    </SelectItem>
-                  ))}
+                  {STATES && STATES.length > 0 ? (
+                    STATES.map(state => (
+                      <SelectItem key={state} value={state}>
+                        {state}
+                      </SelectItem>
+                    ))
+                  ) : null}
                 </SelectContent>
               </Select>
             </motion.div>
