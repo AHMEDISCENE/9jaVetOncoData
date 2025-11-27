@@ -99,7 +99,7 @@ export function FilterBar() {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`mb-4 border border-border/50 rounded-xl bg-gradient-to-br from-card via-card to-card/50 dark:from-slate-900/50 dark:via-slate-900/30 dark:to-slate-900/20 backdrop-blur-sm shadow-lg ${shouldShow ? 'p-5' : 'p-0'}`}
+      className={`mb-4 border border-border/50 rounded-xl bg-gradient-to-br from-card via-card to-card/50 dark:from-slate-900/50 dark:via-slate-900/30 dark:to-slate-900/20 backdrop-blur-sm shadow-lg overflow-visible ${shouldShow ? 'p-5' : 'p-0'}`}
     >
       {/* Header */}
       <div className={`flex justify-between items-center ${shouldShow ? 'mb-4 pb-3 border-b border-border/30' : ''}`}>
@@ -147,10 +147,10 @@ export function FilterBar() {
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.2 }}
-          className="space-y-2.5"
+          className="space-y-2.5 overflow-visible"
         >
           {/* Filter Categories - All in single compact grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 overflow-visible">
             {filterCategories.flatMap((category) =>
               category.filters.map(({ label, key, options }) => {
                 // Skip sex filter in main grid - it will be rendered as checkboxes below
@@ -183,7 +183,7 @@ export function FilterBar() {
                       >
                         <SelectValue placeholder="All" />
                       </SelectTrigger>
-                      <SelectContent side="top" sideOffset={5} className="z-50">
+                      <SelectContent className="z-[9999]">
                         <SelectItem value="all">All</SelectItem>
                         {options && options.length > 0 ? (
                           options.map(option => (
@@ -269,7 +269,7 @@ export function FilterBar() {
                 >
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
-                <SelectContent side="top" sideOffset={5} className="z-50 max-h-64">
+                <SelectContent className="z-[9999] max-h-64">
                   <SelectItem value="all">All</SelectItem>
                   {STATES && STATES.length > 0 ? (
                     STATES.map(state => (
