@@ -161,7 +161,7 @@ export function FilterBar() {
                 const stringValue = typeof value === 'string' ? value : (Array.isArray(value) ? "all" : "all");
                 
                 return (
-                  <div key={key} className="space-y-1">
+                  <div key={key} className="space-y-1 pointer-events-auto">
                     <Label
                       htmlFor={key}
                       className="text-xs font-medium text-foreground truncate block"
@@ -174,7 +174,7 @@ export function FilterBar() {
                     >
                       <SelectTrigger
                         id={key}
-                        className={`h-8 text-xs border-border/50 transition-all ${
+                        className={`h-8 text-xs border-border/50 transition-all cursor-pointer pointer-events-auto ${
                           hasValue 
                             ? 'bg-primary/10 border-primary/50 dark:bg-primary/20' 
                             : 'bg-background'
@@ -253,7 +253,7 @@ export function FilterBar() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="space-y-1 pt-2 border-t border-border/20"
+              className="space-y-1 pt-2 border-t border-border/20 pointer-events-auto"
             >
               <Label htmlFor="state" className="text-xs font-medium text-foreground">
                 State
@@ -264,7 +264,7 @@ export function FilterBar() {
               >
                 <SelectTrigger
                   id="state"
-                  className="h-8 text-xs border-border/50 bg-primary/10 border-primary/50 dark:bg-primary/20"
+                  className="h-8 text-xs border-border/50 bg-primary/10 border-primary/50 dark:bg-primary/20 cursor-pointer pointer-events-auto"
                   data-testid="select-state"
                 >
                   <SelectValue placeholder="All" />
