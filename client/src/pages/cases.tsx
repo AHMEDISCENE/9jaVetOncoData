@@ -106,7 +106,7 @@ function MultiSelectFilter({
     : `${selectedValues.length} selected`;
 
   return (
-    <div>
+    <div className="pointer-events-auto">
       <Label className="text-sm font-medium text-foreground mb-1">{label}</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -114,7 +114,7 @@ function MultiSelectFilter({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between"
+            className="w-full justify-between pointer-events-auto cursor-pointer"
             data-testid={testId}
           >
             <span className="truncate">{displayText}</span>
