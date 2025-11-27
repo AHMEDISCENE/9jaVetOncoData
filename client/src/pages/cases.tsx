@@ -208,6 +208,7 @@ export default function Cases() {
     if (params.get('outcome')) urlFilters.outcome = params.get('outcome')!;
     if (params.get('startDate')) urlFilters.startDate = params.get('startDate')!;
     if (params.get('endDate')) urlFilters.endDate = params.get('endDate')!;
+    if (params.getAll('zone').length) urlFilters.zone = params.getAll('zone');
     if (params.getAll('state').length) urlFilters.state = params.getAll('state');
     if (params.getAll('sex').length) urlFilters.sex = params.getAll('sex');
     if (params.getAll('clinicId').length) urlFilters.clinicId = params.getAll('clinicId');
@@ -224,6 +225,7 @@ export default function Cases() {
     if (filters.outcome) params.set('outcome', filters.outcome);
     if (filters.startDate) params.set('startDate', filters.startDate);
     if (filters.endDate) params.set('endDate', filters.endDate);
+    if (filters.zone) filters.zone.forEach(z => params.append('zone', z));
     if (filters.state) filters.state.forEach(s => params.append('state', s));
     if (filters.sex) filters.sex.forEach(sx => params.append('sex', sx));
     if (filters.clinicId) filters.clinicId.forEach(c => params.append('clinicId', c));
@@ -322,12 +324,34 @@ export default function Cases() {
     return false;
   };
 
-  // State options
+  // Extract unique zones with proper formatting
+  const zones = useMemo(() => {
+    const formatZoneName = (zone: string) => {
+      return zone
+        .split('_')
+        .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+        .join(' ');
+    };
+    
+    const uniqueZones = Array.from(new Set(ngStates.map(s => s.zone))).sort();
+    return uniqueZones.map(zone => ({ 
+      value: zone, 
+      label: formatZoneName(zone) 
+    }));
+  }, [ngStates]);
+
+  // Filter states based on selected zones (cascading)
   const availableStates = useMemo(() => {
-    return ngStates
+    let statesToShow = ngStates;
+    
+    if (filters.zone && filters.zone.length > 0) {
+      statesToShow = ngStates.filter(s => filters.zone!.includes(s.zone));
+    }
+    
+    return statesToShow
       .map(s => ({ value: s.code, label: s.name }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [ngStates]);
+  }, [ngStates, filters.zone]);
 
   // Clinic options
   const clinicOptions = useMemo(() => 
@@ -350,10 +374,20 @@ export default function Cases() {
   };
 
   const handleMultiSelectChange = (key: keyof CaseFilters, values: string[]) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: values.length > 0 ? values : undefined
-    }));
+    setFilters(prev => {
+      const newFilters = { ...prev, [key]: values.length > 0 ? values : undefined };
+      
+      // Clear state filter if zones change and selected states are no longer in available states
+      if (key === 'zone' && prev.state) {
+        const validStates = ngStates
+          .filter(s => values.length === 0 || values.includes(s.zone))
+          .map(s => s.code);
+        const filteredStates = prev.state.filter(s => validStates.includes(s));
+        newFilters.state = filteredStates.length > 0 ? filteredStates : undefined;
+      }
+      
+      return newFilters;
+    });
     setCurrentPage(1);
   };
 
@@ -372,6 +406,7 @@ export default function Cases() {
       const response = await apiRequest('POST', '/api/cases/export', {
         format,
         filters: {
+          zone: filters.zone,
           state: filters.state,
           clinicId: filters.clinicId,
           tumourTypeId: filters.tumourTypeId,
@@ -695,6 +730,15 @@ export default function Cases() {
 
           {/* Row 2: Multi-Select Filters */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MultiSelectFilter
+              label="Geo-Political Zone"
+              options={zones}
+              selectedValues={filters.zone || []}
+              onSelectionChange={(values) => handleMultiSelectChange('zone', values)}
+              placeholder="All Zones"
+              testId="filter-zone"
+            />
+
             <MultiSelectFilter
               label="State"
               options={availableStates}
