@@ -134,6 +134,7 @@ function MultiSelectFilter({
                   {options.map((option) => (
                     <CommandItem
                       key={option.value}
+                      value={option.label}
                       onSelect={() => handleToggle(option.value)}
                       className="cursor-pointer"
                       data-testid={`${testId}-option-${option.value}`}
