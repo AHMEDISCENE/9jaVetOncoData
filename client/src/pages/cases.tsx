@@ -122,8 +122,8 @@ function MultiSelectFilter({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" align="start">
-          {searchable ? (
-            <Command>
+          {searchable && options.length > 0 ? (
+            <Command shouldFilter={true} loop>
               <CommandInput 
                 placeholder={`Search ${label.toLowerCase()}...`} 
                 data-testid={`${testId}-search`}
@@ -134,7 +134,7 @@ function MultiSelectFilter({
                   {options.map((option) => (
                     <CommandItem
                       key={option.value}
-                      value={option.label}
+                      value={option.value}
                       onSelect={() => handleToggle(option.value)}
                       className="cursor-pointer"
                       data-testid={`${testId}-option-${option.value}`}
@@ -144,7 +144,7 @@ function MultiSelectFilter({
                         className="mr-2"
                         data-testid={`${testId}-checkbox-${option.value}`}
                       />
-                      {option.label}
+                      <span>{option.label}</span>
                       <Check
                         className={cn(
                           "ml-auto h-4 w-4",
