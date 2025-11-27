@@ -365,11 +365,25 @@ export default function Cases() {
     [tumourTypes]
   );
 
-  const handleFilterChange = (key: keyof CaseFilters, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: (value === "__all" || !value) ? undefined : value
-    }));
+  const handleFilterChange = (key: keyof CaseFilters, value: string | undefined) => {
+    setFilters(prev => {
+      if (key === 'groupBy') {
+        return { ...prev, groupBy: (value as any) || 'none' };
+      } else if (key === 'sort') {
+        return { ...prev, sort: (value as any) || 'date' };
+      } else if (key === 'order') {
+        return { ...prev, order: (value as any) || 'desc' };
+      } else if (key === 'species') {
+        return { ...prev, species: (value === "__all" || !value) ? undefined : value };
+      } else if (key === 'outcome') {
+        return { ...prev, outcome: (value === "__all" || !value) ? undefined : value };
+      } else if (key === 'startDate') {
+        return { ...prev, startDate: (value === "__all" || !value) ? undefined : value };
+      } else if (key === 'endDate') {
+        return { ...prev, endDate: (value === "__all" || !value) ? undefined : value };
+      }
+      return prev;
+    });
     setCurrentPage(1);
   };
 
@@ -783,7 +797,7 @@ export default function Cases() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label className="text-sm font-medium text-foreground mb-1">Group By</Label>
-              <Select value={(filters.groupBy || 'none') as string} onValueChange={(value) => handleFilterChange("groupBy", value as CaseFilters['groupBy'])}>
+              <Select value={filters.groupBy || 'none'} onValueChange={(value) => handleFilterChange("groupBy", value)}>
                 <SelectTrigger data-testid="filter-group-by">
                   <SelectValue />
                 </SelectTrigger>
@@ -802,7 +816,7 @@ export default function Cases() {
 
             <div>
               <Label className="text-sm font-medium text-foreground mb-1">Sort By</Label>
-              <Select value={(filters.sort || 'date') as string} onValueChange={(value) => handleFilterChange("sort", value as CaseFilters['sort'])}>
+              <Select value={filters.sort || 'date'} onValueChange={(value) => handleFilterChange("sort", value)}>
                 <SelectTrigger data-testid="filter-sort-by">
                   <SelectValue />
                 </SelectTrigger>
@@ -818,7 +832,7 @@ export default function Cases() {
 
             <div>
               <Label className="text-sm font-medium text-foreground mb-1">Sort Order</Label>
-              <Select value={(filters.order || 'desc') as string} onValueChange={(value) => handleFilterChange("order", value as CaseFilters['order'])}>
+              <Select value={filters.order || 'desc'} onValueChange={(value) => handleFilterChange("order", value)}>
                 <SelectTrigger data-testid="filter-sort-order">
                   <SelectValue />
                 </SelectTrigger>
