@@ -67,6 +67,47 @@ const FALLBACK_ZONES = [
   { value: "SOUTH_WEST", label: "South West" },
 ];
 
+// Fallback states - ensures state filter always works even if API data fails to load
+const FALLBACK_STATES = [
+  { code: "ABI", name: "Abia", zone: "SOUTH_EAST" },
+  { code: "ABJ", name: "Abuja", zone: "NORTH_CENTRAL" },
+  { code: "ADA", name: "Adamawa", zone: "NORTH_EAST" },
+  { code: "AKW", name: "Akwa Ibom", zone: "SOUTH_SOUTH" },
+  { code: "ANM", name: "Anambra", zone: "SOUTH_EAST" },
+  { code: "BAU", name: "Bauchi", zone: "NORTH_EAST" },
+  { code: "BAY", name: "Bayelsa", zone: "SOUTH_SOUTH" },
+  { code: "BEN", name: "Benue", zone: "NORTH_CENTRAL" },
+  { code: "BOR", name: "Bornu", zone: "NORTH_EAST" },
+  { code: "CRO", name: "Cross River", zone: "SOUTH_SOUTH" },
+  { code: "DEL", name: "Delta", zone: "SOUTH_SOUTH" },
+  { code: "EBY", name: "Ebonyi", zone: "SOUTH_EAST" },
+  { code: "EDO", name: "Edo", zone: "SOUTH_SOUTH" },
+  { code: "EKI", name: "Ekiti", zone: "SOUTH_WEST" },
+  { code: "ENU", name: "Enugu", zone: "SOUTH_EAST" },
+  { code: "FED", name: "Federal Capital Territory", zone: "NORTH_CENTRAL" },
+  { code: "GON", name: "Gombe", zone: "NORTH_EAST" },
+  { code: "IMO", name: "Imo", zone: "SOUTH_EAST" },
+  { code: "JIG", name: "Jigawa", zone: "NORTH_WEST" },
+  { code: "KDU", name: "Kaduna", zone: "NORTH_WEST" },
+  { code: "KAN", name: "Kano", zone: "NORTH_WEST" },
+  { code: "KAT", name: "Katsina", zone: "NORTH_WEST" },
+  { code: "KEB", name: "Kebbi", zone: "NORTH_WEST" },
+  { code: "KOG", name: "Kogi", zone: "NORTH_CENTRAL" },
+  { code: "LAG", name: "Lagos", zone: "SOUTH_WEST" },
+  { code: "NAR", name: "Nasarawa", zone: "NORTH_CENTRAL" },
+  { code: "NIG", name: "Niger", zone: "NORTH_CENTRAL" },
+  { code: "OGU", name: "Ogun", zone: "SOUTH_WEST" },
+  { code: "OND", name: "Ondo", zone: "SOUTH_WEST" },
+  { code: "OOS", name: "Osun", zone: "SOUTH_WEST" },
+  { code: "OYO", name: "Oyo", zone: "SOUTH_WEST" },
+  { code: "PLA", name: "Plateau", zone: "NORTH_CENTRAL" },
+  { code: "RIV", name: "Rivers", zone: "SOUTH_SOUTH" },
+  { code: "SOK", name: "Sokoto", zone: "NORTH_WEST" },
+  { code: "TAR", name: "Taraba", zone: "NORTH_EAST" },
+  { code: "YOB", name: "Yobe", zone: "NORTH_EAST" },
+  { code: "ZAM", name: "Zamfara", zone: "NORTH_WEST" },
+];
+
 interface NgState {
   code: string;
   name: string;
@@ -379,10 +420,12 @@ export default function Cases() {
 
   // Filter states based on selected zones (cascading)
   const availableStates = useMemo(() => {
-    let statesToShow = ngStates;
+    // Use API data if available, otherwise fallback to static states
+    const statesData = ngStates.length === 0 ? FALLBACK_STATES : ngStates;
+    let statesToShow = statesData;
     
     if (filters.zone && filters.zone.length > 0) {
-      statesToShow = ngStates.filter(s => filters.zone!.includes(s.zone));
+      statesToShow = statesData.filter(s => filters.zone!.includes(s.zone));
     }
     
     return statesToShow
