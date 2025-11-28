@@ -7,6 +7,13 @@ import { Link } from "wouter";
 import { ArrowLeft, Edit, Mail, Briefcase, Stethoscope, FileText, Phone, Linkedin, BookOpen } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+// Helper to ensure URLs have protocol
+const ensureProtocol = (url: string): string => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return `https://${url}`;
+};
+
 export default function Profile() {
   const { user, clinic, isLoading } = useAuth();
 
@@ -232,7 +239,7 @@ export default function Profile() {
                       <p className="text-xs font-semibold text-muted-foreground">LinkedIn</p>
                     </div>
                     <a 
-                      href={linkedIn} 
+                      href={ensureProtocol(linkedIn)} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="font-medium text-primary hover:underline" 
@@ -249,7 +256,7 @@ export default function Profile() {
                       <p className="text-xs font-semibold text-muted-foreground">Google Scholar</p>
                     </div>
                     <a 
-                      href={googleScholar} 
+                      href={ensureProtocol(googleScholar)} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="font-medium text-primary hover:underline" 

@@ -8,6 +8,13 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useRef } from "react";
+
+// Helper to ensure URLs have protocol
+const ensureProtocol = (url: string): string => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return `https://${url}`;
+};
 import { FileText, Image, Upload, X, ArrowLeft, Eye, MapPin, User, Calendar, Stethoscope, AlertCircle, Download, FileJson, ChevronRight, Mail, Phone, Briefcase, Trash2 } from "lucide-react";
 import {
   AlertDialog,
@@ -1102,14 +1109,14 @@ export default function CaseDetail() {
                 )}
 
                 {selectedUploader.linkedIn && (
-                  <a href={selectedUploader.linkedIn} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group">
+                  <a href={ensureProtocol(selectedUploader.linkedIn)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group">
                     <Mail className="h-4 w-4 text-slate-500 flex-shrink-0" />
                     <span className="text-xs truncate text-blue-600 dark:text-blue-400 group-hover:underline">LinkedIn Profile</span>
                   </a>
                 )}
 
                 {selectedUploader.googleScholar && (
-                  <a href={selectedUploader.googleScholar} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group">
+                  <a href={ensureProtocol(selectedUploader.googleScholar)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group">
                     <Mail className="h-4 w-4 text-slate-500 flex-shrink-0" />
                     <span className="text-xs truncate text-blue-600 dark:text-blue-400 group-hover:underline">Google Scholar</span>
                   </a>
