@@ -110,30 +110,6 @@ const FALLBACK_STATES = [
   { code: "ZAMFARA", name: "Zamfara", zone: "NORTH_WEST" },
 ];
 
-// Fallback tumour types - ensures tumour type filter always works even if API data fails to load
-const FALLBACK_TUMOUR_TYPES = [
-  { id: "1", name: "Anal Sac Adenocarcinoma" },
-  { id: "2", name: "Fibrosarcoma" },
-  { id: "3", name: "Hemangiosarcoma" },
-  { id: "4", name: "Lymphoma" },
-  { id: "5", name: "Mastocytoma" },
-  { id: "6", name: "Melanoma" },
-  { id: "7", name: "Meningioma" },
-  { id: "8", name: "Osteosarcoma" },
-  { id: "9", name: "Squamous Cell Carcinoma" },
-  { id: "10", name: "Transitional Cell Carcinoma" },
-  { id: "11", name: "Mammary Gland Tumor" },
-  { id: "12", name: "Soft Tissue Sarcoma" },
-  { id: "13", name: "Hepatocellular Carcinoma" },
-  { id: "14", name: "Pancreatic Cancer" },
-  { id: "15", name: "Thyroid Carcinoma" },
-  { id: "16", name: "Brain Tumor" },
-  { id: "17", name: "Lung Cancer" },
-  { id: "18", name: "Gastrointestinal Cancer" },
-  { id: "19", name: "Urinary Bladder Cancer" },
-  { id: "20", name: "Prostate Cancer" },
-];
-
 interface NgState {
   code: string;
   name: string;
@@ -141,11 +117,6 @@ interface NgState {
 }
 
 interface Clinic {
-  id: string;
-  name: string;
-}
-
-interface TumourType {
   id: string;
   name: string;
 }
@@ -311,7 +282,6 @@ export default function Cases() {
     if (params.getAll('state').length) urlFilters.state = params.getAll('state');
     if (params.getAll('sex').length) urlFilters.sex = params.getAll('sex');
     if (params.getAll('clinicId').length) urlFilters.clinicId = params.getAll('clinicId');
-    if (params.getAll('tumourTypeId').length) urlFilters.tumourTypeId = params.getAll('tumourTypeId');
 
     setFilters(urlFilters);
   }, []);
@@ -328,7 +298,6 @@ export default function Cases() {
     if (filters.state) filters.state.forEach(s => params.append('state', s));
     if (filters.sex) filters.sex.forEach(sx => params.append('sex', sx));
     if (filters.clinicId) filters.clinicId.forEach(c => params.append('clinicId', c));
-    if (filters.tumourTypeId) filters.tumourTypeId.forEach(t => params.append('tumourTypeId', t));
     if (filters.groupBy && filters.groupBy !== 'none') params.set('groupBy', filters.groupBy);
     if (filters.sort) params.set('sort', filters.sort);
     if (filters.order) params.set('order', filters.order);
@@ -347,10 +316,6 @@ export default function Cases() {
 
   const { data: clinics = [] } = useQuery<Clinic[]>({
     queryKey: ['/api/lookups/clinics'],
-  });
-
-  const { data: tumourTypes = [] } = useQuery<TumourType[]>({
-    queryKey: ['/api/lookups/tumour-types'],
   });
 
   // Fetch cases with filters
@@ -464,13 +429,6 @@ export default function Cases() {
     clinics.map(c => ({ value: c.id, label: c.name })).sort((a, b) => a.label.localeCompare(b.label)),
     [clinics]
   );
-
-  // Tumour type options
-  const tumourTypeOptions = useMemo(() => {
-    // Use API data if available, otherwise fallback to static tumour types
-    const typesData = tumourTypes.length === 0 ? FALLBACK_TUMOUR_TYPES : tumourTypes;
-    return typesData.map(t => ({ value: t.id, label: t.name })).sort((a, b) => a.label.localeCompare(b.label));
-  }, [tumourTypes]);
 
   const handleFilterChange = (key: keyof CaseFilters, value: string | undefined) => {
     setFilters(prev => {
@@ -877,16 +835,6 @@ export default function Cases() {
               onSelectionChange={(values) => handleMultiSelectChange('clinicId', values)}
               placeholder="All Clinics"
               testId="filter-clinic"
-              searchable
-            />
-
-            <MultiSelectFilter
-              label="Tumour Type"
-              options={tumourTypeOptions}
-              selectedValues={filters.tumourTypeId || []}
-              onSelectionChange={(values) => handleMultiSelectChange('tumourTypeId', values)}
-              placeholder="All Tumour Types"
-              testId="filter-tumour-type"
               searchable
             />
 
