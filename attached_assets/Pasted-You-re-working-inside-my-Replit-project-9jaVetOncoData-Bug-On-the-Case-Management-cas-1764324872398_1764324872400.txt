@@ -1,0 +1,103 @@
+You’re working inside my Replit project “9jaVetOncoData”.
+
+Bug:
+- On the “Case Management” (`/cases`) page, the **Tumour Type** multi-select dropdown works visually (I can select one or more tumour types and see the “Tumour Types: X” badge).
+- The request to `/api/cases` succeeds (no 500 error anymore).
+- BUT: the cases table is not actually filtered by tumour type; I still see all cases regardless of what I select.
+
+Goal:
+Make the Tumour Type filter actually narrow the results coming from `/api/cases`.
+
+Key files:
+- `client/src/pages/cases.tsx`
+- `client/src/lib/types.ts`
+- `server/routes.ts`      (the `/api/cases` route)
+- `server/storage.ts`     (`getCases` implementation)
+- `shared/schema.ts`      (tumourTypes + cases schema)
+
+What I already know / constraints:
+- On the client, the Tumour Type filter uses `TumourType.id` (UUID) as the value:
+  - `tumourTypeOptions = tumourTypes.map(t => ({ value: t.id, label: t.name }))`
+  - MultiSelect passes those values into `handleMultiSelectChange('tumourTypeId', values)`.
+- `CaseFilters` has `tumourTypeId?: string[];`.
+- The `/api/cases` route parses query params into a `filters` object with `tumourTypeId` on it.
+- `server/storage.ts::getCases()` expects a property called **`tumourTypeIds`** (plural) and uses `filters.tumourTypeIds` to build the Drizzle `where` clause on `cases.tumourTypeId`.
+- Because of that naming mismatch and missing normalisation, the tumour type filter is never actually applied.
+
+Your tasks:
+
+1. Confirm client → backend tumuorTypeId wiring
+   - In `client/src/pages/cases.tsx`:
+     - Confirm `CaseFilters` is imported from `@/lib/types` and includes `tumourTypeId?: string[];`.
+     - Confirm the Tumour Type MultiSelect is wired like this:
+       ```tsx
+       <MultiSelectFilter
+         label="Tumour Type"
+         options={tumourTypeOptions}
+         selectedValues={filters.tumourTypeId || []}
+         onSelectionChange={(values) => handleMultiSelectChange('tumourTypeId', values)}
+         ...
+       />
+       ```
+     - Confirm that `filters` is included in the React Query `queryKey`:
+       ```ts
+       useQuery({
+         queryKey: ["/api/cases", filters, { limit: pageSize, offset: ... }],
+       });
+       ```
+   - If any of that is missing, fix it so that choosing a tumour type triggers a new `/api/cases` request with `tumourTypeId=<uuid>` in the query string.
+
+2. Fix the `/api/cases` route to produce `tumourTypeIds` (plural)
+   - Open `server/routes.ts` and find the GET handler for `/api/cases`.
+   - There is a Zod `filterSchema` that includes `tumourTypeId` as `string | string[] | undefined`.
+   - After parsing `filters = filterSchema.parse(req.query)`, normalise and validate tumour type IDs:
+
+     ```ts
+     const normalizeToArray = (val?: string | string[]) =>
+       !val ? undefined : Array.isArray(val) ? val : [val];
+
+     const isUuid = (val: string) =>
+       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+     const tumourTypeIds = normalizeToArray(filters.tumourTypeId)?.filter(isUuid);
+     ```
+
+   - When calling `storage.getCases`, make sure you pass **`tumourTypeIds`** (plural) and not the raw `tumourTypeId` field, for example:
+
+     ```ts
+     const cases = await storage.getCases(req.user?.clinicId, {
+       ...filters,
+       startDate: filters.startDate ? new Date(filters.startDate) : undefined,
+       endDate: filters.endDate ? new Date(filters.endDate) : undefined,
+       clinicIds: normalizeToArray(filters.clinicId),
+       zones: normalizeToArray(filters.zone),
+       states: normalizeToArray(filters.state),
+       tumourTypeIds, // ✅ pass the normalised & validated IDs here
+       sort: filters.sort || "date",
+       order: filters.order || "desc",
+     });
+     ```
+
+   - Also ensure that spreading `...filters` does NOT overwrite `tumourTypeIds` afterwards. If needed, spread `...filters` first and then explicitly set `tumourTypeIds`.
+
+3. Ensure storage layer actually uses `tumourTypeIds`
+   - In `server/storage.ts`, open the `async getCases(...)` function.
+   - Confirm the function’s `filters` parameter includes `tumourTypeIds?: string[]`.
+   - Inside the query builder, find or add:
+
+     ```ts
+     if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+       query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+     }
+     ```
+
+   - Do NOT remove other filters (state, clinic, zone, date, etc.); just make sure tumourTypeIds is an additional condition.
+
+4. Sanity check
+   - After changes, run the app and:
+     - Pick a tumour type that you know exists in the data.
+     - Confirm the `/api/cases` request in the Network tab includes `tumourTypeId=<that uuid>`.
+     - Confirm the JSON response from `/api/cases` only contains cases where `case.tumourTypeId` matches one of the selected IDs (or no cases at all if there are no matches).
+   - If you see unfiltered results, log the `filters` object inside `getCases` and the final SQL (if possible) to verify that `tumourTypeIds` is being passed and used.
+
+Please implement these changes so that the Tumour Type filter actually narrows the case list, and show the updated code snippets for `server/routes.ts` and `server/storage.ts` once done.
