@@ -306,7 +306,12 @@ export default function Dashboard() {
   };
 
   const handleViewAll = (): void => {
-    setShowTumourTypesModal(true);
+    console.log("Navigating to full analytics page");
+    setLocation("/analytics");
+    toast({
+      title: "Opening analytics",
+      description: "Redirecting to the full analytics dashboard...",
+    });
   };
 
   const handleViewCasesByMonth = (): void => {
@@ -832,12 +837,15 @@ export default function Dashboard() {
               variant="outline"
               size="sm"
               data-testid="button-view-all-cases-by-month"
-              onClick={handleViewCasesByMonth}
+              onClick={handleViewAll}
             >
-              <i className="fas fa-expand mr-2"></i>View All
+              <i className="fas fa-external-link mr-2"></i>View All
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent 
+            className="cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
+            onClick={handleViewCasesByMonth}
+          >
             <div className="h-64">
               {stats.casesByMonth.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -886,7 +894,10 @@ export default function Dashboard() {
               View All
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent 
+            className="cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
+            onClick={() => setShowTumourTypesModal(true)}
+          >
             <div className="h-64">
               {stats.topTumourTypes.length > 0 ? (
                 <div className="space-y-3">
