@@ -1102,10 +1102,13 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         return code.trim().replace(/\s+/g, '_').toUpperCase();
       };
       
-      // Helper to validate UUID format
+      // Helper to validate UUID or custom type format
       const isValidUuid = (val: string): boolean => {
         if (!val || typeof val !== 'string') return false;
-        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+        // Accept both UUIDs and custom type IDs (starting with "custom-")
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+        const isCustom = val.startsWith('custom-');
+        return isUuid || isCustom;
       };
       
       // Valid state enum values for validation
