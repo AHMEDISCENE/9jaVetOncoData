@@ -1,0 +1,79 @@
+Context: In the 9jaVetOncoData project on Replit, the “Manage and view all veterinary oncology cases” page shows filter drop-downs for State, Tumour Type, etc. Selecting a filter updates the UI (chips like “States: 1” appear), but the results table still shows all cases — the filters don’t actually change the data. The previous 500 error is fixed; now the issue is that filtering has no effect.
+
+Tasks for you as Ghostwriter:
+
+1. Client-side filters wiring
+   - Open `client/src/pages/cases.tsx`.
+   - Find the `useQuery` call that loads cases.
+   - Confirm that the `CaseFilters` state (including `state`, `zone`, `clinicId`, `tumourTypeId`, etc.) is being included in the React Query `queryKey`.
+   - Make sure that when a user selects a state or tumour type, those values are actually present in the `queryKey` object so that React Query refetches `/api/cases` whenever filters change.
+
+2. What is sent to the backend
+   - Still in `cases.tsx`, check how `CaseFilters` is shaped:
+     - `state?: string[];`
+     - `tumourTypeId?: string[];`
+   - Ensure that the filter dropdowns (MultiSelectFilter) call `handleMultiSelectChange('state', …)` and `handleMultiSelectChange('tumourTypeId', …)` with the correct values:
+     - For states, the values should be the same codes returned from `/api/lookups/ng-states` (ideally matching the enum, e.g. `ADAMAWA`, `LAGOS`, `AKWA_IBOM`).
+     - For tumour types, the values should be valid UUIDs.
+
+3. Backend route: `/api/cases`
+   - Open `server/routes.ts` and locate the `/api/cases` GET route.
+   - There is a `filterSchema` and a `normalizeToArray` helper.
+   - After parsing `filters = filterSchema.parse(req.query)`, make sure we normalize and pass the correct arrays into `storage.getCases`, for example:
+
+     ```ts
+     const normalizeToArray = (val: string | string[] | undefined) => {
+       if (!val) return undefined;
+       return Array.isArray(val) ? val : [val];
+     };
+
+     const rawStates = normalizeToArray(filters.state);
+     const states = rawStates
+       ?.map(code => code.trim().replace(/\s+/g, '_').toUpperCase())
+       .filter(Boolean);
+
+     const rawTumourTypeIds = normalizeToArray(filters.tumourTypeId);
+     const tumourTypeIds = rawTumourTypeIds
+       ?.filter(id => /^[0-9a-fA-F-]{8}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{12}$/.test(id));
+
+     const cases = await storage.getCases(undefined, {
+       ...filters,
+       startDate: filters.startDate ? new Date(filters.startDate) : undefined,
+       endDate: filters.endDate ? new Date(filters.endDate) : undefined,
+       clinicIds: normalizeToArray(filters.clinicId),
+       zones: normalizeToArray(filters.zone),
+       states,         // use normalized enum states
+       tumourTypeIds,  // use validated UUIDs
+       sort: filters.sort || 'date',
+       order: filters.order || 'desc',
+     });
+     ```
+
+   - Ensure we are NOT accidentally passing `filters.state` instead of the normalized `states`, or `filters.tumourTypeId` instead of `tumourTypeIds`.
+
+4. Storage layer: `getCases`
+   - Open `server/storage.ts` and inspect `async getCases(...)`.
+   - Confirm that the code actually applies filters:
+
+     ```ts
+     if (filters.states && filters.states.length > 0) {
+       query = query.where(inArray(cases.state, filters.states as any));
+     }
+
+     if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+       query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+     }
+     ```
+
+   - Make sure no later `.where()` call overwrites the previous conditions. If necessary, use `and()` to combine conditions instead of resetting them.
+
+5. Lookup consistency
+   - Check `/api/lookups/ng-states` and the `ng_states` table / `stateEnum` in `shared/schema.ts`.
+   - Make sure the state codes shown in the dropdown (and sent to `/api/cases`) match the enum values in `stateEnum`. If lookup returns names with spaces (e.g. “Akwa Ibom”), convert them to enum format before sending or adjust the lookup to return the enum code directly.
+
+6. Final behaviour
+   - After changes, test:
+     - Selecting “Adamawa” should restrict the table to only Adamawa cases.
+     - Selecting a specific tumour type should restrict the cases accordingly.
+     - Combining filters (state + tumour type) should narrow results further.
+   - Please implement any missing wiring or normalization needed, then show me the updated code or diffs for `cases.tsx`, `routes.ts`, and `storage.ts`.
