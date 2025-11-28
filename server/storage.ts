@@ -544,7 +544,26 @@ export class DatabaseStorage implements IStorage {
       }
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
         console.log('[getCases] Applying tumourTypeIds filter:', filters.tumourTypeIds);
-        conditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+        
+        // Look up tumour type names for fallback matching on tumourTypeCustom
+        const selectedTumourTypes = await db
+          .select({ name: tumourTypes.name })
+          .from(tumourTypes)
+          .where(inArray(tumourTypes.id, filters.tumourTypeIds));
+        
+        const tumourTypeNames = selectedTumourTypes.map(t => t.name).filter(Boolean);
+        console.log('[getCases] Tumour type names for custom fallback:', tumourTypeNames);
+        
+        // Match either tumourTypeId OR tumourTypeCustom (for cases with custom text)
+        if (tumourTypeNames.length > 0) {
+          conditions.push(or(
+            inArray(cases.tumourTypeId, filters.tumourTypeIds),
+            inArray(cases.tumourTypeCustom, tumourTypeNames)
+          ));
+        } else {
+          // No names found, just filter by ID
+          conditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+        }
       }
       if (filters.sexes && filters.sexes.length > 0) {
         conditions.push(inArray(cases.sex, filters.sexes as any));
@@ -721,7 +740,22 @@ export class DatabaseStorage implements IStorage {
         fallbackConditions.push(inArray(cases.state, filters.states as any));
       }
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
-        fallbackConditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+        // Look up tumour type names for fallback matching on tumourTypeCustom
+        const selectedTumourTypes = await db
+          .select({ name: tumourTypes.name })
+          .from(tumourTypes)
+          .where(inArray(tumourTypes.id, filters.tumourTypeIds));
+        
+        const tumourTypeNames = selectedTumourTypes.map(t => t.name).filter(Boolean);
+        
+        if (tumourTypeNames.length > 0) {
+          fallbackConditions.push(or(
+            inArray(cases.tumourTypeId, filters.tumourTypeIds),
+            inArray(cases.tumourTypeCustom, tumourTypeNames)
+          ));
+        } else {
+          fallbackConditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+        }
       }
       if (filters.sexes && filters.sexes.length > 0) {
         fallbackConditions.push(inArray(cases.sex, filters.sexes as any));
