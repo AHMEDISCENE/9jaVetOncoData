@@ -465,13 +465,6 @@ export default function Cases() {
     [clinics]
   );
 
-  // Tumour type options
-  const tumourTypeOptions = useMemo(() => {
-    // Use API data if available, otherwise fallback to static tumour types
-    const typesData = tumourTypes.length === 0 ? FALLBACK_TUMOUR_TYPES : tumourTypes;
-    return typesData.map(t => ({ value: t.id, label: t.name })).sort((a, b) => a.label.localeCompare(b.label));
-  }, [tumourTypes]);
-
   const handleFilterChange = (key: keyof CaseFilters, value: string | undefined) => {
     setFilters(prev => {
       if (key === 'groupBy') {
@@ -881,16 +874,6 @@ export default function Cases() {
             />
 
             <MultiSelectFilter
-              label="Tumour Type"
-              options={tumourTypeOptions}
-              selectedValues={filters.tumourTypeId || []}
-              onSelectionChange={(values) => handleMultiSelectChange('tumourTypeId', values)}
-              placeholder="All Tumour Types"
-              testId="filter-tumour-type"
-              searchable
-            />
-
-            <MultiSelectFilter
               label="Sex"
               options={sexOptions}
               selectedValues={filters.sex || []}
@@ -913,7 +896,6 @@ export default function Cases() {
                   <SelectItem value="zone">Geo-Political Zone</SelectItem>
                   <SelectItem value="state">State</SelectItem>
                   <SelectItem value="clinic">Clinic</SelectItem>
-                  <SelectItem value="tumourType">Tumour Type</SelectItem>
                   <SelectItem value="species">Species</SelectItem>
                   <SelectItem value="breed">Breed</SelectItem>
                   <SelectItem value="sex">Sex</SelectItem>
@@ -1019,18 +1001,6 @@ export default function Cases() {
                   onClick={() => handleMultiSelectChange('clinicId', [])}
                   className="ml-1 hover:text-destructive"
                   data-testid="remove-filter-clinic"
-                >
-                  <i className="fas fa-times text-xs"></i>
-                </button>
-              </Badge>
-            )}
-            {filters.tumourTypeId && filters.tumourTypeId.length > 0 && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                Tumour Types: {filters.tumourTypeId.length}
-                <button
-                  onClick={() => handleMultiSelectChange('tumourTypeId', [])}
-                  className="ml-1 hover:text-destructive"
-                  data-testid="remove-filter-tumour-type"
                 >
                   <i className="fas fa-times text-xs"></i>
                 </button>

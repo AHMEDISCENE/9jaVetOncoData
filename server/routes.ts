@@ -67,7 +67,6 @@ const filterSchema = z.object({
   zone: z.union([z.string(), z.array(z.string())]).optional(),
   state: z.union([z.string(), z.array(z.string())]).optional(),
   sex: z.union([z.string(), z.array(z.string())]).optional(), // Multi-select sex filtering
-  tumourTypeId: z.union([z.string(), z.array(z.string())]).optional(),
   sort: z.enum(['clinic', 'zone', 'state', 'date', 'case_number']).optional(),
   order: z.enum(['asc', 'desc']).optional(),
 });
@@ -1090,7 +1089,6 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
           zone: req.query.zone,
           state: req.query.state,
           sex: req.query.sex,
-          tumourTypeId: req.query.tumourTypeId,
           sort: req.query.sort,
           order: req.query.order,
         };
@@ -1131,10 +1129,6 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         ?.map(normalizeStateEnum)
         .filter((s: string) => s && validStateEnums.includes(s));
       
-      // Sanitize tumour type IDs: only keep valid UUIDs
-      const rawTumourTypeIds = normalizeToArray(filters.tumourTypeId);
-      const tumourTypeIds = rawTumourTypeIds?.filter((id: string) => isValidUuid(id));
-      
       // Sanitize clinic IDs: only keep valid UUIDs
       const rawClinicIds = normalizeToArray(filters.clinicId);
       const clinicIds = rawClinicIds?.filter((id: string) => isValidUuid(id));
@@ -1143,8 +1137,6 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       console.log("[cases.list] Sanitized filters:", {
         rawStates,
         states,
-        rawTumourTypeIds,
-        tumourTypeIds,
         rawClinicIds,
         clinicIds,
         zones
@@ -1160,7 +1152,6 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         zones: zones,
         states: states?.length ? states : undefined,
         sexes: normalizeToArray(filters.sex),
-        tumourTypeIds: tumourTypeIds?.length ? tumourTypeIds : undefined,
         sort: filters.sort || 'date',
         order: filters.order || 'desc',
       });
