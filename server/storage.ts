@@ -545,24 +545,49 @@ export class DatabaseStorage implements IStorage {
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
         console.log('[getCases] Applying tumourTypeIds filter:', filters.tumourTypeIds);
         
-        // Look up tumour type names for fallback matching on tumourTypeCustom
-        const selectedTumourTypes = await db
-          .select({ name: tumourTypes.name })
-          .from(tumourTypes)
-          .where(inArray(tumourTypes.id, filters.tumourTypeIds));
+        // Separate custom type IDs (starting with "custom-") from system UUIDs
+        const customTypeIds = filters.tumourTypeIds.filter(id => id.startsWith('custom-'));
+        const systemTypeIds = filters.tumourTypeIds.filter(id => !id.startsWith('custom-'));
         
-        const tumourTypeNames = selectedTumourTypes.map(t => t.name).filter(Boolean);
-        console.log('[getCases] Tumour type names for custom fallback:', tumourTypeNames);
+        // Extract custom type names from IDs (remove "custom-" prefix)
+        const customTypeNames = customTypeIds.map(id => id.replace(/^custom-/, ''));
+        console.log('[getCases] Custom type names:', customTypeNames);
         
-        // Match either tumourTypeId OR tumourTypeCustom (for cases with custom text)
-        if (tumourTypeNames.length > 0) {
-          conditions.push(or(
-            inArray(cases.tumourTypeId, filters.tumourTypeIds),
-            inArray(cases.tumourTypeCustom, tumourTypeNames)
-          ));
-        } else {
-          // No names found, just filter by ID
-          conditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+        // Look up system tumour type names for fallback matching
+        let systemTypeNames: string[] = [];
+        if (systemTypeIds.length > 0) {
+          const selectedTumourTypes = await db
+            .select({ name: tumourTypes.name })
+            .from(tumourTypes)
+            .where(inArray(tumourTypes.id, systemTypeIds));
+          
+          systemTypeNames = selectedTumourTypes.map(t => t.name).filter(Boolean);
+        }
+        
+        const allTypeNames = [...systemTypeNames, ...customTypeNames];
+        console.log('[getCases] All tumour type names:', allTypeNames);
+        
+        // Build filter condition: match either system IDs or custom names
+        const filterConditions: any[] = [];
+        
+        // Match system tumour type IDs
+        if (systemTypeIds.length > 0) {
+          filterConditions.push(inArray(cases.tumourTypeId, systemTypeIds));
+        }
+        
+        // Match custom tumour type names in tumourTypeCustom field
+        if (customTypeNames.length > 0) {
+          filterConditions.push(inArray(cases.tumourTypeCustom, customTypeNames));
+        }
+        
+        // Also match system type names in tumourTypeCustom (for legacy cases)
+        if (systemTypeNames.length > 0) {
+          filterConditions.push(inArray(cases.tumourTypeCustom, systemTypeNames));
+        }
+        
+        // Apply combined condition
+        if (filterConditions.length > 0) {
+          conditions.push(or(...filterConditions));
         }
       }
       if (filters.sexes && filters.sexes.length > 0) {
