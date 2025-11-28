@@ -840,6 +840,33 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
     }
   });
 
+  // Avatar delete route
+  app.delete("/api/users/avatar", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      
+      // Update user with null image
+      const updatedUser = await storage.updateUser(userId, { image: null });
+      
+      // Try to delete the file
+      try {
+        const ext = path.extname(path.join(process.cwd(), "uploads", "avatars", userId)) || '.png';
+        const filepath = path.join(process.cwd(), "uploads", "avatars", `${userId}${ext}`);
+        await unlink(filepath).catch(() => {}); // Ignore errors if file doesn't exist
+      } catch (err) {
+        console.warn("Could not delete avatar file:", err);
+      }
+      
+      res.json({ 
+        success: true,
+        user: updatedUser
+      });
+    } catch (error) {
+      console.error("[ERROR] Avatar delete failed:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to delete avatar" });
+    }
+  });
+
   // User preferences route
   app.patch("/api/users/preferences", requireAuth, async (req, res) => {
     try {
