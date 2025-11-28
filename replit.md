@@ -74,6 +74,21 @@ The system features comprehensive audit logging for all CUD operations and imple
 
 # Recent Changes
 
+## November 28, 2025
+
+### Tumour Type Filter Production Fix
+- **Critical Bug Fix**: Fixed tumour type filter not working in production
+- **Root Cause Analysis**: 
+  1. Sequential `.where()` calls in Drizzle ORM were overwriting each other instead of combining conditions
+  2. Many cases used `tumourTypeCustom` (text field) instead of `tumourTypeId` (UUID foreign key)
+- **Implementation**:
+  - Refactored `getCases()` in `server/storage.ts` to use `and(...conditions)` pattern
+  - Added fallback filter logic: when filtering by `tumourTypeId`, also matches cases where `tumourTypeCustom` contains the same tumour type name
+  - Updated both main query path and fallback path for consistency
+  - Added comprehensive logging for debugging filter application
+- **Technical Pattern**: Accumulate all filter conditions in an array, then apply once with `query.where(and(...conditions))`
+- **Important Note**: After code changes, production deployment required for fix to take effect
+
 ## November 25, 2025
 
 ### Feed Post Image Attachments
