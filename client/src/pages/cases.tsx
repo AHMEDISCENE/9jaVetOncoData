@@ -933,6 +933,7 @@ export default function Cases() {
                   <SelectItem value="clinic">Clinic</SelectItem>
                   <SelectItem value="zone">Zone</SelectItem>
                   <SelectItem value="state">State</SelectItem>
+                  <SelectItem value="tumourType">Tumour Type</SelectItem>
                 </SelectContent>
               </Select>
             </div>

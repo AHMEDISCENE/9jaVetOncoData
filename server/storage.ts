@@ -594,6 +594,13 @@ export class DatabaseStorage implements IStorage {
         query = query.orderBy(sortOrder === 'asc' ? asc(cases.state) : desc(cases.state));
       } else if (sortField === 'case_number') {
         query = query.orderBy(sortOrder === 'asc' ? asc(cases.caseNumber) : desc(cases.caseNumber));
+      } else if (sortField === 'tumourType') {
+        // Sort by tumour type name, with custom text types sorted after named types
+        query = query.orderBy(
+          sortOrder === 'asc' 
+            ? asc(tumourTypes.name) 
+            : desc(tumourTypes.name)
+        );
       } else {
         query = query.orderBy(sortOrder === 'asc' ? asc(cases.diagnosisDate) : desc(cases.diagnosisDate));
       }
