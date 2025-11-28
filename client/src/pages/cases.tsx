@@ -57,6 +57,16 @@ const sexOptions = [
   { value: "FEMALE_INTACT", label: "Female Intact" },
 ];
 
+// Fallback zones - ensures zone filter always works even if API data fails to load
+const FALLBACK_ZONES = [
+  { value: "NORTH_CENTRAL", label: "North Central" },
+  { value: "NORTH_EAST", label: "North East" },
+  { value: "NORTH_WEST", label: "North West" },
+  { value: "SOUTH_EAST", label: "South East" },
+  { value: "SOUTH_SOUTH", label: "South South" },
+  { value: "SOUTH_WEST", label: "South West" },
+];
+
 interface NgState {
   code: string;
   name: string;
@@ -348,6 +358,11 @@ export default function Cases() {
 
   // Extract unique zones with proper formatting
   const zones = useMemo(() => {
+    // Use API data if available, otherwise fallback to static zones
+    if (ngStates.length === 0) {
+      return FALLBACK_ZONES;
+    }
+    
     const formatZoneName = (zone: string) => {
       return zone
         .split('_')
