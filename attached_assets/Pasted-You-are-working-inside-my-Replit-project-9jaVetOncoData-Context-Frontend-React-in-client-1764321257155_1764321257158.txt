@@ -1,0 +1,112 @@
+You are working inside my Replit project “9jaVetOncoData”.
+
+Context:
+- Frontend: React in `client/` (filters UI is in `client/src/pages/cases.tsx`).
+- Backend: Node/Express + Drizzle ORM + Postgres in `server/`.
+- Shared schema in `shared/schema.ts`.
+
+Bug:
+- On **local development**, filtering cases by **State** or **Tumour Type** on `/cases` works fine.
+- On the **deployed** version (Replit + Postgres), as soon as I select a **State** or **Tumour Type** filter, the request to `/api/cases` fails with a `500` and the generic message: `Failed to get cases`.
+- If I don’t apply any State or Tumour Type filters, `/cases` loads correctly.
+
+Files to inspect:
+- `shared/schema.ts` (look at `stateEnum`, `cases` table, and `tumourTypes`).
+- `server/storage.ts` (the `getCases` implementation, including the `inArray` filters for `states` and `tumourTypeIds`, and the `hasNgStates` integration).
+- `server/db/capabilities.ts` (the `hasNgStates()` function).
+- `server/geo/nigeria-zones.ts` (state/zone mapping).
+- `server/routes.ts` (the `/api/cases` route and its `filterSchema`).
+- `client/src/pages/cases.tsx` (how filters are built and which values are sent for `state` and `tumourTypeId`).
+
+What I want you to do:
+
+1. **Confirm the root cause**
+   - Verify that `cases.state` is defined as a Postgres `ENUM` (`stateEnum`) with values like `ABIA`, `AKWA_IBOM`, `CROSS_RIVER`, etc.
+   - Check what the frontend is actually sending in the `state` query param (it should be using `ngStates.code` from `/api/lookups/ng-states`).
+   - Check how the backend uses `filters.states` in `getCases`:
+     - There is a line like `if (filters.states && filters.states.length > 0) { query = query.where(inArray(cases.state, filters.states as any)); }`.
+   - Check the join to `ng_states` when `hasNgStates()` is true and how `ng_states.name` / `ng_states.code` are used.
+   - For tumour types, inspect how `filters.tumourTypeId` flows into `getCases` and how `inArray(cases.tumourTypeId, filters.tumourTypeIds)` is built.
+
+   I suspect the 500 in production is due to:
+   - A mismatch between the Postgres `state` enum values and what is passed in `filters.states` (for example, spaces vs underscores, or name vs code).
+   - Or invalid / empty values in `filters.tumourTypeId` causing “invalid input syntax for type uuid”.
+
+2. **Harden and normalise the filters in the backend**
+   Update the `/api/cases` route in `server/routes.ts` so that before calling `storage.getCases`:
+
+   - Add a helper to normalise state values to the enum format:
+
+     ```ts
+     const normalizeStateEnum = (code: string) =>
+       code.trim().replace(/\s+/g, '_').toUpperCase();
+     ```
+
+   - Use `normalizeToArray` as it already exists, but then normalise:
+
+     ```ts
+     const normalizeToArray = (val: string | string[] | undefined) => {
+       if (!val) return undefined;
+       return Array.isArray(val) ? val : [val];
+     };
+
+     const rawStates = normalizeToArray(filters.state);
+     const states = rawStates
+       ?.map(normalizeStateEnum)
+       .filter(Boolean);
+     ```
+
+   - Similarly, sanitise tumour type IDs to only valid UUIDs:
+
+     ```ts
+     const isUuid = (val: string) =>
+       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+     const rawTumourTypeIds = normalizeToArray(filters.tumourTypeId);
+     const tumourTypeIds = rawTumourTypeIds
+       ?.filter(id => isUuid(id));
+     ```
+
+   - When calling `storage.getCases`, pass these cleaned values instead of the raw ones:
+
+     ```ts
+     const cases = await storage.getCases(undefined, {
+       ...filters,
+       startDate: filters.startDate ? new Date(filters.startDate) : undefined,
+       endDate: filters.endDate ? new Date(filters.endDate) : undefined,
+       clinicIds: normalizeToArray(filters.clinicId),
+       zones: normalizeToArray(filters.zone),
+       states,             // use the normalised enum states
+       tumourTypeIds,      // use the validated UUIDs
+       sort: filters.sort || 'date',
+       order: filters.order || 'desc',
+     });
+     ```
+
+3. **Fix the `ng_states` join if needed**
+   In `server/storage.ts` inside `getCases`, when `useJoin` is true:
+
+   - Ensure that the join to `ng_states` compares `cases.state` with `ng_states.code` (which should have the same format as the enum), not `ng_states.name` with spaces.
+   - For example, change the join from comparing `cases.state` to `ng_states.name` with LOWER/TRIM, to a direct comparison of enum text to `ng_states.code`, e.g.:
+
+     ```ts
+     .leftJoin(
+       sql`ng_states`,
+       sql`${cases.state}::text = ng_states.code`
+     )
+     ```
+
+     or a similar Drizzle-safe expression that avoids mismatched formats.
+
+4. **Improve debugging**
+   - In the `/api/cases` route catch block (`[cases.list]`), log `error` and, if possible, `error.message` and the `filters` being used so that if something still goes wrong I can see the underlying Postgres error, not just the 500.
+   - Do not change the client filter shape or `CaseFilters` interface; fix everything on the backend.
+
+5. **Sanity checks**
+   - Make sure these changes compile (`npm run build`), and that the types on `getCases` still line up with the new filter shapes.
+   - The behaviour I want after the fix:
+     - `/cases` should load normally in production.
+     - Filtering by any combination of **State**, **Zone**, **Clinic**, and **Tumour Type** should work without a 500.
+     - If an invalid value somehow gets through, it should be ignored rather than crashing the query.
+
+Please implement these changes directly in the repository files listed above, and show me the final diffs or updated code snippets for each file you edit.

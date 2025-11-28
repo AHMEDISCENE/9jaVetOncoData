@@ -1096,6 +1096,27 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         };
       }
       
+      // Helper to normalize state values to enum format (ABIA, LAGOS, AKWA_IBOM, etc.)
+      const normalizeStateEnum = (code: string): string => {
+        if (!code || typeof code !== 'string') return '';
+        return code.trim().replace(/\s+/g, '_').toUpperCase();
+      };
+      
+      // Helper to validate UUID format
+      const isValidUuid = (val: string): boolean => {
+        if (!val || typeof val !== 'string') return false;
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+      };
+      
+      // Valid state enum values for validation
+      const validStateEnums = [
+        "ABIA", "ADAMAWA", "AKWA_IBOM", "ANAMBRA", "BAUCHI", "BAYELSA", "BENUE", "BORNO",
+        "CROSS_RIVER", "DELTA", "EBONYI", "EDO", "EKITI", "ENUGU", "FCT", "GOMBE",
+        "IMO", "JIGAWA", "KADUNA", "KANO", "KATSINA", "KEBBI", "KOGI", "KWARA",
+        "LAGOS", "NASARAWA", "NIGER", "OGUN", "ONDO", "OSUN", "OYO", "PLATEAU",
+        "RIVERS", "SOKOTO", "TARABA", "YOBE", "ZAMFARA"
+      ];
+      
       // Normalize zone/state/tumourTypeId/clinicId to arrays for filtering
       const normalizeToArray = (val: string | string[] | undefined) => {
         if (!val) return undefined;
@@ -1104,24 +1125,54 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
       
       const zones = normalizeToArray(filters.zone);
       
+      // Sanitize state values: normalize to enum format and filter only valid values
+      const rawStates = normalizeToArray(filters.state);
+      const states = rawStates
+        ?.map(normalizeStateEnum)
+        .filter((s: string) => s && validStateEnums.includes(s));
+      
+      // Sanitize tumour type IDs: only keep valid UUIDs
+      const rawTumourTypeIds = normalizeToArray(filters.tumourTypeId);
+      const tumourTypeIds = rawTumourTypeIds?.filter((id: string) => isValidUuid(id));
+      
+      // Sanitize clinic IDs: only keep valid UUIDs
+      const rawClinicIds = normalizeToArray(filters.clinicId);
+      const clinicIds = rawClinicIds?.filter((id: string) => isValidUuid(id));
+      
+      // Log sanitized filters for debugging
+      console.log("[cases.list] Sanitized filters:", {
+        rawStates,
+        states,
+        rawTumourTypeIds,
+        tumourTypeIds,
+        rawClinicIds,
+        clinicIds,
+        zones
+      });
+      
       // Shared reads - all authenticated users see all cases
       const cases = await storage.getCases(undefined, {
         ...filters,
         startDate: filters.startDate ? new Date(filters.startDate) : undefined,
         endDate: filters.endDate ? new Date(filters.endDate) : undefined,
-        // Multi-clinic filter support
-        clinicIds: normalizeToArray(filters.clinicId),
+        // Multi-clinic filter support with sanitized values
+        clinicIds: clinicIds?.length ? clinicIds : undefined,
         zones: zones,
-        states: normalizeToArray(filters.state),
+        states: states?.length ? states : undefined,
         sexes: normalizeToArray(filters.sex),
-        tumourTypeIds: normalizeToArray(filters.tumourTypeId),
+        tumourTypeIds: tumourTypeIds?.length ? tumourTypeIds : undefined,
         sort: filters.sort || 'date',
         order: filters.order || 'desc',
       });
       
       res.json(cases);
-    } catch (error) {
-      console.error("[cases.list]", error);
+    } catch (error: any) {
+      console.error("[cases.list] Error:", {
+        message: error?.message,
+        code: error?.code,
+        detail: error?.detail,
+        filters: req.query
+      });
       res.status(500).json({ message: "Failed to get cases" });
     }
   });
