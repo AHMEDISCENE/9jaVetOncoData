@@ -91,6 +91,7 @@ function MultiSelectFilter({
   searchable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleToggle = (value: string) => {
     const newValues = selectedValues.includes(value)
@@ -104,6 +105,21 @@ function MultiSelectFilter({
     : selectedValues.length === 1 
     ? options.find(o => o.value === selectedValues[0])?.label || placeholder
     : `${selectedValues.length} selected`;
+
+  const filteredOptions = useMemo(() => {
+    if (!searchQuery.trim()) return options;
+    const query = searchQuery.toLowerCase().trim();
+    return options.filter(option => 
+      option.label.toLowerCase().includes(query) ||
+      option.value.toLowerCase().includes(query)
+    );
+  }, [options, searchQuery]);
+
+  useEffect(() => {
+    if (!open) {
+      setSearchQuery("");
+    }
+  }, [open]);
 
   return (
     <div className="pointer-events-auto">
@@ -122,38 +138,43 @@ function MultiSelectFilter({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" align="start">
-          {searchable && options.length > 0 ? (
-            <Command shouldFilter={true} loop>
+          {searchable ? (
+            <Command shouldFilter={false}>
               <CommandInput 
                 placeholder={`Search ${label.toLowerCase()}...`} 
                 data-testid={`${testId}-search`}
+                value={searchQuery}
+                onValueChange={setSearchQuery}
               />
               <CommandList>
-                <CommandEmpty>No results found.</CommandEmpty>
-                <CommandGroup>
-                  {options.map((option) => (
-                    <CommandItem
-                      key={option.value}
-                      value={option.value}
-                      onSelect={() => handleToggle(option.value)}
-                      className="cursor-pointer"
-                      data-testid={`${testId}-option-${option.value}`}
-                    >
-                      <Checkbox
-                        checked={selectedValues.includes(option.value)}
-                        className="mr-2"
-                        data-testid={`${testId}-checkbox-${option.value}`}
-                      />
-                      <span>{option.label}</span>
-                      <Check
-                        className={cn(
-                          "ml-auto h-4 w-4",
-                          selectedValues.includes(option.value) ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+                {filteredOptions.length === 0 ? (
+                  <CommandEmpty>No results found.</CommandEmpty>
+                ) : (
+                  <CommandGroup>
+                    {filteredOptions.map((option) => (
+                      <CommandItem
+                        key={option.value}
+                        value={option.value}
+                        onSelect={() => handleToggle(option.value)}
+                        className="cursor-pointer"
+                        data-testid={`${testId}-option-${option.value}`}
+                      >
+                        <Checkbox
+                          checked={selectedValues.includes(option.value)}
+                          className="mr-2"
+                          data-testid={`${testId}-checkbox-${option.value}`}
+                        />
+                        <span>{option.label}</span>
+                        <Check
+                          className={cn(
+                            "ml-auto h-4 w-4",
+                            selectedValues.includes(option.value) ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
               </CommandList>
             </Command>
           ) : (
