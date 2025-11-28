@@ -139,6 +139,8 @@ export default function Dashboard() {
     activeClinics: 0,
     remissionRate: 0,
   });
+  const [showCasesByMonthModal, setShowCasesByMonthModal] = useState(false);
+  const [showTumourTypesModal, setShowTumourTypesModal] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -304,12 +306,11 @@ export default function Dashboard() {
   };
 
   const handleViewAll = (): void => {
-    console.log("Navigating to full analytics page");
-    setLocation("/analytics");
-    toast({
-      title: "Opening analytics",
-      description: "Redirecting to the full analytics dashboard...",
-    });
+    setShowTumourTypesModal(true);
+  };
+
+  const handleViewCasesByMonth = (): void => {
+    setShowCasesByMonthModal(true);
   };
 
   if (isLoading) {
@@ -830,10 +831,10 @@ export default function Dashboard() {
             <Button
               variant="outline"
               size="sm"
-              data-testid="button-export-monthly-chart"
-              onClick={handleExport}
+              data-testid="button-view-all-cases-by-month"
+              onClick={handleViewCasesByMonth}
             >
-              <i className="fas fa-download mr-2"></i>Export
+              <i className="fas fa-expand mr-2"></i>View All
             </Button>
           </CardHeader>
           <CardContent>
@@ -1107,6 +1108,129 @@ export default function Dashboard() {
           stats={stats}
         />
       )}
+
+      {/* Cases by Month Modal */}
+      <Dialog open={showCasesByMonthModal} onOpenChange={setShowCasesByMonthModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cases by Month</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="h-80 w-full">
+              {stats?.casesByMonth.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.casesByMonth}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "rgba(255,255,255,0.95)", 
+                        border: "1px solid #ccc",
+                        borderRadius: "4px"
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                      {stats.casesByMonth.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <p>No data available</p>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Total Cases</p>
+                <p className="text-2xl font-bold text-blue-600">{stats?.totalCases || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">New This Month</p>
+                <p className="text-2xl font-bold text-purple-600">{stats?.newThisMonth || 0}</p>
+              </div>
+            </div>
+            <div className="pt-4">
+              <p className="text-xs font-semibold text-muted-foreground mb-3">Monthly Breakdown</p>
+              <div className="space-y-2 max-h-48 overflow-y-auto fancy-scroll">
+                {stats?.casesByMonth.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                    <span className="text-sm text-foreground">{item.month}</span>
+                    <span className="font-semibold text-foreground">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Button 
+              onClick={() => setShowCasesByMonthModal(false)}
+              className="w-full mt-4"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Top Tumour Types Modal */}
+      <Dialog open={showTumourTypesModal} onOpenChange={setShowTumourTypesModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>All Tumour Types</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="max-h-96 overflow-y-auto fancy-scroll">
+              <div className="space-y-3">
+                {stats?.topTumourTypes.length > 0 ? (
+                  stats.topTumourTypes.map((tumour, index) => (
+                    <div
+                      key={tumour.name}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-foreground">
+                          {tumour.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm font-semibold text-foreground min-w-fit">
+                          {tumour.count} cases
+                        </span>
+                        <div className="w-24 h-2 bg-muted rounded-full">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${(tumour.count / Math.max(...stats.topTumourTypes.map((t) => t.count))) * 100}%`,
+                              backgroundColor: COLORS[index % COLORS.length],
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No tumour data available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="pt-4 border-t">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                Total Types: {stats?.topTumourTypes.length || 0}
+              </p>
+            </div>
+            <Button 
+              onClick={() => setShowTumourTypesModal(false)}
+              className="w-full"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
