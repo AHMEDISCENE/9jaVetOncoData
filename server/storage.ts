@@ -543,11 +543,14 @@ export class DatabaseStorage implements IStorage {
         conditions.push(inArray(cases.state, filters.states as any));
       }
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+        console.log('[getCases] Applying tumourTypeIds filter:', filters.tumourTypeIds);
         conditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
       }
       if (filters.sexes && filters.sexes.length > 0) {
         conditions.push(inArray(cases.sex, filters.sexes as any));
       }
+      
+      console.log('[getCases] Total conditions to apply:', conditions.length);
       
       // Apply all conditions at once
       if (conditions.length > 0) {
