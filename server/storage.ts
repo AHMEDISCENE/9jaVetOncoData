@@ -508,42 +508,50 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
         .$dynamic();
 
+      // Accumulate all filter conditions and apply them together with and()
+      const conditions: any[] = [];
+      
       // Filter by clinic - either specific clinicId or clinicIds array
       if (clinicId) {
-        query = query.where(eq(cases.clinicId, clinicId));
+        conditions.push(eq(cases.clinicId, clinicId));
       } else if (filters.clinicIds && filters.clinicIds.length > 0) {
-        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+        conditions.push(inArray(cases.clinicId, filters.clinicIds));
       }
 
       if (filters.species) {
-        query = query.where(eq(cases.species, filters.species));
+        conditions.push(eq(cases.species, filters.species));
       }
       if (filters.outcome) {
-        query = query.where(eq(cases.outcome, filters.outcome as any));
+        conditions.push(eq(cases.outcome, filters.outcome as any));
       }
       if (filters.startDate) {
-        query = query.where(gte(cases.diagnosisDate, filters.startDate));
+        conditions.push(gte(cases.diagnosisDate, filters.startDate));
       }
       if (filters.endDate) {
-        query = query.where(lte(cases.diagnosisDate, filters.endDate));
+        conditions.push(lte(cases.diagnosisDate, filters.endDate));
       }
       
       // Zone filtering - convert zones to states and filter
       if (filters.zones && filters.zones.length > 0) {
         const allowedStates = statesForZones(filters.zones);
         if (allowedStates.length > 0) {
-          query = query.where(inArray(cases.state, allowedStates as any));
+          conditions.push(inArray(cases.state, allowedStates as any));
         }
       }
       
       if (filters.states && filters.states.length > 0) {
-        query = query.where(inArray(cases.state, filters.states as any));
+        conditions.push(inArray(cases.state, filters.states as any));
       }
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
-        query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+        conditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
       }
       if (filters.sexes && filters.sexes.length > 0) {
-        query = query.where(inArray(cases.sex, filters.sexes as any));
+        conditions.push(inArray(cases.sex, filters.sexes as any));
+      }
+      
+      // Apply all conditions at once
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
       }
 
       // Sorting
@@ -674,32 +682,43 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(anatomicalSites, eq(cases.anatomicalSiteId, anatomicalSites.id))
         .$dynamic();
 
+      // Accumulate all filter conditions and apply them together with and()
+      const fallbackConditions: any[] = [];
+      
       if (filters.clinicIds && filters.clinicIds.length > 0) {
-        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+        fallbackConditions.push(inArray(cases.clinicId, filters.clinicIds));
       }
       if (filters.species) {
-        query = query.where(eq(cases.species, filters.species));
+        fallbackConditions.push(eq(cases.species, filters.species));
       }
       if (filters.outcome) {
-        query = query.where(eq(cases.outcome, filters.outcome as any));
+        fallbackConditions.push(eq(cases.outcome, filters.outcome as any));
       }
       if (filters.startDate) {
-        query = query.where(gte(cases.diagnosisDate, filters.startDate));
+        fallbackConditions.push(gte(cases.diagnosisDate, filters.startDate));
       }
       if (filters.endDate) {
-        query = query.where(lte(cases.diagnosisDate, filters.endDate));
+        fallbackConditions.push(lte(cases.diagnosisDate, filters.endDate));
       }
       if (filters.zones && filters.zones.length > 0) {
         const allowedStates = statesForZones(filters.zones);
         if (allowedStates.length > 0) {
-          query = query.where(inArray(cases.state, allowedStates as any));
+          fallbackConditions.push(inArray(cases.state, allowedStates as any));
         }
       }
       if (filters.states && filters.states.length > 0) {
-        query = query.where(inArray(cases.state, filters.states as any));
+        fallbackConditions.push(inArray(cases.state, filters.states as any));
       }
       if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
-        query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+        fallbackConditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+      }
+      if (filters.sexes && filters.sexes.length > 0) {
+        fallbackConditions.push(inArray(cases.sex, filters.sexes as any));
+      }
+      
+      // Apply all conditions at once
+      if (fallbackConditions.length > 0) {
+        query = query.where(and(...fallbackConditions));
       }
 
       query = query

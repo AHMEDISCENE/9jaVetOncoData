@@ -1,0 +1,83 @@
+You’re working inside my Replit project “9jaVetOncoData”.
+
+**Bug:**  
+On the deployed `/cases` page, selecting a tumour type from the filter dropdown does *not* actually filter the table.  The filter chip appears, and the `/api/cases` request succeeds, but the data still shows all tumour types (e.g. selecting “Pancreatic Cancer” still displays TVT and other types).  This does not happen in local development.  
+
+**Likely causes (from code review):**
+
+1. **Filter schema mismatch** – The backend `/api/cases` route uses a Zod `filterSchema` that may not include the `tumourTypeId` field in older deployed code.  If the schema doesn’t recognise `tumourTypeId`, it strips that key off during validation, so `filters.tumourTypeId` is `undefined` and no tumour‑type filter is applied:contentReference[oaicite:0]{index=0}.
+
+2. **Sequential `.where()` calls overriding each other** – In `server/storage.ts`, `getCases()` builds the query by chaining several `.where()` calls.  Drizzle ORM overwrites previous `WHERE` clauses on each call, so only the last filter survives.  If `tumourTypeIds` is missing or empty, the tumour filter is never applied and earlier filters are dropped:contentReference[oaicite:1]{index=1}.
+
+3. **Differences in query parameters** – In production, the built frontend might serialise arrays as `tumourTypeId[]` instead of repeated `tumourTypeId` keys.  If the route only looks for `tumourTypeId`, those parameters are ignored.
+
+**Tasks (please implement these fixes):**
+
+1. **Update `filterSchema` and route**  
+   - In `server/routes.ts`, ensure the Zod `filterSchema` includes:
+     ```ts
+     tumourTypeId: z.union([z.string(), z.array(z.string())]).optional(),
+     ```
+   - After parsing `filters = filterSchema.parse(req.query)`, normalise and validate tumour‑type IDs:
+     ```ts
+     const normalizeToArray = (val?: string | string[]) =>
+       !val ? undefined : Array.isArray(val) ? val : [val];
+
+     const isUuid = (val: string) =>
+       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
+
+     const tumourTypeIds = normalizeToArray(filters.tumourTypeId)?.filter(isUuid);
+     ```
+   - Build the object passed to `storage.getCases` using `tumourTypeIds` (plural), e.g.:
+     ```ts
+     const cases = await storage.getCases(undefined, {
+       ...filters,
+       startDate: filters.startDate ? new Date(filters.startDate) : undefined,
+       endDate: filters.endDate ? new Date(filters.endDate) : undefined,
+       clinicIds: normalizeToArray(filters.clinicId),
+       zones: normalizeToArray(filters.zone),
+       states: normalizeToArray(filters.state),
+       tumourTypeIds,               // ✅ Use the plural key
+       sort: filters.sort || 'date',
+       order: filters.order || 'desc',
+     });
+     ```
+   - If you see `.passthrough()` or `.strict()`, remove `.strict()` so unknown keys aren’t silently dropped.
+
+2. **Combine query filters in `getCases`**  
+   - Open `server/storage.ts` and locate `getCases()`.  Instead of calling `.where()` multiple times, accumulate predicates in an array and use `and()`:
+     ```ts
+     const conditions = [];
+     if (filters.clinicIds?.length) {
+       conditions.push(inArray(cases.clinicId, filters.clinicIds));
+     }
+     if (filters.states?.length) {
+       conditions.push(inArray(cases.state, filters.states));
+     }
+     if (filters.tumourTypeIds?.length) {
+       conditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+     }
+     // add other filters similarly (species, outcome, date)
+     if (conditions.length > 0) {
+       query = query.where(and(...conditions));
+     }
+     ```
+   - This prevents later filters from overwriting earlier ones.
+
+3. **Ensure the frontend sends the correct query parameter**  
+   - In `client/src/pages/cases.tsx`, when updating the URL from filters, use `URLSearchParams.append('tumourTypeId', value)` for each selected ID (it’s already done this way in dev).  Avoid `tumourTypeId[]`.  Confirm that the deployed build is still using this logic.
+   - Confirm that React Query’s `queryKey` includes `filters.tumourTypeId` so that changes trigger a refetch:
+     ```ts
+     const { data } = useQuery({
+       queryKey: ['/api/cases', filters, { limit, offset }],
+       ...
+     });
+     ```
+
+4. **Re‑deploy and test**  
+   - After applying these fixes, redeploy the server.  
+   - Pick a tumour type that exists in the database (check `tumour_types` table).  
+   - Verify the `/api/cases` request contains `tumourTypeId=<uuid>` for each selected type.  
+   - Confirm the response only includes cases where `cases.tumourTypeId` matches the selected IDs.
+
+These changes should make the tumour‑type filter work consistently in both development and production.  Please implement them in the specified files and provide the updated code or diffs once done.
