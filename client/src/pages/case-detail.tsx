@@ -8,7 +8,17 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useRef } from "react";
-import { FileText, Image, Upload, X, ArrowLeft, Eye, MapPin, User, Calendar, Stethoscope, AlertCircle, Download, FileJson, ChevronRight, Mail, Phone, Briefcase } from "lucide-react";
+import { FileText, Image, Upload, X, ArrowLeft, Eye, MapPin, User, Calendar, Stethoscope, AlertCircle, Download, FileJson, ChevronRight, Mail, Phone, Briefcase, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { CaseFile } from "@shared/schema";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -85,6 +95,7 @@ export default function CaseDetail() {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedUploader, setSelectedUploader] = useState<any | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
   const { data: caseData, isLoading: caseLoading } = useQuery<CaseWithDetails>({
     queryKey: [`/api/cases/${caseId}`],
@@ -916,10 +927,11 @@ export default function CaseDetail() {
                                   variant="destructive"
                                   size="sm"
                                   className="h-8 w-8 rounded-lg"
-                                  onClick={() => deleteMutation.mutate(file.id)}
+                                  onClick={() => setFileToDelete(file.id)}
                                   data-testid={`button-delete-${file.id}`}
+                                  title="Delete image"
                                 >
-                                  <X className="h-3 w-3" />
+                                  <Trash2 className="h-3 w-3" />
                                 </Button>
                               )}
                             </div>
@@ -993,11 +1005,12 @@ export default function CaseDetail() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => deleteMutation.mutate(file.id)}
+                                onClick={() => setFileToDelete(file.id)}
                                 className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
                                 data-testid={`button-delete-${file.id}`}
+                                title="Delete file"
                               >
-                                <X className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
@@ -1127,11 +1140,12 @@ export default function CaseDetail() {
                 className="max-w-full max-h-full object-contain"
               />
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="icon"
-                className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full h-10 w-10 shadow-lg"
+                className="absolute top-4 right-4 text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full h-10 w-10 shadow-lg"
                 onClick={() => setSelectedImageId(null)}
                 data-testid="button-close-fullscreen"
+                title="Close viewer"
               >
                 <X className="h-6 w-6" />
               </Button>
@@ -1139,20 +1153,44 @@ export default function CaseDetail() {
                 <Button
                   variant="destructive"
                   size="icon"
-                  className="absolute bottom-6 right-6 rounded-full h-10 w-10 shadow-lg"
-                  onClick={() => {
-                    deleteMutation.mutate(selectedImageId);
-                    setSelectedImageId(null);
-                  }}
+                  className="absolute bottom-6 right-6 rounded-full h-10 w-10 shadow-lg hover:bg-red-700"
+                  onClick={() => setFileToDelete(selectedImageId)}
                   data-testid="button-delete-fullscreen"
+                  title="Delete image"
                 >
-                  <X className="h-5 w-5" />
+                  <Trash2 className="h-5 w-5" />
                 </Button>
               )}
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete file?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The file will be permanently deleted from this case.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (fileToDelete) {
+                  deleteMutation.mutate(fileToDelete);
+                  setFileToDelete(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
