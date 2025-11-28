@@ -1160,6 +1160,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         zones: zones,
         states: states?.length ? states : undefined,
         sexes: normalizeToArray(filters.sex),
+        tumourTypeId: undefined, // Remove raw tumourTypeId to avoid conflicts
         tumourTypeIds: tumourTypeIds?.length ? tumourTypeIds : undefined,
         sort: filters.sort || 'date',
         order: filters.order || 'desc',
