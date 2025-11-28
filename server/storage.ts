@@ -1132,12 +1132,42 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTumourTypesList(): Promise<Array<{ id: string; name: string }>> {
-    return await db.select({
+    // Get system tumour types from the database
+    const systemTypes = await db.select({
       id: tumourTypes.id,
       name: tumourTypes.name,
     }).from(tumourTypes)
       .where(eq(tumourTypes.isSystem, true))
       .orderBy(asc(tumourTypes.name));
+    
+    // Also get unique custom tumour types from cases that aren't in the system types
+    const customTypes = await db.select({
+      name: cases.tumourTypeCustom,
+    }).from(cases)
+      .where(
+        and(
+          isNotNull(cases.tumourTypeCustom),
+          ne(cases.tumourTypeCustom, '')
+        )
+      )
+      .groupBy(cases.tumourTypeCustom)
+      .orderBy(asc(cases.tumourTypeCustom));
+    
+    // Create a map of system type names for deduplication
+    const systemTypeNames = new Set(systemTypes.map(t => t.name?.toLowerCase()));
+    
+    // Convert custom types to the same format, filtering out duplicates
+    const customTypesList = customTypes
+      .filter(t => t.name && !systemTypeNames.has(t.name.toLowerCase()))
+      .map(t => ({
+        id: `custom-${t.name}`, // Generate a unique ID for custom types
+        name: t.name || '',
+      }));
+    
+    // Combine and sort all types
+    return [...systemTypes, ...customTypesList].sort((a, b) => 
+      (a.name || '').localeCompare(b.name || '')
+    );
   }
 
   async createAttachment(attachment: InsertAttachment): Promise<Attachment> {
