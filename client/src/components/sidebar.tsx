@@ -94,15 +94,18 @@ export default function Sidebar() {
       <motion.div 
         className={`fixed inset-y-0 left-0 z-50 border-r lg:translate-x-0 ${
           isCollapsed ? "lg:w-20" : "lg:w-64"
-        } w-64 bg-white dark:bg-gray-950`}
-        initial={{ x: -300 }}
-        animate={{ x: isMobileOpen || isDesktop ? 0 : -300 }}
+        } w-64 bg-white dark:bg-gray-950 shadow-2xl dark:shadow-black/50 backdrop-blur-sm`}
+        style={{
+          perspective: "1200px",
+        }}
+        initial={{ x: -300, rotateY: -15, opacity: 0.9 }}
+        animate={{ x: isMobileOpen || isDesktop ? 0 : -300, rotateY: isMobileOpen || isDesktop ? 0 : -15, opacity: 1 }}
         transition={{ type: "spring", damping: 20, stiffness: 100, duration: 0.4 }}
       >
         
-        <div className="relative flex flex-col h-full">
+        <div className="relative flex flex-col h-full bg-gradient-to-b from-white/60 to-transparent dark:from-gray-950/80 dark:to-transparent">
           {/* Logo Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border pl-[0px] pr-[0px] pt-[20px] pb-[20px]">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gradient-to-r from-primary/20 to-primary/5 dark:from-primary/10 dark:to-transparent pl-[0px] pr-[0px] pt-[20px] pb-[20px] backdrop-blur-xs">
             <div className="flex items-center gap-2 lg:gap-3 overflow-hidden flex-1">
               {!isCollapsed && (
                 <motion.div 
@@ -173,11 +176,11 @@ export default function Sidebar() {
                 >
                   <Link 
                     href={item.href}
-                    className={`nav-item group ${itemActive ? "active text-[#126b56]" : "hover:bg-opacity-100"} ${
+                    className={`nav-item group ${itemActive ? "active text-[#126b56] shadow-md" : "hover:bg-opacity-100 shadow-sm"} ${
                       isCollapsed 
                         ? "lg:justify-center lg:p-3 lg:rounded-md lg:w-full" 
                         : "justify-start"
-                    }`}
+                    } transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${itemActive ? "bg-gradient-to-r from-primary/15 to-transparent" : ""}`}
                     data-testid={`link-${item.name.toLowerCase().replace(" ", "-")}`}
                     onClick={() => setIsMobileOpen(false)}
                     title={isCollapsed ? item.name : undefined}
