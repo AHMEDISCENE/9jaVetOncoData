@@ -1,0 +1,61 @@
+You’re working in the Replit project “9jaVetOncoData”.
+
+### Issue
+
+On the deployed `/cases` page, selecting a tumour type (e.g. “Brain Tumor”) doesn’t filter out cases with different tumour types (e.g. TVT).  This works in local development but not in production, so the issue is likely in the deployed backend’s query logic or filter schema.
+
+### Suspected causes from code review
+
+- In `server/routes.ts`, the `/api/cases` handler uses a `filterSchema` to parse query params.  In the latest code, `filterSchema` includes `tumourTypeId` and the route converts it to a `tumourTypeIds` array before passing to `storage.getCases()`:contentReference[oaicite:0]{index=0}.  If the deployed version still uses an older schema (only `tumourType` without `tumourTypeId`), `tumourTypeId` params are stripped and the filter never fires.
+
+- In `server/storage.ts`, `getCases()` builds its SQL with several `.where()` calls.  Drizzle ORM overwrites previous conditions whenever `.where()` is called again.  This means the tumour‑type filter may never be applied if it isn’t the last call, or all filters are cleared if the parameter is undefined:contentReference[oaicite:1]{index=1}.
+
+- Some cases have `tumourTypeId = null` but set `tumourTypeCustom` or `tumourType` strings.  Filtering only on `tumourTypeId` will never match these, so the API returns all cases.
+
+### Tasks for Ghostwriter
+
+1. **Verify and update the `/api/cases` route**  
+   - Open `server/routes.ts`.  Confirm that the Zod `filterSchema` includes:
+     ```ts
+     tumourTypeId: z.union([z.string(), z.array(z.string())]).optional(),
+     ```
+   - After parsing query params, normalise and validate `tumourTypeId` values:
+     ```ts
+     const normalizeToArray = (val?: string | string[]) => !val ? undefined : Array.isArray(val) ? val : [val];
+     const tumourTypeIds = normalizeToArray(filters.tumourTypeId)?.filter(id => /^[0-9a-fA-F-]{36}$/.test(id));
+     ```
+   - When calling `storage.getCases()`, pass `tumourTypeIds` (plural) instead of the raw `tumourTypeId`.  Spread other filters but make sure they don’t overwrite `tumourTypeIds`:contentReference[oaicite:2]{index=2}.
+
+2. **Combine filters correctly in `getCases`**  
+   - Open `server/storage.ts`.  Instead of chaining `.where()` calls (which override each other), accumulate conditions in an array and combine them with `and()`:
+     ```ts
+     const conditions = [];
+     if (filters.clinicIds?.length) conditions.push(inArray(cases.clinicId, filters.clinicIds));
+     if (filters.states?.length) conditions.push(inArray(cases.state, filters.states));
+     if (filters.tumourTypeIds?.length) conditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+     // … add other filters (species, outcome, dates) similarly
+     if (conditions.length > 0) query = query.where(and(...conditions));
+     ```
+     This ensures that the tumour‑type filter is applied alongside other filters and not overwritten:contentReference[oaicite:3]{index=3}.
+
+3. **Add fallback for custom tumour types**  
+   - Many cases use `tumourTypeCustom` or `tumourType` (string) when `tumourTypeId` is null.  Modify `getCases()` to include cases where `cases.tumourTypeCustom` matches the selected tumour type’s name if `tumourTypeId` doesn’t exist.  One approach:
+     ```ts
+     if (filters.tumourTypeIds?.length) {
+       conditions.push(or(
+         inArray(cases.tumourTypeId, filters.tumourTypeIds),
+         inArray(cases.tumourTypeCustom, selectedTumourTypeNames)
+       ));
+     }
+     ```
+     You may need to pass both IDs and names from the route when a tumour type is selected.
+
+4. **Ensure the frontend is sending the correct parameter**  
+   - In `client/src/pages/cases.tsx`, confirm that the MultiSelect for tumour types uses `value = t.id` and sets `filters.tumourTypeId`.  When updating the query string, append each tumour‑type ID as a separate `tumourTypeId` param (no `[]` suffix).  
+   - Confirm the React Query `queryKey` includes `filters.tumourTypeId` so that changes trigger a refetch.
+
+5. **Redeploy and test**  
+   - After implementing these changes, redeploy the backend.  
+   - Test by selecting a tumour type that exists in the database (check `tumour_types` table).  Verify that the network request includes `tumourTypeId=<uuid>` and the response only contains matching cases.  If there are no matching cases, ensure the table shows zero results rather than all cases.
+
+Implement these adjustments and the tumour‑type filter should function consistently in production, just as it does in local development.
