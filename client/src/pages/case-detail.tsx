@@ -1130,7 +1130,7 @@ export default function CaseDetail() {
 
       {/* Fullscreen Image Viewer */}
       <Dialog open={!!selectedImageId} onOpenChange={(open) => !open && setSelectedImageId(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-black border-0">
+        <DialogContent className="max-w-5xl max-h-[90vh] p-0 bg-black border-0 overflow-hidden">
           <DialogTitle className="sr-only">Image Viewer</DialogTitle>
           {selectedImageId && imageFiles.find(f => f.id === selectedImageId) && (
             <div className="relative w-full h-[80vh] flex items-center justify-center">
@@ -1139,16 +1139,6 @@ export default function CaseDetail() {
                 alt="Full view"
                 className="max-w-full max-h-full object-contain"
               />
-              <Button
-                variant="secondary"
-                size="icon"
-                className="absolute top-4 right-4 text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full h-10 w-10 shadow-lg"
-                onClick={() => setSelectedImageId(null)}
-                data-testid="button-close-fullscreen"
-                title="Close viewer"
-              >
-                <X className="h-6 w-6" />
-              </Button>
               {canManageFiles() && (
                 <Button
                   variant="destructive"
