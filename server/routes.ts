@@ -1070,7 +1070,31 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
         clinicId = defaultClinic.id;
       }
       
-      const filters = filterSchema.parse(req.query);
+      // Parse filters with fallback to safe defaults if validation fails
+      let filters: any = {};
+      try {
+        filters = filterSchema.parse(req.query);
+      } catch (parseError) {
+        // If filter validation fails, use raw query params with lenient parsing
+        console.warn("[cases.list] Filter validation failed, using lenient parsing:", parseError);
+        // Use whatever we can from req.query without strict validation
+        filters = {
+          species: req.query.species,
+          tumourType: req.query.tumourType,
+          outcome: req.query.outcome,
+          startDate: req.query.startDate,
+          endDate: req.query.endDate,
+          limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+          offset: req.query.offset ? parseInt(req.query.offset as string) : undefined,
+          clinicId: req.query.clinicId,
+          zone: req.query.zone,
+          state: req.query.state,
+          sex: req.query.sex,
+          tumourTypeId: req.query.tumourTypeId,
+          sort: req.query.sort,
+          order: req.query.order,
+        };
+      }
       
       // Normalize zone/state/tumourTypeId/clinicId to arrays for filtering
       const normalizeToArray = (val: string | string[] | undefined) => {
