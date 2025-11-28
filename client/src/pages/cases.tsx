@@ -108,6 +108,30 @@ const FALLBACK_STATES = [
   { code: "ZAM", name: "Zamfara", zone: "NORTH_WEST" },
 ];
 
+// Fallback tumour types - ensures tumour type filter always works even if API data fails to load
+const FALLBACK_TUMOUR_TYPES = [
+  { id: "1", name: "Anal Sac Adenocarcinoma" },
+  { id: "2", name: "Fibrosarcoma" },
+  { id: "3", name: "Hemangiosarcoma" },
+  { id: "4", name: "Lymphoma" },
+  { id: "5", name: "Mastocytoma" },
+  { id: "6", name: "Melanoma" },
+  { id: "7", name: "Meningioma" },
+  { id: "8", name: "Osteosarcoma" },
+  { id: "9", name: "Squamous Cell Carcinoma" },
+  { id: "10", name: "Transitional Cell Carcinoma" },
+  { id: "11", name: "Mammary Gland Tumor" },
+  { id: "12", name: "Soft Tissue Sarcoma" },
+  { id: "13", name: "Hepatocellular Carcinoma" },
+  { id: "14", name: "Pancreatic Cancer" },
+  { id: "15", name: "Thyroid Carcinoma" },
+  { id: "16", name: "Brain Tumor" },
+  { id: "17", name: "Lung Cancer" },
+  { id: "18", name: "Gastrointestinal Cancer" },
+  { id: "19", name: "Urinary Bladder Cancer" },
+  { id: "20", name: "Prostate Cancer" },
+];
+
 interface NgState {
   code: string;
   name: string;
@@ -440,10 +464,11 @@ export default function Cases() {
   );
 
   // Tumour type options
-  const tumourTypeOptions = useMemo(() => 
-    tumourTypes.map(t => ({ value: t.id, label: t.name })).sort((a, b) => a.label.localeCompare(b.label)),
-    [tumourTypes]
-  );
+  const tumourTypeOptions = useMemo(() => {
+    // Use API data if available, otherwise fallback to static tumour types
+    const typesData = tumourTypes.length === 0 ? FALLBACK_TUMOUR_TYPES : tumourTypes;
+    return typesData.map(t => ({ value: t.id, label: t.name })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [tumourTypes]);
 
   const handleFilterChange = (key: keyof CaseFilters, value: string | undefined) => {
     setFilters(prev => {
