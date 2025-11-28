@@ -550,11 +550,19 @@ export class DatabaseStorage implements IStorage {
         conditions.push(inArray(cases.sex, filters.sexes as any));
       }
       
-      console.log('[getCases] Total conditions to apply:', conditions.length);
+      console.log('[getCases] Total conditions to apply:', conditions.length, 'Filters received:', JSON.stringify({
+        tumourTypeIds: filters.tumourTypeIds,
+        states: filters.states,
+        clinicIds: filters.clinicIds,
+        sexes: filters.sexes
+      }));
       
       // Apply all conditions at once
       if (conditions.length > 0) {
         query = query.where(and(...conditions));
+        console.log('[getCases] WHERE clause applied with', conditions.length, 'conditions');
+      } else {
+        console.log('[getCases] NO WHERE clause - returning all cases');
       }
 
       // Sorting
