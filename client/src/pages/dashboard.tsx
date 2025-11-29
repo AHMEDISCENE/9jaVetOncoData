@@ -1037,20 +1037,20 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-6 mb-8">
         {/* Add New Case Card */}
         <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/40 dark:to-cyan-950/40 border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200 group overflow-hidden">
-          <CardContent className="p-8 text-center relative">
-            <div className="h-16 w-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-200 shadow-lg">
-              <Plus className="h-8 w-8 text-white" strokeWidth={3} />
+          <CardContent className="p-2 md:p-8 text-center relative">
+            <div className="h-10 md:h-16 w-10 md:w-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center mx-auto mb-1 md:mb-6 group-hover:scale-110 transition-transform duration-200 shadow-lg">
+              <Plus className="h-5 md:h-8 w-5 md:w-8 text-white" strokeWidth={3} />
             </div>
-            <h3 className="text-xl font-bold mb-3 text-foreground">Add New Case</h3>
-            <p className="text-foreground/70 text-sm mb-6 leading-relaxed">
+            <h3 className="text-xs md:text-xl font-bold mb-1 md:mb-3 text-foreground">Add New Case</h3>
+            <p className="text-foreground/70 text-xs md:text-sm mb-2 md:mb-6 leading-relaxed hidden md:block">
               Register a new veterinary oncology case with complete medical information
             </p>
             <Button
               asChild
-              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+              className="w-full text-xs md:text-base h-7 md:h-10 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               data-testid="button-quick-new-case"
             >
               <a href="/cases/new">Start Entry</a>
@@ -1060,17 +1060,17 @@ export default function Dashboard() {
 
         {/* Bulk Import Card */}
         <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/40 border-orange-200 dark:border-orange-800 cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200 group overflow-hidden">
-          <CardContent className="p-8 text-center relative">
-            <div className="h-16 w-16 bg-gradient-to-br from-orange-400 to-amber-400 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-200 shadow-lg">
-              <Upload className="h-8 w-8 text-white" strokeWidth={3} />
+          <CardContent className="p-2 md:p-8 text-center relative">
+            <div className="h-10 md:h-16 w-10 md:w-16 bg-gradient-to-br from-orange-400 to-amber-400 rounded-full flex items-center justify-center mx-auto mb-1 md:mb-6 group-hover:scale-110 transition-transform duration-200 shadow-lg">
+              <Upload className="h-5 md:h-8 w-5 md:w-8 text-white" strokeWidth={3} />
             </div>
-            <h3 className="text-xl font-bold mb-3 text-foreground">Bulk Import</h3>
-            <p className="text-foreground/70 text-sm mb-6 leading-relaxed">
+            <h3 className="text-xs md:text-xl font-bold mb-1 md:mb-3 text-foreground">Bulk Import</h3>
+            <p className="text-foreground/70 text-xs md:text-sm mb-2 md:mb-6 leading-relaxed hidden md:block">
               Upload multiple cases from CSV or Excel files with smart field mapping
             </p>
             <Button
               asChild
-              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+              className="w-full text-xs md:text-base h-7 md:h-10 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               data-testid="button-quick-bulk-import"
             >
               <a href="/bulk-upload">Import Data</a>
@@ -1080,17 +1080,17 @@ export default function Dashboard() {
 
         {/* View Analytics Card */}
         <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-800 cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200 group overflow-hidden">
-          <CardContent className="p-8 text-center relative">
-            <div className="h-16 w-16 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-200 shadow-lg">
-              <TrendingUp className="h-8 w-8 text-white" strokeWidth={3} />
+          <CardContent className="p-2 md:p-8 text-center relative">
+            <div className="h-10 md:h-16 w-10 md:w-16 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center mx-auto mb-1 md:mb-6 group-hover:scale-110 transition-transform duration-200 shadow-lg">
+              <TrendingUp className="h-5 md:h-8 w-5 md:w-8 text-white" strokeWidth={3} />
             </div>
-            <h3 className="text-xl font-bold mb-3 text-foreground">View Analytics</h3>
-            <p className="text-foreground/70 text-sm mb-6 leading-relaxed">
+            <h3 className="text-xs md:text-xl font-bold mb-1 md:mb-3 text-foreground">View Analytics</h3>
+            <p className="text-foreground/70 text-xs md:text-sm mb-2 md:mb-6 leading-relaxed hidden md:block">
               Explore trends, generate insights, and view interactive reports
             </p>
             <Button
               asChild
-              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+              className="w-full text-xs md:text-base h-7 md:h-10 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               data-testid="button-quick-analytics"
             >
               <a href="/analytics">View Reports</a>
