@@ -3376,7 +3376,7 @@ you can map it during the import preview step.`;
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
-      const { templateId, duration, startDate, endDate, dataTypes, format } = req.body;
+      const { templateId, duration, startDate, endDate, dataTypes = [], format, includeSummary = true, includeCharts = true } = req.body;
 
       // Calculate date range
       let dateStart = new Date();
@@ -3401,96 +3401,105 @@ you can map it during the import preview step.`;
         endDate: dateEnd,
       });
 
-      // Generate report data based on template type
+      // Generate report data based on template type and selected data types
       let reportData: any = {};
+      const shouldInclude = (dataType: string) => dataTypes.length === 0 || dataTypes.includes(dataType);
       
       if (templateId === "1") {
-        const totalCases = allCases.length;
-        const remissionCases = allCases.filter(c => c.outcome === "REMISSION").length;
-        const remissionRate = totalCases > 0 ? Math.round((remissionCases / totalCases) * 100) : 0;
+        // Template 1: Monthly Summary
+        if (shouldInclude("summary")) {
+          const totalCases = allCases.length;
+          const remissionCases = allCases.filter(c => c.outcome === "REMISSION").length;
+          const remissionRate = totalCases > 0 ? Math.round((remissionCases / totalCases) * 100) : 0;
+          
+          reportData["Summary Statistics"] = {
+            "Total Cases": totalCases,
+            "Remission Cases": remissionCases,
+            "Remission Rate": `${remissionRate}%`,
+            "Progression Cases": allCases.filter(c => c.outcome === "PROGRESSION").length,
+          };
+        }
         
-        // Group by month
-        const casesByMonth: Record<string, number> = {};
-        allCases.forEach(c => {
-          const monthKey = new Date(c.diagnosisDate).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-          casesByMonth[monthKey] = (casesByMonth[monthKey] || 0) + 1;
-        });
-
-        reportData = {
-          totalCases,
-          remissionRate,
-          remissionCases,
-          progressionCases: allCases.filter(c => c.outcome === "PROGRESSION").length,
-          casesByMonth,
-          avgCasesPerMonth: totalCases > 0 ? Math.round(totalCases / Object.keys(casesByMonth).length) : 0,
-        };
+        if (shouldInclude("trends")) {
+          // Group by month
+          const casesByMonth: Record<string, number> = {};
+          allCases.forEach(c => {
+            const monthKey = new Date(c.diagnosisDate).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+            casesByMonth[monthKey] = (casesByMonth[monthKey] || 0) + 1;
+          });
+          
+          reportData["Monthly Trend"] = casesByMonth;
+        }
       } else if (templateId === "2") {
-        // Group by tumour type
-        const tumourCounts: Record<string, number> = {};
-        allCases.forEach(c => {
-          const tumourType = c.tumourTypeCustom || c.tumourType?.name || "Unknown";
-          tumourCounts[tumourType] = (tumourCounts[tumourType] || 0) + 1;
-        });
-
-        // Group by species
-        const speciesCounts: Record<string, number> = {};
-        allCases.forEach(c => {
-          speciesCounts[c.species] = (speciesCounts[c.species] || 0) + 1;
-        });
-
-        reportData = {
-          totalCases: allCases.length,
-          tumourIncidence: tumourCounts,
-          speciesDistribution: speciesCounts,
-          topTumours: Object.entries(tumourCounts).sort((a, b) => b[1] - a[1]).slice(0, 5),
-        };
+        // Template 2: Tumour Analysis
+        if (shouldInclude("tumours")) {
+          const tumourCounts: Record<string, number> = {};
+          allCases.forEach(c => {
+            const tumourType = c.tumourTypeCustom || c.tumourType?.name || "Unknown";
+            tumourCounts[tumourType] = (tumourCounts[tumourType] || 0) + 1;
+          });
+          
+          reportData["Tumour Distribution"] = tumourCounts;
+        }
+        
+        if (shouldInclude("demographics")) {
+          const speciesCounts: Record<string, number> = {};
+          allCases.forEach(c => {
+            speciesCounts[c.species] = (speciesCounts[c.species] || 0) + 1;
+          });
+          
+          reportData["Species Distribution"] = speciesCounts;
+        }
+        
+        reportData["Total Cases"] = allCases.length;
       } else if (templateId === "3") {
-        const outcomeData: Record<string, number> = {};
-        allCases.forEach(c => {
-          const outcome = c.outcome || "Unknown";
-          outcomeData[outcome] = (outcomeData[outcome] || 0) + 1;
-        });
+        // Template 3: Treatment Outcomes
+        if (shouldInclude("outcomes")) {
+          const outcomeData: Record<string, number> = {};
+          allCases.forEach(c => {
+            const outcome = c.outcome || "Unknown";
+            outcomeData[outcome] = (outcomeData[outcome] || 0) + 1;
+          });
 
-        const totalWithOutcome = Object.values(outcomeData).reduce((a, b) => a + b, 0);
-        const successRate = totalWithOutcome > 0 ? Math.round(((outcomeData["REMISSION"] || 0) / totalWithOutcome) * 100) : 0;
-
-        reportData = {
-          totalCases: allCases.length,
-          outcomes: outcomeData,
-          successRate,
-          progressionRate: totalWithOutcome > 0 ? Math.round(((outcomeData["PROGRESSION"] || 0) / totalWithOutcome) * 100) : 0,
-          deceasedRate: totalWithOutcome > 0 ? Math.round(((outcomeData["DECEASED"] || 0) / totalWithOutcome) * 100) : 0,
-        };
+          const totalWithOutcome = Object.values(outcomeData).reduce((a, b) => a + b, 0);
+          
+          reportData["Treatment Outcomes"] = {
+            "Total Cases": totalWithOutcome,
+            ...outcomeData,
+            "Success Rate": totalWithOutcome > 0 ? `${Math.round(((outcomeData["REMISSION"] || 0) / totalWithOutcome) * 100)}%` : "0%",
+          };
+        }
       } else if (templateId === "4") {
-        // Fetch from all clinics (for SUPER_ADMIN/broad overview)
+        // Template 4: Clinic Performance
         const allClinicsCases = await storage.getCases(undefined, {
           startDate: dateStart,
           endDate: dateEnd,
         });
 
-        const clinicData: Record<string, any> = {};
-        allClinicsCases.forEach(c => {
-          if (!clinicData[c.clinicId]) {
-            clinicData[c.clinicId] = { total: 0, outcomes: {} };
+        if (shouldInclude("summary")) {
+          const clinicData: Record<string, any> = {};
+          allClinicsCases.forEach(c => {
+            if (!clinicData[c.clinicId]) {
+              clinicData[c.clinicId] = { total: 0, outcomes: {} };
+            }
+            clinicData[c.clinicId].total += 1;
+            const outcome = c.outcome || "Unknown";
+            clinicData[c.clinicId].outcomes[outcome] = (clinicData[c.clinicId].outcomes[outcome] || 0) + 1;
+          });
+
+          reportData["Overall Summary"] = {
+            "Total Cases": allClinicsCases.length,
+            "Active Clinics": Object.keys(clinicData).length,
+          };
+
+          if (shouldInclude("outcomes")) {
+            reportData["Clinic Performance"] = Object.entries(clinicData).map(([cId, data]: any) => ({
+              "Clinic ID": cId,
+              "Total Cases": data.total,
+              "Success Rate": data.total > 0 ? `${Math.round(((data.outcomes["REMISSION"] || 0) / data.total) * 100)}%` : "0%",
+            }));
           }
-          clinicData[c.clinicId].total += 1;
-          const outcome = c.outcome || "Unknown";
-          clinicData[c.clinicId].outcomes[outcome] = (clinicData[c.clinicId].outcomes[outcome] || 0) + 1;
-        });
-
-        // Calculate success rates per clinic
-        const clinicPerformance = Object.entries(clinicData).map(([cId, data]: any) => ({
-          clinicId: cId,
-          totalCases: data.total,
-          successRate: data.total > 0 ? Math.round(((data.outcomes["REMISSION"] || 0) / data.total) * 100) : 0,
-          outcomes: data.outcomes,
-        }));
-
-        reportData = {
-          totalCases: allClinicsCases.length,
-          clinicsCount: Object.keys(clinicData).length,
-          clinicPerformance,
-        };
+        }
       }
 
       // Handle different export formats
