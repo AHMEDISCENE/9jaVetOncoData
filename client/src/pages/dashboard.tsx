@@ -51,61 +51,77 @@ function VeterinaryOncologyNews() {
   const articles = newsData?.articles || [];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <Newspaper className="h-5 w-5 text-blue-600" />
-          Veterinary Oncology News
-        </CardTitle>
+    <Card className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200/50 dark:border-blue-800/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-bold flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <Newspaper className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-foreground">Veterinary Oncology News</p>
+              <p className="text-xs text-muted-foreground font-normal">Latest breakthroughs & research</p>
+            </div>
+          </CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoadingNews ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-3 w-2/3" />
+              <div key={i} className="p-4 bg-muted/30 rounded-lg space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-2 w-1/2" />
               </div>
             ))}
           </div>
         ) : articles.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {articles.slice(0, 5).map((article: NewsArticle, idx: number) => (
-              <a
+              <motion.a
                 key={`${article.url}-${idx}`}
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block p-3 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/50 transition-all group"
+                whileHover={{ x: 4 }}
+                className="block p-4 rounded-xl bg-white dark:bg-slate-900/50 border border-blue-100 dark:border-blue-900/30 hover:border-blue-400 dark:hover:border-blue-700 hover:shadow-md transition-all group cursor-pointer"
                 data-testid={`news-article-${idx}`}
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 mt-2 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                    <h4 className="text-sm font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-2 leading-tight">
                       {article.title}
                     </h4>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
                       {article.description}
                     </p>
-                    <div className="flex items-center justify-between gap-2 mt-2">
-                      <Badge variant="outline" className="text-xs">
-                        {article.source}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(article.publishedAt).toLocaleDateString()}
-                      </p>
+                    <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-border/50">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-0">
+                          {article.source}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(article.publishedAt).toLocaleDateString()}
+                        </p>
+                        <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors flex-shrink-0" />
+                      </div>
                     </div>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0 mt-1 transition-colors" />
                 </div>
-              </a>
+              </motion.a>
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <Newspaper className="h-10 w-10 mx-auto mb-4 opacity-50" />
-            <p>No news articles available</p>
-            <p className="text-sm">Check back later for veterinary oncology updates</p>
+          <div className="text-center py-8 px-4">
+            <div className="h-14 w-14 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-3">
+              <Newspaper className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+            </div>
+            <p className="text-sm font-medium text-foreground">No news available</p>
+            <p className="text-xs text-muted-foreground mt-1">Check back later for updates</p>
           </div>
         )}
       </CardContent>
@@ -1084,59 +1100,67 @@ export default function Dashboard() {
       </div>
 
       {/* Feeds */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
-            Feeds
+      <Card className="bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200/50 dark:border-purple-800/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-bold flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <Rss className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-foreground">Team Feeds</p>
+              <p className="text-xs text-muted-foreground font-normal">Recent clinic activity</p>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoadingFeedPosts ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-start space-x-3">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-48 mb-2" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
+                <div key={i} className="p-3 bg-muted/30 rounded-lg space-y-2">
+                  <Skeleton className="h-3 w-1/2" />
+                  <Skeleton className="h-2 w-full" />
                 </div>
               ))}
             </div>
           ) : recentFeedPosts && recentFeedPosts.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {recentFeedPosts.map((post) => (
-                <div 
+                <motion.div 
                   key={post.id} 
-                  className="flex items-start space-x-3 cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors" 
+                  whileHover={{ x: 4 }}
                   onClick={() => setSelectedPost(post)}
+                  className="p-4 rounded-xl bg-white dark:bg-slate-900/50 border border-purple-100 dark:border-purple-900/30 hover:border-purple-400 dark:hover:border-purple-700 hover:shadow-md transition-all cursor-pointer group"
                   data-testid={`activity-feed-${post.id}`}
                 >
-                  <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center mt-1 flex-shrink-0">
-                    <Rss className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground font-medium truncate">
-                      {post.title}
-                    </p>
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs text-muted-foreground">
-                        {(post as any).authorName || "Unknown Author"}
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Rss className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground group-hover:text-purple-600 dark:group-hover:text-pink-400 transition-colors truncate">
+                        {post.title}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(post.createdAt).toLocaleDateString()}
-                      </p>
+                      <div className="flex items-center justify-between gap-2 mt-2">
+                        <p className="text-xs text-muted-foreground">
+                          {(post as any).authorName || "Unknown Author"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(post.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Rss className="h-10 w-10 mx-auto mb-4 opacity-50" />
-              <p>No recent activity</p>
-              <p className="text-sm">
-                Activity will appear here as you use the platform
+            <div className="text-center py-8 px-4">
+              <div className="h-14 w-14 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mx-auto mb-3">
+                <Rss className="h-7 w-7 text-purple-600 dark:text-purple-400" />
+              </div>
+              <p className="text-sm font-medium text-foreground">No activity yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Activity will appear here as your team uses the platform
               </p>
             </div>
           )}
