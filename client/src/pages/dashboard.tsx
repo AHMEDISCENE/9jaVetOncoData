@@ -59,7 +59,7 @@ function VeterinaryOncologyNews() {
               <Newspaper className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-base font-bold text-foreground dark:text-white">Veterinary Oncology around the globe</p>
+              <p className="text-lg font-bold text-foreground dark:text-white">Veterinary Oncology around the globe</p>
               <p className="text-xs text-gray-600 dark:text-gray-300 font-normal">Latest breakthroughs & research</p>
             </div>
           </CardTitle>
@@ -1107,7 +1107,7 @@ export default function Dashboard() {
               <Rss className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-base font-bold text-foreground dark:text-white">Feed Highlights</p>
+              <p className="text-lg font-bold text-foreground dark:text-white">Feed Highlights</p>
               <p className="text-xs text-gray-600 dark:text-gray-300 font-normal">Get the latest information from other platform users</p>
             </div>
           </CardTitle>
