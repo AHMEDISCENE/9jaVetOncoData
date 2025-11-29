@@ -716,49 +716,63 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        {/* Tumour Distribution */}
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedChart('tumourDistribution')}>
+        {/* Tumour Distribution - Horizontal Bar Chart */}
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => stats.topTumourTypes.length > 8 && setSelectedChart('tumourDistribution')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle>Tumour Type Distribution</CardTitle>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="outline" size="sm" disabled={!hasTumourDistributionData} data-testid="button-export-distribution-chart">
-                  Export <ChevronDown className="ml-1 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleTumourDistributionExport('csv'); }} data-testid="button-export-distribution-chart-csv">CSV</DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleTumourDistributionExport('xlsx'); }} data-testid="button-export-distribution-chart-xlsx">Excel</DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleTumourDistributionExport('pdf'); }} data-testid="button-export-distribution-chart-pdf">PDF</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <CardTitle>Top Tumour Types</CardTitle>
+            {stats.topTumourTypes.length > 8 ? (
+              <Button variant="outline" size="sm" disabled={!hasTumourDistributionData} onClick={(e) => { e.stopPropagation(); setSelectedChart('tumourDistribution'); }} data-testid="button-view-all-tumours">
+                View All
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button variant="outline" size="sm" disabled={!hasTumourDistributionData} data-testid="button-export-distribution-chart">
+                    Export <ChevronDown className="ml-1 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleTumourDistributionExport('csv'); }} data-testid="button-export-distribution-chart-csv">CSV</DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleTumourDistributionExport('xlsx'); }} data-testid="button-export-distribution-chart-xlsx">Excel</DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleTumourDistributionExport('pdf'); }} data-testid="button-export-distribution-chart-pdf">PDF</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </CardHeader>
           <CardContent>
             <div ref={tumourDistributionChartRef} className="h-80">
               {stats.topTumourTypes.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={groupTumourTypes(stats.topTumourTypes)}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
+                  <BarChart 
+                    data={stats.topTumourTypes.slice(0, 8)} 
+                    layout="vertical"
+                    margin={{ top: 5, right: 60, left: 150, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" vertical={false} />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255,255,255,0.95)",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px"
+                      }}
+                    />
+                    <Bar
                       dataKey="count"
+                      fill="#3b82f6"
+                      radius={[0, 8, 8, 0]}
                     >
-                      {groupTumourTypes(stats.topTumourTypes).map((entry, index) => (
+                      {stats.topTumourTypes.slice(0, 8).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
-                    <i className="fas fa-chart-pie text-4xl mb-2"></i>
+                    <i className="fas fa-chart-bar text-4xl mb-2"></i>
                     <p>No distribution data available</p>
                   </div>
                 </div>
@@ -766,7 +780,7 @@ export default function Analytics() {
             </div>
             {stats.topTumourTypes.length > 8 && (
               <p className="text-xs text-muted-foreground text-center mt-2">
-                Chart shows top 8 tumour types. Click for complete breakdown of all {stats.topTumourTypes.length} types.
+                Chart shows top 8 tumour types. Click to see complete breakdown of all {stats.topTumourTypes.length} types.
               </p>
             )}
           </CardContent>
