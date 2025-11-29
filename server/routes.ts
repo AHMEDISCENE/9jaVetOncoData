@@ -2608,9 +2608,61 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
   });
 
   app.get("/api/imports/template.csv", requireAuth, async (req, res) => {
-    const csvContent = `name,species,breed,state,diagnosis_date,sex,age_years,age_months,tumour_type,tumour_type_custom,anatomical_site,anatomical_site_custom,laterality,stage,diagnosis_method,treatment_plan,treatment_start,outcome,last_follow_up,notes
-Fluffy,Dog,Labrador Retriever,Lagos,2025-01-15,MALE_NEUTERED,5,6,Melanoma,,Skin,,Left,,Histopathology,Chemotherapy,2025-01-20,TREATMENT_ONGOING,2025-02-20,Responding well to treatment
-Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bilateral,,Cytology,Palliative Care,2025-01-22,REMISSION,2025-02-10,Patient achieved remission`;
+    const csvContent = `INSTRUCTIONS FOR BULK UPLOAD TEMPLATE
+================================================================================
+GENERAL GUIDELINES:
+- Complete all REQUIRED fields (marked with *)
+- Leave OPTIONAL fields empty if data is not available
+- Use the exact values specified for dropdown/select fields
+- Dates must be in YYYY-MM-DD format (e.g., 2025-01-15)
+- Do not include this instruction section when uploading - it will be automatically removed
+
+FIELD DESCRIPTIONS:
+================================================================================
+* name: Patient name (e.g., Fluffy, Max, Whiskers)
+* species: Dog, Cat, or other species name
+* breed: Breed name (e.g., Labrador Retriever, Persian)
+* state: Nigerian state (e.g., Lagos, Kano, Abuja, Enugu, Kaduna, Oyo)
+* diagnosis_date: Date cancer was diagnosed (YYYY-MM-DD format)
+* sex: Valid values: MALE_INTACT, MALE_NEUTERED, FEMALE_INTACT, FEMALE_SPAYED
+* age_years: Age in whole years (e.g., 5, 8, 10)
+* age_months: Age in additional months (e.g., 0-11)
+  anatomical_site: Standard anatomical site (e.g., Skin, Lymph Node, Mammary Gland)
+  anatomical_site_custom: Custom anatomical site description if not in standard list
+* tumour_type: Standard tumour type (e.g., Melanoma, Lymphoma, Hemangioma)
+  tumour_type_custom: Custom tumour type description if not in standard list
+* laterality: Valid values: Left, Right, Bilateral, or leave empty if not applicable
+  stage: TNM or other staging system (e.g., Stage I, Stage II, Stage III)
+  diagnosis_method: How cancer was confirmed (e.g., Histopathology, Cytology, Imaging)
+* treatment_plan: Planned treatment (e.g., Chemotherapy, Surgery, Radiation, Palliative Care)
+  treatment_start: When treatment started (YYYY-MM-DD format)
+  outcome: Valid values: REMISSION, TREATMENT_ONGOING, RECURRENCE, DECEASED, LOST_TO_FOLLOWUP
+  last_follow_up: Date of last follow-up visit (YYYY-MM-DD format)
+* notes: Additional clinical notes or observations
+
+TIPS FOR SUCCESSFUL IMPORT:
+================================================================================
+1. Use consistent formatting for dates (YYYY-MM-DD)
+2. Spell anatomical sites and tumour types carefully - they will be stored as custom values if not recognized
+3. Always fill in required fields (*) - records with missing required data will be rejected
+4. Use either standard values OR custom descriptions for anatomical sites and tumour types (not both)
+5. For age, enter both years and months for accurate records
+6. States must be valid Nigerian states for proper geographic filtering
+7. Follow-up dates should be after diagnosis date
+8. Test with a small batch first to catch any formatting issues
+
+COLUMN MAPPING DURING IMPORT:
+================================================================================
+If your file has different column names, the system will allow you to map your columns
+to these standard fields. For example, if your file has "Patient Name" instead of "name",
+you can map it during the import preview step.
+
+EXAMPLE DATA ROWS:
+================================================================================
+name,species,breed,state,diagnosis_date,sex,age_years,age_months,tumour_type,tumour_type_custom,anatomical_site,anatomical_site_custom,laterality,stage,diagnosis_method,treatment_plan,treatment_start,outcome,last_follow_up,notes
+Fluffy,Dog,Labrador Retriever,Lagos,2025-01-15,MALE_NEUTERED,5,6,Melanoma,,Skin,,Left,Stage I,Histopathology,Chemotherapy,2025-01-20,TREATMENT_ONGOING,2025-02-20,Responding well to treatment
+Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bilateral,Stage II,Cytology,Palliative Care,2025-01-22,REMISSION,2025-02-10,Patient achieved remission
+Buddy,Dog,German Shepherd,Abuja,2025-01-10,MALE_INTACT,3,2,,Nasal Carcinoma,Nose,,Left,Stage III,Imaging,Surgery,2025-01-25,TREATMENT_ONGOING,2025-02-15,Pre-operative assessment complete`;
     
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="9ja-vetonco-bulk-template.csv"');

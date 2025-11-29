@@ -74,6 +74,36 @@ The system features comprehensive audit logging for all CUD operations and imple
 
 # Recent Changes
 
+## November 29, 2025
+
+### Navigation Pane 3D Shadow Effects
+- **Enhanced Visual Design**: Added professional 3D shadow and depth effects to sidebar navigation
+  - `shadow-2xl` for deep elevation with `dark:shadow-black/50` for dark mode
+  - 3D perspective (1200px) with Y-axis rotation on slide-in animation
+  - Glassmorphism effect with `backdrop-blur-sm` for modern appearance
+  - Gradient background overlay and gradient border on header
+- **Interactive Hover Effects**:
+  - Individual nav item shadows with hover enhancement
+  - Lift animation on hover (`hover:-translate-y-0.5`) for interactive feedback
+  - Gradient styling on active nav items for better visual hierarchy
+  - Smooth 300ms transitions for all effects
+
+### Bulk Upload Template Instructions
+- **Comprehensive User Guide**: Enhanced CSV template with complete instructions
+  - Added general guidelines section with best practices
+  - Detailed field descriptions for all 20 columns with examples
+  - Valid values guide (e.g., sex options: MALE_INTACT, MALE_NEUTERED, FEMALE_INTACT, FEMALE_SPAYED)
+  - Clear marking of REQUIRED (*) vs OPTIONAL fields
+  - Tips for successful import (8 practical guidelines)
+  - Information about flexible column mapping during import
+  - 3 example data rows showing real-world scenarios:
+    1. Standard case with recognized tumour type and anatomical site
+    2. Case with standard tumour type (lymphoma)
+    3. Case with custom anatomical site (nasal carcinoma)
+  - Nigerian state context and date format specifications (YYYY-MM-DD)
+  - Guidance on custom vs standard values for tumour types and anatomical sites
+- **Location**: `/api/imports/template.csv` endpoint returns template with embedded instructions
+
 ## November 28, 2025
 
 ### Tumour Type Filter Production Fix
