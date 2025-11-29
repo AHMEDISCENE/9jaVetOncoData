@@ -589,8 +589,8 @@ export default function Dashboard() {
           frontClassName="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border border-blue-200 dark:border-blue-800"
           backClassName="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-950 border border-blue-200 dark:border-blue-800"
           frontContent={
-            <div className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center justify-between">
+            <div className="p-3 md:p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={slideIndices.totalCases}
@@ -601,39 +601,39 @@ export default function Dashboard() {
                   >
                     {slideIndices.totalCases === 0 ? (
                       <>
-                        <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                        <p className="text-xs md:text-sm font-medium text-blue-700 dark:text-blue-200 truncate">
                           Total Cases
                         </p>
-                        <p className="text-4xl font-bold text-blue-600 dark:text-blue-300" data-testid="stat-total-cases">
+                        <p className="text-2xl md:text-4xl font-bold text-blue-600 dark:text-blue-300" data-testid="stat-total-cases">
                           {stats.totalCases.toLocaleString()}
                         </p>
                       </>
                     ) : stats.casesBySpecies && slideIndices.totalCases - 1 < stats.casesBySpecies.length ? (
                       <>
-                        <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                        <p className="text-xs md:text-sm font-medium text-blue-700 dark:text-blue-200 truncate">
                           {stats.casesBySpecies[slideIndices.totalCases - 1].name}
                         </p>
-                        <p className="text-4xl font-bold text-blue-600 dark:text-blue-300">
+                        <p className="text-2xl md:text-4xl font-bold text-blue-600 dark:text-blue-300">
                           {stats.casesBySpecies[slideIndices.totalCases - 1].count}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-sm font-medium text-blue-700 dark:text-blue-200">
+                        <p className="text-xs md:text-sm font-medium text-blue-700 dark:text-blue-200 truncate">
                           Total Cases
                         </p>
-                        <p className="text-4xl font-bold text-blue-600 dark:text-blue-300">
+                        <p className="text-2xl md:text-4xl font-bold text-blue-600 dark:text-blue-300">
                           {stats.totalCases.toLocaleString()}
                         </p>
                       </>
                     )}
                   </motion.div>
                 </AnimatePresence>
-                <div className="h-14 w-14 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
-                  <i className="fas fa-clipboard-list text-blue-600 dark:text-blue-300 text-xl"></i>
+                <div className="h-10 w-10 md:h-14 md:w-14 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-clipboard-list text-blue-600 dark:text-blue-300 text-lg md:text-xl"></i>
                 </div>
               </div>
-              <p className="text-xs font-medium text-blue-600 dark:text-blue-300 mt-2">
+              <p className="text-xs font-medium text-blue-600 dark:text-blue-300 mt-1">
                 Click to see breakdown
               </p>
             </div>
@@ -674,8 +674,8 @@ export default function Dashboard() {
           frontClassName="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border border-purple-200 dark:border-purple-800"
           backClassName="bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-950 border border-purple-200 dark:border-purple-800"
           frontContent={
-            <div className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center justify-between">
+            <div className="p-3 md:p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={slideIndices.newThisMonth}
@@ -686,39 +686,39 @@ export default function Dashboard() {
                   >
                     {slideIndices.newThisMonth === 0 ? (
                       <>
-                        <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                        <p className="text-xs md:text-sm font-medium text-purple-700 dark:text-purple-200 truncate">
                           New This Month
                         </p>
-                        <p className="text-4xl font-bold text-purple-600 dark:text-purple-300" data-testid="stat-new-this-month">
+                        <p className="text-2xl md:text-4xl font-bold text-purple-600 dark:text-purple-300" data-testid="stat-new-this-month">
                           {stats.newThisMonth.toLocaleString()}
                         </p>
                       </>
                     ) : stats.casesByMonth && slideIndices.newThisMonth - 1 < stats.casesByMonth.length ? (
                       <>
-                        <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                        <p className="text-xs md:text-sm font-medium text-purple-700 dark:text-purple-200 truncate">
                           {stats.casesByMonth[stats.casesByMonth.length - (slideIndices.newThisMonth)].month}
                         </p>
-                        <p className="text-4xl font-bold text-purple-600 dark:text-purple-300">
+                        <p className="text-2xl md:text-4xl font-bold text-purple-600 dark:text-purple-300">
                           {stats.casesByMonth[stats.casesByMonth.length - (slideIndices.newThisMonth)].count}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-sm font-medium text-purple-700 dark:text-purple-200">
+                        <p className="text-xs md:text-sm font-medium text-purple-700 dark:text-purple-200 truncate">
                           New This Month
                         </p>
-                        <p className="text-4xl font-bold text-purple-600 dark:text-purple-300">
+                        <p className="text-2xl md:text-4xl font-bold text-purple-600 dark:text-purple-300">
                           {stats.newThisMonth.toLocaleString()}
                         </p>
                       </>
                     )}
                   </motion.div>
                 </AnimatePresence>
-                <div className="h-14 w-14 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center">
-                  <i className="fas fa-plus text-purple-600 dark:text-purple-300 text-xl"></i>
+                <div className="h-10 w-10 md:h-14 md:w-14 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-plus text-purple-600 dark:text-purple-300 text-lg md:text-xl"></i>
                 </div>
               </div>
-              <p className="text-xs font-medium text-purple-600 dark:text-purple-300 mt-2">
+              <p className="text-xs font-medium text-purple-600 dark:text-purple-300 mt-1">
                 Click to see trend
               </p>
             </div>
@@ -759,8 +759,8 @@ export default function Dashboard() {
           frontClassName="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border border-amber-200 dark:border-amber-800"
           backClassName="bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-950 border border-amber-200 dark:border-amber-800"
           frontContent={
-            <div className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center justify-between">
+            <div className="p-3 md:p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={slideIndices.activeClinics}
@@ -771,39 +771,39 @@ export default function Dashboard() {
                   >
                     {slideIndices.activeClinics === 0 ? (
                       <>
-                        <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                        <p className="text-xs md:text-sm font-medium text-amber-700 dark:text-amber-200 truncate">
                           Active Clinics
                         </p>
-                        <p className="text-4xl font-bold text-amber-600 dark:text-amber-300" data-testid="stat-active-clinics">
+                        <p className="text-2xl md:text-4xl font-bold text-amber-600 dark:text-amber-300" data-testid="stat-active-clinics">
                           {stats.activeClinics.toLocaleString()}
                         </p>
                       </>
                     ) : stats.clinicsByCount && slideIndices.activeClinics - 1 < stats.clinicsByCount.length ? (
                       <>
-                        <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                        <p className="text-xs md:text-sm font-medium text-amber-700 dark:text-amber-200 truncate">
                           {stats.clinicsByCount[slideIndices.activeClinics - 1].name}
                         </p>
-                        <p className="text-4xl font-bold text-amber-600 dark:text-amber-300">
+                        <p className="text-2xl md:text-4xl font-bold text-amber-600 dark:text-amber-300">
                           {stats.clinicsByCount[slideIndices.activeClinics - 1].count}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-sm font-medium text-amber-700 dark:text-amber-200">
+                        <p className="text-xs md:text-sm font-medium text-amber-700 dark:text-amber-200 truncate">
                           Active Clinics
                         </p>
-                        <p className="text-4xl font-bold text-amber-600 dark:text-amber-300">
+                        <p className="text-2xl md:text-4xl font-bold text-amber-600 dark:text-amber-300">
                           {stats.activeClinics.toLocaleString()}
                         </p>
                       </>
                     )}
                   </motion.div>
                 </AnimatePresence>
-                <div className="h-14 w-14 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
-                  <i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-xl"></i>
+                <div className="h-10 w-10 md:h-14 md:w-14 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-hospital text-amber-600 dark:text-amber-300 text-lg md:text-xl"></i>
                 </div>
               </div>
-              <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-2">
+              <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-1">
                 Click to see top clinics
               </p>
             </div>
@@ -844,8 +844,8 @@ export default function Dashboard() {
           frontClassName="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border border-green-200 dark:border-green-800"
           backClassName="bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-950 border border-green-200 dark:border-green-800"
           frontContent={
-            <div className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center justify-between">
+            <div className="p-3 md:p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={slideIndices.remissionRate}
@@ -856,39 +856,39 @@ export default function Dashboard() {
                   >
                     {slideIndices.remissionRate === 0 ? (
                       <>
-                        <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                        <p className="text-xs md:text-sm font-medium text-green-700 dark:text-green-200 truncate">
                           Remission Rate
                         </p>
-                        <p className="text-4xl font-bold text-green-600 dark:text-green-300" data-testid="stat-remission-rate">
+                        <p className="text-2xl md:text-4xl font-bold text-green-600 dark:text-green-300" data-testid="stat-remission-rate">
                           {stats.remissionRate}%
                         </p>
                       </>
                     ) : stats.treatmentOutcomes && slideIndices.remissionRate - 1 < stats.treatmentOutcomes.length ? (
                       <>
-                        <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                        <p className="text-xs md:text-sm font-medium text-green-700 dark:text-green-200 truncate">
                           {stats.treatmentOutcomes[slideIndices.remissionRate - 1].name}
                         </p>
-                        <p className="text-4xl font-bold text-green-600 dark:text-green-300">
+                        <p className="text-2xl md:text-4xl font-bold text-green-600 dark:text-green-300">
                           {stats.treatmentOutcomes[slideIndices.remissionRate - 1].count}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-sm font-medium text-green-700 dark:text-green-200">
+                        <p className="text-xs md:text-sm font-medium text-green-700 dark:text-green-200 truncate">
                           Remission Rate
                         </p>
-                        <p className="text-4xl font-bold text-green-600 dark:text-green-300">
+                        <p className="text-2xl md:text-4xl font-bold text-green-600 dark:text-green-300">
                           {stats.remissionRate}%
                         </p>
                       </>
                     )}
                   </motion.div>
                 </AnimatePresence>
-                <div className="h-14 w-14 bg-green-200 dark:bg-green-800 rounded-full flex items-center justify-center">
-                  <i className="fas fa-heart text-green-600 dark:text-green-300 text-xl"></i>
+                <div className="h-10 w-10 md:h-14 md:w-14 bg-green-200 dark:bg-green-800 rounded-full flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-heart text-green-600 dark:text-green-300 text-lg md:text-xl"></i>
                 </div>
               </div>
-              <p className="text-xs font-medium text-green-600 dark:text-green-300 mt-2">
+              <p className="text-xs font-medium text-green-600 dark:text-green-300 mt-1">
                 Click to see outcomes
               </p>
             </div>
