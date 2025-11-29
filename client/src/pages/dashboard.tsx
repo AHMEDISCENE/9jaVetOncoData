@@ -142,7 +142,7 @@ interface FlipCardProps {
 function FlipCard({ isFlipped, onFlip, frontContent, backContent, frontClassName, backClassName, testId }: FlipCardProps) {
   return (
     <div
-      className="flip-card-container h-[160px] cursor-pointer"
+      className="flip-card-container aspect-square sm:h-[160px] cursor-pointer"
       onClick={onFlip}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -580,7 +580,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Stats with Flip Animation */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
         {/* Total Cases Card */}
         <FlipCard
           isFlipped={flippedCards.totalCases}
