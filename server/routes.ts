@@ -3478,124 +3478,220 @@ you can map it during the import preview step.`;
 
       const summaryStats = calculateSummaryStatistics();
 
-      // Generate report data based on template type and selected data types
+      // Generate report data based on selected data types - all options work for all templates
       let reportData: any = {};
       const shouldInclude = (dataType: string) => dataTypes.length === 0 || dataTypes.includes(dataType);
       
-      if (templateId === "1") {
-        // Template 1: Monthly Summary
-        if (shouldInclude("summary")) {
-          reportData["Summary Statistics"] = {
-            "Total Cases": summaryStats.totalCases,
-            "Active Clinics": summaryStats.activeClinics,
-            "Success Rate": summaryStats.successRate,
-            "Remission Cases": summaryStats.remissionCases,
-            "Ongoing Treatment": summaryStats.ongoingTreatment,
-            "Mortality": summaryStats.mortality,
-            "Euthanasia": summaryStats.euthanasia,
-            "Management Cases": summaryStats.managementCases,
-          };
+      // ============ SUMMARY STATISTICS ============
+      if (shouldInclude("summary")) {
+        reportData["Summary Statistics"] = {
+          "Total Cases": summaryStats.totalCases,
+          "Active Clinics": summaryStats.activeClinics,
+          "Success Rate": summaryStats.successRate,
+          "Remission Cases": summaryStats.remissionCases,
+          "Ongoing Treatment": summaryStats.ongoingTreatment,
+          "Mortality": summaryStats.mortality,
+          "Euthanasia": summaryStats.euthanasia,
+          "Management Cases": summaryStats.managementCases,
+        };
+        
+        reportData["Species Distribution"] = summaryStats.speciesDistribution;
+        reportData["Gender Distribution"] = summaryStats.genderDistribution;
+        reportData["Stage Distribution"] = summaryStats.stageDistribution;
+        reportData["Outcome Breakdown"] = summaryStats.outcomeBreakdown;
+      }
+      
+      // ============ TUMOUR ANALYSIS ============
+      if (shouldInclude("tumours")) {
+        const tumourCounts: Record<string, number> = {};
+        const tumourBySpecies: Record<string, Record<string, number>> = {};
+        const tumourByAnatomicalSite: Record<string, number> = {};
+        
+        allCases.forEach(c => {
+          const tumourType = c.tumourTypeCustom || c.tumourType?.name || "Unknown";
+          tumourCounts[tumourType] = (tumourCounts[tumourType] || 0) + 1;
           
-          reportData["Species Distribution"] = summaryStats.speciesDistribution;
-          reportData["Gender Distribution"] = summaryStats.genderDistribution;
-          reportData["Stage Distribution"] = summaryStats.stageDistribution;
-          reportData["Outcome Breakdown"] = summaryStats.outcomeBreakdown;
-        }
-        
-        if (shouldInclude("trends")) {
-          // Group by month
-          const casesByMonth: Record<string, number> = {};
-          allCases.forEach(c => {
-            const monthKey = new Date(c.diagnosisDate).toLocaleDateString("en-US", { month: "short", year: "numeric" });
-            casesByMonth[monthKey] = (casesByMonth[monthKey] || 0) + 1;
-          });
-          
-          reportData["Monthly Trend"] = casesByMonth;
-        }
-      } else if (templateId === "2") {
-        // Template 2: Tumour Analysis - Include summary stats
-        if (shouldInclude("summary")) {
-          reportData["Summary Statistics"] = {
-            "Total Cases": summaryStats.totalCases,
-            "Active Clinics": summaryStats.activeClinics,
-            "Success Rate": summaryStats.successRate,
-          };
-        }
-        
-        if (shouldInclude("tumours")) {
-          const tumourCounts: Record<string, number> = {};
-          allCases.forEach(c => {
-            const tumourType = c.tumourTypeCustom || c.tumourType?.name || "Unknown";
-            tumourCounts[tumourType] = (tumourCounts[tumourType] || 0) + 1;
-          });
-          
-          reportData["Tumour Distribution"] = tumourCounts;
-        }
-        
-        if (shouldInclude("demographics")) {
-          reportData["Species Distribution"] = summaryStats.speciesDistribution;
-          reportData["Gender Distribution"] = summaryStats.genderDistribution;
-          reportData["Stage Distribution"] = summaryStats.stageDistribution;
-          reportData["Laterality Distribution"] = summaryStats.lateralityDistribution;
-        }
-        
-        reportData["Total Cases"] = summaryStats.totalCases;
-      } else if (templateId === "3") {
-        // Template 3: Treatment Outcomes - Include comprehensive summary
-        if (shouldInclude("summary")) {
-          reportData["Summary Statistics"] = {
-            "Total Cases": summaryStats.totalCases,
-            "Active Clinics": summaryStats.activeClinics,
-            "Success Rate": summaryStats.successRate,
-          };
-        }
-        
-        if (shouldInclude("outcomes")) {
-          reportData["Treatment Outcomes"] = {
-            "Total Cases": summaryStats.totalCases,
-            "Remission": summaryStats.remissionCases,
-            "Ongoing Treatment": summaryStats.ongoingTreatment,
-            "Mortality": summaryStats.mortality,
-            "Euthanasia": summaryStats.euthanasia,
-            "Management": summaryStats.managementCases,
-            "Success Rate": summaryStats.successRate,
-          };
-          reportData["Outcome Breakdown"] = summaryStats.outcomeBreakdown;
-        }
-      } else if (templateId === "4") {
-        // Template 4: Clinic Performance - Include comprehensive summary
-        if (shouldInclude("summary")) {
-          reportData["Overall Summary"] = {
-            "Total Cases": summaryStats.totalCases,
-            "Active Clinics": summaryStats.activeClinics,
-            "Success Rate": summaryStats.successRate,
-            "Remission Cases": summaryStats.remissionCases,
-            "Ongoing Treatment": summaryStats.ongoingTreatment,
-            "Mortality": summaryStats.mortality,
-            "Euthanasia": summaryStats.euthanasia,
-          };
-
-          const clinicData: Record<string, any> = {};
-          allCases.forEach(c => {
-            if (!clinicData[c.clinicId]) {
-              clinicData[c.clinicId] = { total: 0, outcomes: {} };
-            }
-            clinicData[c.clinicId].total += 1;
-            const outcome = c.outcome || "Unknown";
-            clinicData[c.clinicId].outcomes[outcome] = (clinicData[c.clinicId].outcomes[outcome] || 0) + 1;
-          });
-
-          if (shouldInclude("outcomes")) {
-            reportData["Clinic Performance"] = Object.entries(clinicData).map(([cId, data]: any) => ({
-              "Clinic ID": cId,
-              "Total Cases": data.total,
-              "Remission": data.outcomes["REMISSION"] || 0,
-              "Ongoing": data.outcomes["TREATMENT_ONGOING"] || 0,
-              "Mortality": data.outcomes["MORTALITY"] || 0,
-              "Euthanasia": data.outcomes["EUTHANASIA"] || 0,
-              "Success Rate": data.total > 0 ? `${Math.round(((data.outcomes["REMISSION"] || 0) / data.total) * 100)}%` : "0%",
-            }));
+          // Tumour by species
+          if (!tumourBySpecies[c.species]) {
+            tumourBySpecies[c.species] = {};
           }
+          tumourBySpecies[c.species][tumourType] = (tumourBySpecies[c.species][tumourType] || 0) + 1;
+          
+          // Anatomical site distribution
+          const site = c.anatomicalSite?.name || "Unknown";
+          tumourByAnatomicalSite[site] = (tumourByAnatomicalSite[site] || 0) + 1;
+        });
+        
+        reportData["Tumour Type Distribution"] = tumourCounts;
+        reportData["Anatomical Site Distribution"] = tumourByAnatomicalSite;
+        
+        // Top tumour types per species
+        const topTumoursBySpecies: Record<string, string> = {};
+        Object.entries(tumourBySpecies).forEach(([species, tumours]) => {
+          const topTumour = Object.entries(tumours).sort((a, b) => b[1] - a[1])[0];
+          if (topTumour) {
+            topTumoursBySpecies[species] = `${topTumour[0]} (${topTumour[1]} cases)`;
+          }
+        });
+        reportData["Top Tumour by Species"] = topTumoursBySpecies;
+      }
+      
+      // ============ TREATMENT OUTCOMES ============
+      if (shouldInclude("outcomes")) {
+        reportData["Treatment Outcomes"] = {
+          "Total Cases": summaryStats.totalCases,
+          "Remission": summaryStats.remissionCases,
+          "Ongoing Treatment": summaryStats.ongoingTreatment,
+          "Mortality": summaryStats.mortality,
+          "Euthanasia": summaryStats.euthanasia,
+          "Management": summaryStats.managementCases,
+          "Success Rate": summaryStats.successRate,
+        };
+        reportData["Outcome Breakdown"] = summaryStats.outcomeBreakdown;
+        
+        // Outcome by species
+        const outcomeBySpecies: Record<string, Record<string, number>> = {};
+        allCases.forEach(c => {
+          if (!outcomeBySpecies[c.species]) {
+            outcomeBySpecies[c.species] = {};
+          }
+          const outcome = c.outcome || "Unknown";
+          outcomeBySpecies[c.species][outcome] = (outcomeBySpecies[c.species][outcome] || 0) + 1;
+        });
+        
+        reportData["Outcome by Species"] = Object.entries(outcomeBySpecies).map(([species, outcomes]) => ({
+          "Species": species,
+          "Remission": outcomes["REMISSION"] || 0,
+          "Ongoing": outcomes["TREATMENT_ONGOING"] || 0,
+          "Mortality": outcomes["MORTALITY"] || 0,
+          "Euthanasia": outcomes["EUTHANASIA"] || 0,
+        }));
+      }
+      
+      // ============ TRENDS & COMPARISONS ============
+      if (shouldInclude("trends")) {
+        // Cases by month
+        const casesByMonth: Record<string, number> = {};
+        allCases.forEach(c => {
+          const monthKey = new Date(c.diagnosisDate).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+          casesByMonth[monthKey] = (casesByMonth[monthKey] || 0) + 1;
+        });
+        reportData["Monthly Case Trend"] = casesByMonth;
+        
+        // Outcome trends over time
+        const outcomesByMonth: Record<string, Record<string, number>> = {};
+        allCases.forEach(c => {
+          const monthKey = new Date(c.diagnosisDate).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+          if (!outcomesByMonth[monthKey]) {
+            outcomesByMonth[monthKey] = {};
+          }
+          const outcome = c.outcome || "Unknown";
+          outcomesByMonth[monthKey][outcome] = (outcomesByMonth[monthKey][outcome] || 0) + 1;
+        });
+        
+        reportData["Monthly Outcome Trend"] = Object.entries(outcomesByMonth).map(([month, outcomes]) => ({
+          "Month": month,
+          "Total": Object.values(outcomes).reduce((a, b) => a + b, 0),
+          "Remission": outcomes["REMISSION"] || 0,
+          "Ongoing": outcomes["TREATMENT_ONGOING"] || 0,
+          "Mortality": outcomes["MORTALITY"] || 0,
+        }));
+        
+        // Species trend comparison
+        const speciesByMonth: Record<string, Record<string, number>> = {};
+        allCases.forEach(c => {
+          const monthKey = new Date(c.diagnosisDate).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+          if (!speciesByMonth[monthKey]) {
+            speciesByMonth[monthKey] = {};
+          }
+          speciesByMonth[monthKey][c.species] = (speciesByMonth[monthKey][c.species] || 0) + 1;
+        });
+        reportData["Species Trend Comparison"] = speciesByMonth;
+      }
+      
+      // ============ PATIENT DEMOGRAPHICS ============
+      if (shouldInclude("demographics")) {
+        reportData["Species Distribution"] = summaryStats.speciesDistribution;
+        reportData["Gender Distribution"] = summaryStats.genderDistribution;
+        reportData["Stage Distribution"] = summaryStats.stageDistribution;
+        reportData["Laterality Distribution"] = summaryStats.lateralityDistribution;
+        
+        // Age distribution (if available)
+        const ageDistribution: Record<string, number> = {
+          "0-2 years": 0,
+          "3-5 years": 0,
+          "6-8 years": 0,
+          "9-11 years": 0,
+          "12+ years": 0,
+          "Unknown": 0,
+        };
+        allCases.forEach(c => {
+          const age = c.age;
+          if (!age) {
+            ageDistribution["Unknown"]++;
+          } else if (age <= 2) {
+            ageDistribution["0-2 years"]++;
+          } else if (age <= 5) {
+            ageDistribution["3-5 years"]++;
+          } else if (age <= 8) {
+            ageDistribution["6-8 years"]++;
+          } else if (age <= 11) {
+            ageDistribution["9-11 years"]++;
+          } else {
+            ageDistribution["12+ years"]++;
+          }
+        });
+        reportData["Age Distribution"] = ageDistribution;
+        
+        // Breed distribution
+        const breedDistribution: Record<string, number> = {};
+        allCases.forEach(c => {
+          const breed = c.breed || "Unknown";
+          breedDistribution[breed] = (breedDistribution[breed] || 0) + 1;
+        });
+        reportData["Breed Distribution"] = breedDistribution;
+      }
+      
+      // ============ CASE DETAILS ============
+      if (shouldInclude("cases")) {
+        const caseDetails = allCases.slice(0, 100).map(c => ({
+          "Case ID": c.id.substring(0, 8),
+          "Patient Name": c.name,
+          "Species": c.species,
+          "Breed": c.breed || "Unknown",
+          "Age": c.age ? `${c.age} years` : "Unknown",
+          "Sex": c.sex,
+          "Diagnosis Date": new Date(c.diagnosisDate).toLocaleDateString(),
+          "Tumour Type": c.tumourTypeCustom || c.tumourType?.name || "Unknown",
+          "Stage": c.stage || "Unknown",
+          "Outcome": c.outcome?.replace(/_/g, " ") || "Unknown",
+        }));
+        reportData["Case Details (First 100)"] = caseDetails;
+        reportData["Total Cases in Period"] = { "Count": allCases.length };
+      }
+      
+      // ============ CLINIC PERFORMANCE (for template 4 or when outcomes selected) ============
+      if (templateId === "4" || shouldInclude("outcomes")) {
+        const clinicData: Record<string, any> = {};
+        allCases.forEach(c => {
+          if (!clinicData[c.clinicId]) {
+            clinicData[c.clinicId] = { total: 0, outcomes: {} };
+          }
+          clinicData[c.clinicId].total += 1;
+          const outcome = c.outcome || "Unknown";
+          clinicData[c.clinicId].outcomes[outcome] = (clinicData[c.clinicId].outcomes[outcome] || 0) + 1;
+        });
+
+        if (Object.keys(clinicData).length > 1) {
+          reportData["Clinic Performance Comparison"] = Object.entries(clinicData).map(([cId, data]: any) => ({
+            "Clinic ID": cId.substring(0, 8),
+            "Total Cases": data.total,
+            "Remission": data.outcomes["REMISSION"] || 0,
+            "Ongoing": data.outcomes["TREATMENT_ONGOING"] || 0,
+            "Mortality": data.outcomes["MORTALITY"] || 0,
+            "Euthanasia": data.outcomes["EUTHANASIA"] || 0,
+            "Success Rate": data.total > 0 ? `${Math.round(((data.outcomes["REMISSION"] || 0) / data.total) * 100)}%` : "0%",
+          }));
         }
       }
 
@@ -3870,11 +3966,56 @@ you can map it during the import preview step.`;
           });
         }
 
-        // Additional sections
+        // Section colors for different data types
+        const sectionColors: Record<string, [number, number, number]> = {
+          "Tumour Type Distribution": [231, 76, 60],
+          "Anatomical Site Distribution": [142, 68, 173],
+          "Top Tumour by Species": [211, 84, 0],
+          "Treatment Outcomes": [39, 174, 96],
+          "Outcome by Species": [41, 128, 185],
+          "Monthly Case Trend": [52, 73, 94],
+          "Monthly Outcome Trend": [22, 160, 133],
+          "Species Trend Comparison": [192, 57, 43],
+          "Age Distribution": [44, 62, 80],
+          "Breed Distribution": [127, 140, 141],
+          "Case Details (First 100)": [26, 188, 156],
+          "Clinic Performance Comparison": [243, 156, 18],
+          "Laterality Distribution": [155, 89, 182],
+          "Stage Distribution": [46, 134, 193],
+        };
+
+        // Additional sections - handle both objects and arrays
         Object.entries(reportData).forEach(([key, value]) => {
           if (!['Summary Statistics', 'Outcome Breakdown', 'Species Distribution', 'Gender Distribution'].includes(key)) {
-            if (typeof value === 'object' && !Array.isArray(value)) {
-              doc.setFillColor(100, 100, 100);
+            const color = sectionColors[key] || [100, 100, 100];
+            
+            // Handle array data (like Case Details, Outcome by Species tables)
+            if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
+              doc.setFillColor(color[0], color[1], color[2]);
+              doc.rect(14, yPos, 182, 6, 'F');
+              doc.setTextColor(255, 255, 255);
+              doc.setFontSize(11);
+              doc.text(`📊 ${key}`, 16, yPos + 4);
+              doc.setTextColor(0, 0, 0);
+              yPos += 10;
+
+              const headers = Object.keys(value[0]);
+              const tableRows = value.map((row: any) => headers.map(h => String(row[h] || '')));
+              
+              autoTable(doc, {
+                head: [headers],
+                body: tableRows,
+                startY: yPos,
+                margin: 14,
+                headStyles: { fillColor: color, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+                bodyStyles: { fontSize: 7, cellPadding: 1.5 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+                didDrawPage: (data) => { yPos = data.lastAutoTable.finalY + 8; }
+              });
+            }
+            // Handle object data (like distributions, summaries)
+            else if (typeof value === 'object' && !Array.isArray(value)) {
+              doc.setFillColor(color[0], color[1], color[2]);
               doc.rect(14, yPos, 182, 6, 'F');
               doc.setTextColor(255, 255, 255);
               doc.setFontSize(11);
