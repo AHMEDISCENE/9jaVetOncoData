@@ -3745,134 +3745,76 @@ you can map it during the import preview step.`;
         doc.text(`Export Date: ${now}`, 14, yPos);
         yPos += 12;
 
-        // Create chart tables for summary statistics
-        const createChartTable = (title: string, data: Record<string, any>): any[] => {
-          return [
-            [{ content: title, styles: { halign: 'center', fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' } }],
-            ...Object.entries(data).map(([label, value]) => [
-              label,
-              String(value)
-            ])
-          ];
+        // Helper function to create simple text-based charts
+        const drawChartSection = (title: string, data: Record<string, any>) => {
+          if (yPos > 240) {
+            doc.addPage();
+            yPos = 15;
+          }
+          doc.setFontSize(11);
+          doc.text(title, 14, yPos);
+          yPos += 7;
+          
+          doc.setFontSize(9);
+          Object.entries(data).forEach(([key, value]) => {
+            if (yPos > 250) {
+              doc.addPage();
+              yPos = 15;
+            }
+            const displayKey = String(key).replace(/_/g, ' ');
+            const displayValue = String(value);
+            doc.text(`${displayKey}: ${displayValue}`, 18, yPos);
+            yPos += 5;
+          });
+          yPos += 3;
         };
 
-        // Add Summary Statistics table with charts
+        // Add Summary Statistics
         if (reportData['Summary Statistics']) {
-          doc.setFontSize(11);
-          doc.text('Summary Statistics & Charts', 14, yPos);
-          yPos += 8;
-
-          const summaryTable = createChartTable('Key Metrics', reportData['Summary Statistics']);
-          (doc as any).autoTable({
-            body: summaryTable,
-            startY: yPos,
-            margin: 14,
-            theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
-            bodyStyles: { textColor: 50, fontSize: 9 },
-            alternateRowStyles: { fillColor: [240, 240, 240] }
-          });
-          yPos = (doc as any).lastAutoTable.finalY + 8;
+          drawChartSection('Summary Statistics & Charts', reportData['Summary Statistics']);
         }
 
-        // Add Outcome Breakdown as visual chart table
+        // Add Outcome Breakdown as bar chart
         if (reportData['Outcome Breakdown']) {
           if (yPos > 240) {
             doc.addPage();
             yPos = 15;
           }
           doc.setFontSize(11);
-          doc.text('Outcome Distribution Chart', 14, yPos);
-          yPos += 8;
+          doc.text('Outcome Distribution', 14, yPos);
+          yPos += 7;
 
           const outcomeData = reportData['Outcome Breakdown'];
+          const total = Object.values(outcomeData as Record<string, number>).reduce((a: number, b: number) => a + b, 0);
           const maxCount = Math.max(...Object.values(outcomeData as Record<string, number>));
-          const outcomeTable = [
-            [{ content: 'Treatment Outcome', styles: { halign: 'center', fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' } },
-             { content: 'Count', styles: { halign: 'center', fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' } },
-             { content: 'Percentage', styles: { halign: 'center', fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' } }],
-            ...Object.entries(outcomeData).map(([outcome, count]: any) => {
-              const total = Object.values(outcomeData).reduce((a: number, b: number) => a + b, 0);
-              const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
-              const barLength = Math.round((count / maxCount) * 20);
-              const bar = '█'.repeat(Math.max(0, barLength)) + '░'.repeat(Math.max(0, 20 - barLength));
-              return [outcome.replace(/_/g, ' '), String(count), `${percentage}% ${bar}`];
-            })
-          ];
 
-          (doc as any).autoTable({
-            body: outcomeTable,
-            startY: yPos,
-            margin: 14,
-            theme: 'grid',
-            headStyles: { fillColor: [230, 126, 34], textColor: 255, fontStyle: 'bold' },
-            bodyStyles: { textColor: 50, fontSize: 8 },
-            alternateRowStyles: { fillColor: [245, 245, 245] },
-            columnStyles: { 0: { halign: 'left' }, 1: { halign: 'center' }, 2: { halign: 'left' } }
+          doc.setFontSize(8);
+          Object.entries(outcomeData).forEach(([outcome, count]: any) => {
+            if (yPos > 250) {
+              doc.addPage();
+              yPos = 15;
+            }
+            const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
+            const barLength = Math.round((count / Math.max(maxCount, 1)) * 15);
+            const bar = '█'.repeat(barLength);
+            const displayOutcome = String(outcome).replace(/_/g, ' ');
+            doc.text(`${displayOutcome}: ${count} (${percentage}%) ${bar}`, 18, yPos);
+            yPos += 4;
           });
-          yPos = (doc as any).lastAutoTable.finalY + 8;
+          yPos += 3;
         }
 
-        // Add Species Distribution chart
+        // Add Species Distribution
         if (reportData['Species Distribution']) {
-          if (yPos > 240) {
-            doc.addPage();
-            yPos = 15;
-          }
-          doc.setFontSize(11);
-          doc.text('Species Distribution Chart', 14, yPos);
-          yPos += 8;
-
-          const speciesData = reportData['Species Distribution'];
-          const speciesTable = [
-            [{ content: 'Species', styles: { halign: 'center', fillColor: [46, 204, 113], textColor: 255, fontStyle: 'bold' } },
-             { content: 'Count', styles: { halign: 'center', fillColor: [46, 204, 113], textColor: 255, fontStyle: 'bold' } }],
-            ...Object.entries(speciesData).map(([species, count]: any) => [species, String(count)])
-          ];
-
-          (doc as any).autoTable({
-            body: speciesTable,
-            startY: yPos,
-            margin: 14,
-            theme: 'grid',
-            headStyles: { fillColor: [46, 204, 113], textColor: 255, fontStyle: 'bold' },
-            bodyStyles: { textColor: 50, fontSize: 9 },
-            alternateRowStyles: { fillColor: [240, 250, 240] }
-          });
-          yPos = (doc as any).lastAutoTable.finalY + 8;
+          drawChartSection('Species Distribution', reportData['Species Distribution']);
         }
 
-        // Add Gender Distribution chart
+        // Add Gender Distribution
         if (reportData['Gender Distribution']) {
-          if (yPos > 240) {
-            doc.addPage();
-            yPos = 15;
-          }
-          doc.setFontSize(11);
-          doc.text('Gender Distribution Chart', 14, yPos);
-          yPos += 8;
-
-          const genderData = reportData['Gender Distribution'];
-          const genderTable = [
-            [{ content: 'Gender', styles: { halign: 'center', fillColor: [155, 89, 182], textColor: 255, fontStyle: 'bold' } },
-             { content: 'Count', styles: { halign: 'center', fillColor: [155, 89, 182], textColor: 255, fontStyle: 'bold' } }],
-            ...Object.entries(genderData).map(([gender, count]: any) => [gender.replace(/_/g, ' '), String(count)])
-          ];
-
-          (doc as any).autoTable({
-            body: genderTable,
-            startY: yPos,
-            margin: 14,
-            theme: 'grid',
-            headStyles: { fillColor: [155, 89, 182], textColor: 255, fontStyle: 'bold' },
-            bodyStyles: { textColor: 50, fontSize: 9 },
-            alternateRowStyles: { fillColor: [250, 240, 250] }
-          });
-          yPos = (doc as any).lastAutoTable.finalY + 8;
+          drawChartSection('Gender Distribution', reportData['Gender Distribution']);
         }
 
-        // Add any remaining data
-        doc.setFontSize(11);
+        // Add remaining data
         Object.entries(reportData).forEach(([key, value]) => {
           if (!['Summary Statistics', 'Outcome Breakdown', 'Species Distribution', 'Gender Distribution'].includes(key)) {
             if (yPos > 240) {
@@ -3881,19 +3823,30 @@ you can map it during the import preview step.`;
             }
 
             if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
+              doc.setFontSize(11);
               doc.text(key, 14, yPos);
               yPos += 6;
-              const tableData = value.map(item => Object.values(item).map(v => String(v)));
+
+              doc.setFontSize(8);
               const headers = Object.keys(value[0]);
-              (doc as any).autoTable({
-                head: [headers],
-                body: tableData,
-                startY: yPos,
-                margin: 14,
-                theme: 'grid',
-                bodyStyles: { textColor: 50, fontSize: 8 }
+              headers.forEach((h, idx) => {
+                doc.text(h, 18 + (idx * 40), yPos);
               });
-              yPos = (doc as any).lastAutoTable.finalY + 6;
+              yPos += 4;
+
+              (value as any[]).forEach(row => {
+                if (yPos > 250) {
+                  doc.addPage();
+                  yPos = 15;
+                }
+                headers.forEach((h, idx) => {
+                  doc.text(String(row[h] || ''), 18 + (idx * 40), yPos);
+                });
+                yPos += 4;
+              });
+              yPos += 3;
+            } else if (typeof value === 'object' && !Array.isArray(value)) {
+              drawChartSection(key, value);
             }
           }
         });
