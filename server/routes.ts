@@ -2610,9 +2610,10 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
   app.get("/api/imports/template.csv", requireAuth, async (req, res) => {
     const csvContent = `name,species,breed,state,diagnosis_date,sex,age_years,age_months,tumour_type,tumour_type_custom,anatomical_site,anatomical_site_custom,laterality,stage,diagnosis_method,treatment_plan,treatment_start,outcome,last_follow_up,notes
 Fluffy,Dog,Labrador Retriever,Lagos,2025-01-15,MALE_NEUTERED,5,6,Melanoma,,Skin,,Left,Stage I,Histopathology,Chemotherapy,2025-01-20,REMISSION,2025-02-20,Responding well to treatment
-Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bilateral,Stage II,Cytology,Palliative Care,2025-01-22,TREATMENT_ONGOING,2025-02-10,Patient achieved remission
+Whiskers,Cat,Persian,Kano,2025-01-20,FEMALE_SPAYED,8,3,Lymphoma,,Lymph Node,,Bilateral,Stage II,Cytology,Palliative Care,2025-01-22,TREATMENT_ONGOING,2025-02-10,Patient still undergoing chemotherapy
 Buddy,Dog,German Shepherd,Abuja,2025-01-10,MALE_INTACT,3,2,,Nasal Carcinoma,Nose,,Left,Stage III,Imaging,Surgery,2025-01-25,MORTALITY,2025-02-15,Pre-operative assessment complete
 Max,Dog,Boxer,Kano,2025-01-08,FEMALE_SPAYED,6,7,,Hemangiosarcoma,,Spleen,,Stage IV,Imaging,Euthanasia,2025-01-12,EUTHANASIA,2025-01-12,End-of-life care provided
+Luna,Dog,Cocker Spaniel,Enugu,2025-01-05,FEMALE_SPAYED,9,4,Osteosarcoma,,Bone,,Right,Stage III,Histopathology,Palliative Care,2025-01-10,MANAGEMENT,2025-01-25,Supportive care provided, pain management ongoing
 
 ===============================================================================
 INSTRUCTIONS FOR BULK UPLOAD TEMPLATE
