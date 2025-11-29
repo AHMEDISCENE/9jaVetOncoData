@@ -1107,8 +1107,8 @@ export default function Dashboard() {
               <Rss className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-foreground">Team Feeds</p>
-              <p className="text-xs text-muted-foreground font-normal">Recent clinic activity</p>
+              <p className="text-foreground">Feeds</p>
+              <p className="text-xs text-muted-foreground font-normal">Get the latest information from other platform users</p>
             </div>
           </CardTitle>
         </CardHeader>
