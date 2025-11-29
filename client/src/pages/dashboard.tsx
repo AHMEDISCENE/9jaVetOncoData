@@ -59,7 +59,7 @@ function VeterinaryOncologyNews() {
               <Newspaper className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-foreground">Veterinary Oncology News</p>
+              <p className="text-foreground">Veterinary Oncology around the globe</p>
               <p className="text-xs text-muted-foreground font-normal">Latest breakthroughs & research</p>
             </div>
           </CardTitle>
@@ -1168,7 +1168,9 @@ export default function Dashboard() {
       </Card>
 
       {/* Veterinary Oncology News */}
-      <VeterinaryOncologyNews />
+      <div className="mt-8">
+        <VeterinaryOncologyNews />
+      </div>
 
       {/* Post Detail Dialog */}
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
