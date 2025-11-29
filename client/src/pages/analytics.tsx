@@ -766,7 +766,7 @@ export default function Analytics() {
             </div>
             {stats.topTumourTypes.length > 8 && (
               <p className="text-xs text-muted-foreground text-center mt-2">
-                Showing top 8 tumour types. Click for full analytics.
+                Chart shows top 8 tumour types. Click for complete breakdown of all {stats.topTumourTypes.length} types.
               </p>
             )}
           </CardContent>

@@ -1492,7 +1492,7 @@ export class DatabaseStorage implements IStorage {
       ? Math.round((remissionResult.remission / remissionResult.total) * 100) 
       : 0;
 
-    // Top tumour types
+    // Top tumour types (all types, no limit)
     const topTumourTypesRaw = await db
       .select({
         name: tumourTypes.name,
@@ -1503,8 +1503,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(tumourTypes, eq(cases.tumourTypeId, tumourTypes.id))
       .where(eq(cases.clinicId, clinicId))
       .groupBy(tumourTypes.name, cases.tumourTypeCustom)
-      .orderBy(desc(count()))
-      .limit(5);
+      .orderBy(desc(count()));
 
     const topTumourTypes = topTumourTypesRaw.map(item => ({
       name: item.name || item.customName || 'Unknown',
@@ -1710,8 +1709,7 @@ export class DatabaseStorage implements IStorage {
 
       const topTumourTypes = Array.from(tumourCounts.entries())
         .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
+        .sort((a, b) => b.count - a.count);
 
       // Cases by species
       const speciesCounts = new Map<string, number>();
