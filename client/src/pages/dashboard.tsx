@@ -1002,11 +1002,11 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Recent Activity */}
+      {/* Feeds */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold">
-            Recent Activity
+            Feeds
           </CardTitle>
         </CardHeader>
         <CardContent>
