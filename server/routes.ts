@@ -3863,42 +3863,50 @@ you can map it during the import preview step.`;
           yPos += 8;
 
           if (Array.isArray(data)) {
-            // Table data
-            doc.setFontSize(7);
+            // Table data - limit to 8 rows for readability
+            doc.setFontSize(7.5);
             if (data.length > 0 && typeof data[0] === 'object') {
               const keys = Object.keys(data[0]);
-              const colWidth = (182 / keys.length);
+              const numCols = keys.length;
+              const colWidth = 182 / numCols;
+              
+              // Header row
+              doc.setFont(undefined, 'bold');
               keys.forEach((k, i) => {
-                doc.text(k, margin + (i * colWidth) + 1, yPos);
+                const text = k.substring(0, Math.max(8, Math.floor(15 * colWidth / 30)));
+                doc.text(text, margin + (i * colWidth) + 1, yPos, { maxWidth: colWidth - 2 });
               });
-              yPos += 3;
-              data.slice(0, 15).forEach((row: any) => {
-                if (yPos > maxY - 5) {
+              doc.setFont(undefined, 'normal');
+              yPos += 4;
+
+              // Data rows
+              data.slice(0, 8).forEach((row: any) => {
+                if (yPos > maxY - 8) {
                   doc.addPage();
                   yPos = 15;
                 }
                 keys.forEach((k, i) => {
-                  const text = String(row[k] || '').substring(0, 15);
-                  doc.text(text, margin + (i * colWidth) + 1, yPos);
+                  const text = String(row[k] || '').substring(0, 20);
+                  doc.text(text, margin + (i * colWidth) + 1, yPos, { maxWidth: colWidth - 2 });
                 });
-                yPos += 3;
+                yPos += 4;
               });
             }
           } else {
             // Key-value data
             doc.setFontSize(8);
             Object.entries(data).forEach(([k, v]) => {
-              if (yPos > maxY) {
+              if (yPos > maxY - 4) {
                 doc.addPage();
                 yPos = 15;
               }
-              const key = String(k).substring(0, 50);
-              const val = String(v).substring(0, 40);
+              const key = String(k).substring(0, 35);
+              const val = String(v).substring(0, 35);
               doc.text(`${key}: ${val}`, margin + 2, yPos);
               yPos += 4;
             });
           }
-          yPos += 3;
+          yPos += 5;
         };
 
         // Add all sections
