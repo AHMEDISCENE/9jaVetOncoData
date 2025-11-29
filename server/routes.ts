@@ -2389,7 +2389,7 @@ export async function registerRoutes(app: Express, notificationManager?: any): P
   });
 
   // Import/Bulk upload routes
-  app.post("/api/imports/upload", requireAuth, requireRole("MANAGER"), bulkUpload.single('file'), async (req, res) => {
+  app.post("/api/imports/upload", requireAuth, bulkUpload.single('file'), async (req, res) => {
     try {
       const clinicId = (req.session as any).clinicId;
       const userId = (req.session as any).userId;
