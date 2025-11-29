@@ -59,7 +59,7 @@ function VeterinaryOncologyNews() {
               <Newspaper className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-lg font-bold text-foreground dark:text-white">Veterinary Oncology around the globe</p>
+              <p className="text-base font-bold text-foreground dark:text-white">Veterinary Oncology around the globe</p>
               <p className="text-xs text-gray-600 dark:text-gray-300 font-normal">Latest breakthroughs & research</p>
             </div>
           </CardTitle>
@@ -486,6 +486,7 @@ export default function Dashboard() {
           </p>
         </div>
       )}
+
       {/* Header with Filters */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -577,6 +578,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
       {/* Quick Stats with Flip Animation */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Cases Card */}
@@ -919,6 +921,7 @@ export default function Dashboard() {
           }
         />
       </div>
+
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Cases by Month Chart */}
@@ -1032,6 +1035,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-6 mb-8">
         {/* Add New Case Card */}
@@ -1094,6 +1098,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
       {/* Feed Highlights */}
       <Card className="bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200/50 dark:border-purple-800/50">
         <CardHeader className="pb-3">
@@ -1102,7 +1107,7 @@ export default function Dashboard() {
               <Rss className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-lg font-bold text-foreground dark:text-white">Feed Highlights</p>
+              <p className="text-base font-bold text-foreground dark:text-white">Feed Highlights</p>
               <p className="text-xs text-gray-600 dark:text-gray-300 font-normal">Get the latest information from other platform users</p>
             </div>
           </CardTitle>
@@ -1136,7 +1141,7 @@ export default function Dashboard() {
                         {post.title}
                       </p>
                       <div className="flex items-center justify-between gap-2 mt-2">
-                        <p className="text-[15px] text-[#000000]">
+                        <p className="text-xs text-muted-foreground">
                           {(post as any).authorName || "Unknown Author"}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -1161,10 +1166,12 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
       {/* Veterinary Oncology News */}
       <div className="mt-8">
         <VeterinaryOncologyNews />
       </div>
+
       {/* Post Detail Dialog */}
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -1212,6 +1219,7 @@ export default function Dashboard() {
           )}
         </DialogContent>
       </Dialog>
+
       {/* Metric Drilldown */}
       {stats && (
         <MetricDrilldown
@@ -1221,6 +1229,7 @@ export default function Dashboard() {
           stats={stats}
         />
       )}
+
       {/* Cases by Month Modal */}
       <Dialog open={showCasesByMonthModal} onOpenChange={setShowCasesByMonthModal}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -1285,6 +1294,7 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
       {/* Top Tumour Types Modal */}
       <Dialog open={showTumourTypesModal} onOpenChange={setShowTumourTypesModal}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
