@@ -3395,8 +3395,8 @@ you can map it during the import preview step.`;
         dateEnd = new Date(endDate);
       }
 
-      // Fetch cases within date range for clinic
-      const allCases = await storage.getCases(clinicId, {
+      // Fetch cases within date range - from all clinics in database for comprehensive reporting
+      const allCases = await storage.getCases(undefined, {
         startDate: dateStart,
         endDate: dateEnd,
       });
