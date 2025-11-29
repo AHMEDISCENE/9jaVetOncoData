@@ -16,7 +16,7 @@ import path from "path";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 // @ts-ignore - jspdf-autotable modifies jsPDF prototype
-import { autoTable } from "jspdf-autotable";
+import "jspdf-autotable";
 import { sendPasswordResetEmail } from "./email";
 import { callChatGPT } from "./services/openaiClient";
 import { buildLiveDataContext } from "./services/buildLiveDataContext";
@@ -3846,16 +3846,16 @@ you can map it during the import preview step.`;
           ['Export Date', now],
           ['Report Format', 'PDF'],
         ];
-        autoTable(doc, {
+        (doc as any).autoTable({
           head: [['Property', 'Value']],
           body: metadataRows,
           startY: yPos,
           margin: 14,
           headStyles: { fillColor: [230, 126, 34], textColor: 255, fontStyle: 'bold', fontSize: 9 },
           bodyStyles: { fontSize: 8, cellPadding: 2 },
-          alternateRowStyles: { fillColor: [245, 245, 245] },
-          didDrawPage: (data) => { yPos = data.lastAutoTable.finalY + 8; }
+          alternateRowStyles: { fillColor: [245, 245, 245] }
         });
+        yPos = (doc as any).lastAutoTable.finalY + 8;
 
         // Summary Statistics Section
         if (reportData['Summary Statistics']) {
@@ -3872,16 +3872,16 @@ you can map it during the import preview step.`;
             key,
             String(value)
           ]);
-          autoTable(doc, {
+          (doc as any).autoTable({
             body: summaryRows,
             startY: yPos,
             margin: 14,
             headStyles: { fillColor: [52, 152, 219], textColor: 255, fontStyle: 'bold', fontSize: 9 },
             bodyStyles: { fontSize: 8, cellPadding: 2 },
             alternateRowStyles: { fillColor: [240, 248, 255] },
-            columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 102 } },
-            didDrawPage: (data) => { yPos = data.lastAutoTable.finalY + 8; }
+            columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 102 } }
           });
+          yPos = (doc as any).lastAutoTable.finalY + 8;
         }
 
         // Outcome Breakdown Section
@@ -3905,7 +3905,7 @@ you can map it during the import preview step.`;
             return [outcome.replace(/_/g, ' '), count.toString(), `${percentage}%`, bar];
           });
 
-          autoTable(doc, {
+          (doc as any).autoTable({
             head: [['Outcome Type', 'Count', 'Percentage', 'Visual']],
             body: outcomeRows,
             startY: yPos,
@@ -3913,9 +3913,9 @@ you can map it during the import preview step.`;
             headStyles: { fillColor: [46, 204, 113], textColor: 255, fontStyle: 'bold', fontSize: 9 },
             bodyStyles: { fontSize: 8, cellPadding: 2 },
             alternateRowStyles: { fillColor: [240, 255, 240] },
-            columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 30 }, 2: { cellWidth: 30 }, 3: { cellWidth: 72 } },
-            didDrawPage: (data) => { yPos = data.lastAutoTable.finalY + 8; }
+            columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 30 }, 2: { cellWidth: 30 }, 3: { cellWidth: 72 } }
           });
+          yPos = (doc as any).lastAutoTable.finalY + 8;
         }
 
         // Species Distribution Section
@@ -3930,16 +3930,16 @@ you can map it during the import preview step.`;
           yPos += 10;
 
           const speciesRows = Object.entries(speciesData).map(([species, count]: any) => [species, count.toString()]);
-          autoTable(doc, {
+          (doc as any).autoTable({
             head: [['Species', 'Count']],
             body: speciesRows,
             startY: yPos,
             margin: 14,
             headStyles: { fillColor: [155, 89, 182], textColor: 255, fontStyle: 'bold', fontSize: 9 },
             bodyStyles: { fontSize: 8, cellPadding: 2 },
-            alternateRowStyles: { fillColor: [250, 240, 250] },
-            didDrawPage: (data) => { yPos = data.lastAutoTable.finalY + 8; }
+            alternateRowStyles: { fillColor: [250, 240, 250] }
           });
+          yPos = (doc as any).lastAutoTable.finalY + 8;
         }
 
         // Gender Distribution Section
@@ -3954,16 +3954,16 @@ you can map it during the import preview step.`;
           yPos += 10;
 
           const genderRows = Object.entries(genderData).map(([gender, count]: any) => [gender.replace(/_/g, ' '), count.toString()]);
-          autoTable(doc, {
+          (doc as any).autoTable({
             head: [['Gender Status', 'Count']],
             body: genderRows,
             startY: yPos,
             margin: 14,
             headStyles: { fillColor: [230, 126, 34], textColor: 255, fontStyle: 'bold', fontSize: 9 },
             bodyStyles: { fontSize: 8, cellPadding: 2 },
-            alternateRowStyles: { fillColor: [255, 240, 230] },
-            didDrawPage: (data) => { yPos = data.lastAutoTable.finalY + 8; }
+            alternateRowStyles: { fillColor: [255, 240, 230] }
           });
+          yPos = (doc as any).lastAutoTable.finalY + 8;
         }
 
         // Section colors for different data types
@@ -4002,16 +4002,16 @@ you can map it during the import preview step.`;
               const headers = Object.keys(value[0]);
               const tableRows = value.map((row: any) => headers.map(h => String(row[h] || '')));
               
-              autoTable(doc, {
+              (doc as any).autoTable({
                 head: [headers],
                 body: tableRows,
                 startY: yPos,
                 margin: 14,
                 headStyles: { fillColor: color, textColor: 255, fontStyle: 'bold', fontSize: 8 },
                 bodyStyles: { fontSize: 7, cellPadding: 1.5 },
-                alternateRowStyles: { fillColor: [245, 245, 245] },
-                didDrawPage: (data) => { yPos = data.lastAutoTable.finalY + 8; }
+                alternateRowStyles: { fillColor: [245, 245, 245] }
               });
+              yPos = (doc as any).lastAutoTable.finalY + 8;
             }
             // Handle object data (like distributions, summaries)
             else if (typeof value === 'object' && !Array.isArray(value)) {
@@ -4024,14 +4024,14 @@ you can map it during the import preview step.`;
               yPos += 10;
 
               const sectionRows = Object.entries(value).map(([k, v]: any) => [k, String(v)]);
-              autoTable(doc, {
+              (doc as any).autoTable({
                 body: sectionRows,
                 startY: yPos,
                 margin: 14,
                 bodyStyles: { fontSize: 8, cellPadding: 2 },
-                alternateRowStyles: { fillColor: [240, 240, 240] },
-                didDrawPage: (data) => { yPos = data.lastAutoTable.finalY + 8; }
+                alternateRowStyles: { fillColor: [240, 240, 240] }
               });
+              yPos = (doc as any).lastAutoTable.finalY + 8;
             }
           }
         });
