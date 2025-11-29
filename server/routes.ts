@@ -3730,7 +3730,7 @@ you can map it during the import preview step.`;
 
         let yPos = 15;
         doc.setFontSize(16);
-        doc.text('Report', 14, yPos);
+        doc.text('Veterinary Oncology Report', 14, yPos);
         yPos += 12;
 
         doc.setFontSize(10);
@@ -3745,27 +3745,156 @@ you can map it during the import preview step.`;
         doc.text(`Export Date: ${now}`, 14, yPos);
         yPos += 12;
 
-        doc.setFontSize(11);
-        doc.text('Report Data', 14, yPos);
-        yPos += 8;
+        // Create chart tables for summary statistics
+        const createChartTable = (title: string, data: Record<string, any>): any[] => {
+          return [
+            [{ content: title, styles: { halign: 'center', fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' } }],
+            ...Object.entries(data).map(([label, value]) => [
+              label,
+              String(value)
+            ])
+          ];
+        };
 
-        doc.setFontSize(9);
-        Object.entries(reportData).forEach(([key, value]) => {
-          if (yPos > 250) {
+        // Add Summary Statistics table with charts
+        if (reportData['Summary Statistics']) {
+          doc.setFontSize(11);
+          doc.text('Summary Statistics & Charts', 14, yPos);
+          yPos += 8;
+
+          const summaryTable = createChartTable('Key Metrics', reportData['Summary Statistics']);
+          (doc as any).autoTable({
+            body: summaryTable,
+            startY: yPos,
+            margin: 14,
+            theme: 'grid',
+            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+            bodyStyles: { textColor: 50, fontSize: 9 },
+            alternateRowStyles: { fillColor: [240, 240, 240] }
+          });
+          yPos = (doc as any).lastAutoTable.finalY + 8;
+        }
+
+        // Add Outcome Breakdown as visual chart table
+        if (reportData['Outcome Breakdown']) {
+          if (yPos > 240) {
             doc.addPage();
             yPos = 15;
           }
+          doc.setFontSize(11);
+          doc.text('Outcome Distribution Chart', 14, yPos);
+          yPos += 8;
 
-          if (typeof value === 'object' && !Array.isArray(value)) {
-            doc.text(`${key}:`, 14, yPos);
-            yPos += 5;
-            Object.entries(value as Record<string, any>).forEach(([k, v]) => {
-              doc.text(`  ${k}: ${v}`, 18, yPos);
-              yPos += 4;
-            });
-          } else if (!Array.isArray(value)) {
-            doc.text(`${key}: ${value}`, 14, yPos);
-            yPos += 5;
+          const outcomeData = reportData['Outcome Breakdown'];
+          const maxCount = Math.max(...Object.values(outcomeData as Record<string, number>));
+          const outcomeTable = [
+            [{ content: 'Treatment Outcome', styles: { halign: 'center', fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' } },
+             { content: 'Count', styles: { halign: 'center', fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' } },
+             { content: 'Percentage', styles: { halign: 'center', fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' } }],
+            ...Object.entries(outcomeData).map(([outcome, count]: any) => {
+              const total = Object.values(outcomeData).reduce((a: number, b: number) => a + b, 0);
+              const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
+              const barLength = Math.round((count / maxCount) * 20);
+              const bar = '█'.repeat(Math.max(0, barLength)) + '░'.repeat(Math.max(0, 20 - barLength));
+              return [outcome.replace(/_/g, ' '), String(count), `${percentage}% ${bar}`];
+            })
+          ];
+
+          (doc as any).autoTable({
+            body: outcomeTable,
+            startY: yPos,
+            margin: 14,
+            theme: 'grid',
+            headStyles: { fillColor: [230, 126, 34], textColor: 255, fontStyle: 'bold' },
+            bodyStyles: { textColor: 50, fontSize: 8 },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            columnStyles: { 0: { halign: 'left' }, 1: { halign: 'center' }, 2: { halign: 'left' } }
+          });
+          yPos = (doc as any).lastAutoTable.finalY + 8;
+        }
+
+        // Add Species Distribution chart
+        if (reportData['Species Distribution']) {
+          if (yPos > 240) {
+            doc.addPage();
+            yPos = 15;
+          }
+          doc.setFontSize(11);
+          doc.text('Species Distribution Chart', 14, yPos);
+          yPos += 8;
+
+          const speciesData = reportData['Species Distribution'];
+          const speciesTable = [
+            [{ content: 'Species', styles: { halign: 'center', fillColor: [46, 204, 113], textColor: 255, fontStyle: 'bold' } },
+             { content: 'Count', styles: { halign: 'center', fillColor: [46, 204, 113], textColor: 255, fontStyle: 'bold' } }],
+            ...Object.entries(speciesData).map(([species, count]: any) => [species, String(count)])
+          ];
+
+          (doc as any).autoTable({
+            body: speciesTable,
+            startY: yPos,
+            margin: 14,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 204, 113], textColor: 255, fontStyle: 'bold' },
+            bodyStyles: { textColor: 50, fontSize: 9 },
+            alternateRowStyles: { fillColor: [240, 250, 240] }
+          });
+          yPos = (doc as any).lastAutoTable.finalY + 8;
+        }
+
+        // Add Gender Distribution chart
+        if (reportData['Gender Distribution']) {
+          if (yPos > 240) {
+            doc.addPage();
+            yPos = 15;
+          }
+          doc.setFontSize(11);
+          doc.text('Gender Distribution Chart', 14, yPos);
+          yPos += 8;
+
+          const genderData = reportData['Gender Distribution'];
+          const genderTable = [
+            [{ content: 'Gender', styles: { halign: 'center', fillColor: [155, 89, 182], textColor: 255, fontStyle: 'bold' } },
+             { content: 'Count', styles: { halign: 'center', fillColor: [155, 89, 182], textColor: 255, fontStyle: 'bold' } }],
+            ...Object.entries(genderData).map(([gender, count]: any) => [gender.replace(/_/g, ' '), String(count)])
+          ];
+
+          (doc as any).autoTable({
+            body: genderTable,
+            startY: yPos,
+            margin: 14,
+            theme: 'grid',
+            headStyles: { fillColor: [155, 89, 182], textColor: 255, fontStyle: 'bold' },
+            bodyStyles: { textColor: 50, fontSize: 9 },
+            alternateRowStyles: { fillColor: [250, 240, 250] }
+          });
+          yPos = (doc as any).lastAutoTable.finalY + 8;
+        }
+
+        // Add any remaining data
+        doc.setFontSize(11);
+        Object.entries(reportData).forEach(([key, value]) => {
+          if (!['Summary Statistics', 'Outcome Breakdown', 'Species Distribution', 'Gender Distribution'].includes(key)) {
+            if (yPos > 240) {
+              doc.addPage();
+              yPos = 15;
+            }
+
+            if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
+              doc.text(key, 14, yPos);
+              yPos += 6;
+              const tableData = value.map(item => Object.values(item).map(v => String(v)));
+              const headers = Object.keys(value[0]);
+              (doc as any).autoTable({
+                head: [headers],
+                body: tableData,
+                startY: yPos,
+                margin: 14,
+                theme: 'grid',
+                bodyStyles: { textColor: 50, fontSize: 8 }
+              });
+              yPos = (doc as any).lastAutoTable.finalY + 6;
+            }
           }
         });
 
