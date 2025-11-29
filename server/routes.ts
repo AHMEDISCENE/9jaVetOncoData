@@ -4191,6 +4191,93 @@ Only output the SQL query, no explanations.`,
     }
   });
 
+  // News API - fetch veterinary oncology news
+  const newsCache = new Map<string, { data: any; timestamp: number }>();
+  const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
+
+  app.get("/api/news/veterinary-oncology", requireAuth, async (req, res) => {
+    try {
+      const cacheKey = "vet-oncology-news";
+      const cached = newsCache.get(cacheKey);
+      
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return res.json(cached.data);
+      }
+
+      const apiKey = process.env.NEWSAPI_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ 
+          success: false, 
+          error: "News API key not configured",
+          articles: []
+        });
+      }
+
+      const queries = [
+        "veterinary oncology cancer",
+        "veterinary tumor treatment breakthrough",
+        "animal cancer research"
+      ];
+
+      const allArticles: any[] = [];
+
+      for (const query of queries) {
+        try {
+          const response = await fetch(
+            `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&language=en&pageSize=5`,
+            {
+              headers: {
+                "X-Api-Key": apiKey,
+                "User-Agent": "VetOncoData/1.0"
+              }
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.articles) {
+              allArticles.push(...data.articles);
+            }
+          }
+        } catch (err) {
+          console.error(`[NEWS] Error fetching articles for query "${query}":`, err);
+        }
+      }
+
+      // Remove duplicates, sort by date, take top 10
+      const uniqueArticles = Array.from(
+        new Map(
+          allArticles.map((article) => [article.url, article])
+        ).values()
+      )
+        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+        .slice(0, 10);
+
+      const result = {
+        success: true,
+        articles: uniqueArticles.map((article) => ({
+          title: article.title,
+          description: article.description,
+          url: article.url,
+          source: article.source?.name || "Unknown Source",
+          image: article.urlToImage,
+          publishedAt: article.publishedAt,
+          content: article.content
+        }))
+      };
+
+      newsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      res.json(result);
+    } catch (error) {
+      console.error("[NEWS] Error fetching news:", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to fetch news",
+        articles: []
+      });
+    }
+  });
+
   // Ensure unmatched API routes return JSON instead of falling back to the SPA HTML.
   app.use('/api', (_req, res) => {
     return res.status(404).json({ success: false, error: 'API route not found' });

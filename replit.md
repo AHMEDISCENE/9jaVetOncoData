@@ -52,6 +52,9 @@ The system features comprehensive audit logging for all CUD operations and imple
 ## Email Services
 - **Gmail API**: Integrated via Replit connector for sending password reset emails using Google OAuth.
 
+## External APIs
+- **NewsAPI**: Fetches veterinary and oncology news articles for dashboard integration
+
 ## Development and Build Tools
 - **Vite**: Build tool and development server.
 - **TypeScript**: Type safety.
@@ -74,35 +77,50 @@ The system features comprehensive audit logging for all CUD operations and imple
 
 # Recent Changes
 
-## November 29, 2025
+## November 29, 2025 (Continued)
 
-### Navigation Pane 3D Shadow Effects
-- **Enhanced Visual Design**: Added professional 3D shadow and depth effects to sidebar navigation
-  - `shadow-2xl` for deep elevation with `dark:shadow-black/50` for dark mode
-  - 3D perspective (1200px) with Y-axis rotation on slide-in animation
-  - Glassmorphism effect with `backdrop-blur-sm` for modern appearance
-  - Gradient background overlay and gradient border on header
-- **Interactive Hover Effects**:
-  - Individual nav item shadows with hover enhancement
-  - Lift animation on hover (`hover:-translate-y-0.5`) for interactive feedback
-  - Gradient styling on active nav items for better visual hierarchy
-  - Smooth 300ms transitions for all effects
+### Bulk Upload Endpoint Role Restriction Removed
+- **Accessibility Change**: Removed `requireRole("MANAGER")` restriction from `/api/imports/upload` endpoint
+- **Result**: All authenticated users (CLINICIAN, RESEARCHER, STUDENT, etc.) can now perform bulk uploads, not just MANAGER+ roles
+- **Rationale**: Enables broader team participation in data import workflows
 
-### Bulk Upload Template Instructions
-- **Comprehensive User Guide**: Enhanced CSV template with complete instructions
-  - Added general guidelines section with best practices
-  - Detailed field descriptions for all 20 columns with examples
-  - Valid values guide (e.g., sex options: MALE_INTACT, MALE_NEUTERED, FEMALE_INTACT, FEMALE_SPAYED)
-  - Clear marking of REQUIRED (*) vs OPTIONAL fields
-  - Tips for successful import (8 practical guidelines)
-  - Information about flexible column mapping during import
-  - 3 example data rows showing real-world scenarios:
-    1. Standard case with recognized tumour type and anatomical site
-    2. Case with standard tumour type (lymphoma)
-    3. Case with custom anatomical site (nasal carcinoma)
-  - Nigerian state context and date format specifications (YYYY-MM-DD)
-  - Guidance on custom vs standard values for tumour types and anatomical sites
-- **Location**: `/api/imports/template.csv` endpoint returns template with embedded instructions
+### Tumour Type Analytics - Complete Dataset Display
+- **Fixed Data Limitation**: Removed hard-coded limit of 5 tumour types from analytics display
+- **Backend Changes**: 
+  - `getDashboardStats()` now returns ALL tumour types (no `.limit(5)`)
+  - `getSharedDashboardStats()` now returns complete tumour type list (removed `.slice(0, 5)`)
+- **Frontend Enhancement**:
+  - Main dashboard chart displays top 8 tumour types in horizontal bar chart format
+  - Popup modal shows complete breakdown of ALL tumour types found in database
+  - Updated messaging to clarify "Chart shows top 8 tumour types. Click for complete breakdown of all X types."
+- **Chart Format Change**: Replaced pie chart with horizontal bar chart for better readability with many items (less clustering)
+
+### Chart Format Improvement - Horizontal Bar Chart
+- **Replaced Pie Chart**: Changed tumour type distribution from pie chart to horizontal bar chart
+- **Reason**: Pie charts become unreadable with many items; horizontal bars clearly show counts and labels
+- **Applied to**: Both main dashboard card and popup modal for consistency
+- **Benefits**: Better visual hierarchy, improved label readability, clearer quantitative comparison
+
+### Dashboard Section Rename
+- **Section Renamed**: "Recent Activity" renamed to "Feeds" for clarity
+- **Location**: Dashboard `client/src/pages/dashboard.tsx` line 1008
+
+### Veterinary Oncology News Integration
+- **New Feature**: Added "Veterinary Oncology News" card to dashboard
+- **Backend Endpoint**: `GET /api/news/veterinary-oncology` (requires authentication)
+  - Fetches from NewsAPI using queries: "veterinary oncology cancer", "veterinary tumor treatment breakthrough", "animal cancer research"
+  - Implements 1-hour caching to minimize API calls
+  - Returns top 10 unique articles sorted by publication date
+  - Error handling with graceful fallback
+- **Frontend Component**: New `VeterinaryOncologyNews` component
+  - Displays top 5 articles in card format
+  - Each article shows: title, description, source, publication date, external link
+  - Loading skeleton during fetch
+  - Empty state message when no articles available
+  - Click opens article in new tab
+  - Responsive design with hover effects
+- **Requires**: NEWSAPI_KEY environment secret (from newsapi.org)
+- **Caching**: Articles cached for 1 hour to optimize API usage
 
 ## November 28, 2025
 

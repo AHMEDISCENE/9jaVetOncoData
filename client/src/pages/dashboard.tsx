@@ -27,10 +27,91 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Filter, X, Rss, Plus, Upload, TrendingUp } from "lucide-react";
+import { Filter, X, Rss, Plus, Upload, TrendingUp, ExternalLink, Newspaper } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { DashboardStats } from "@/lib/types";
 import type { FeedPost } from "@shared/schema";
+
+interface NewsArticle {
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+  image?: string;
+  publishedAt: string;
+  content?: string;
+}
+
+function VeterinaryOncologyNews() {
+  const { data: newsData, isLoading: isLoadingNews } = useQuery({
+    queryKey: ['/api/news/veterinary-oncology'],
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+
+  const articles = newsData?.articles || [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <Newspaper className="h-5 w-5 text-blue-600" />
+          Veterinary Oncology News
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoadingNews ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-3 w-2/3" />
+              </div>
+            ))}
+          </div>
+        ) : articles.length > 0 ? (
+          <div className="space-y-4">
+            {articles.slice(0, 5).map((article: NewsArticle, idx: number) => (
+              <a
+                key={`${article.url}-${idx}`}
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-3 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/50 transition-all group"
+                data-testid={`news-article-${idx}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                      {article.title}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {article.description}
+                    </p>
+                    <div className="flex items-center justify-between gap-2 mt-2">
+                      <Badge variant="outline" className="text-xs">
+                        {article.source}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(article.publishedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0 mt-1 transition-colors" />
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <Newspaper className="h-10 w-10 mx-auto mb-4 opacity-50" />
+            <p>No news articles available</p>
+            <p className="text-sm">Check back later for veterinary oncology updates</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 interface FlipCardProps {
   isFlipped: boolean;
@@ -1061,6 +1142,9 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Veterinary Oncology News */}
+      <VeterinaryOncologyNews />
 
       {/* Post Detail Dialog */}
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
