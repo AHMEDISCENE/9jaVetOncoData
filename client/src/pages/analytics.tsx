@@ -1119,17 +1119,34 @@ export default function Analytics() {
                 <p>📊 Main chart displays <strong>top 8 tumour types</strong> + "Others" group. Below shows <strong>complete breakdown of all {stats.topTumourTypes.length} tumour types</strong>.</p>
               </div>
             )}
-            <div className="h-64 w-full">
+            <div className="h-96 w-full">
               {stats && stats.topTumourTypes.length > 0 && (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={stats.topTumourTypes} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} dataKey="count">
+                  <BarChart 
+                    data={stats.topTumourTypes} 
+                    layout="vertical"
+                    margin={{ top: 5, right: 60, left: 200, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" vertical={false} />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={190} tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255,255,255,0.95)",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px"
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#3b82f6"
+                      radius={[0, 8, 8, 0]}
+                    >
                       {stats.topTumourTypes.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               )}
             </div>
