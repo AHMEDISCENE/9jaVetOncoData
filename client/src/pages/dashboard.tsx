@@ -1099,7 +1099,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Feeds */}
+      {/* Feed Highlights */}
       <Card className="bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200/50 dark:border-purple-800/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-bold flex items-center gap-3">
@@ -1107,7 +1107,7 @@ export default function Dashboard() {
               <Rss className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-foreground">Feeds</p>
+              <p className="text-foreground">Feed Highlights</p>
               <p className="text-xs text-muted-foreground font-normal">Get the latest information from other platform users</p>
             </div>
           </CardTitle>
@@ -1124,7 +1124,7 @@ export default function Dashboard() {
             </div>
           ) : recentFeedPosts && recentFeedPosts.length > 0 ? (
             <div className="space-y-3">
-              {recentFeedPosts.map((post) => (
+              {recentFeedPosts.slice(0, 5).map((post) => (
                 <motion.div 
                   key={post.id} 
                   whileHover={{ x: 4 }}
