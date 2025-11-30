@@ -84,12 +84,23 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
                 isFlipped={isFlipped}
                 onFlip={onFlip}
                 frontContent={
-                  <div className="h-full p-6 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex flex-col items-center justify-center text-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
-                      <Newspaper className="h-6 w-6 text-white" />
+                  <div 
+                    className="h-full p-6 rounded-xl text-white flex flex-col items-center justify-center text-center gap-3 relative overflow-hidden"
+                    style={{
+                      backgroundImage: currentArticle.image ? `url(${currentArticle.image})` : 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  >
+                    {/* Dark overlay for better text readability */}
+                    <div className="absolute inset-0 bg-black/40" />
+                    <div className="relative z-10">
+                      <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center mb-2">
+                        <Newspaper className="h-6 w-6 text-white" />
+                      </div>
+                      <h4 className="text-lg font-bold line-clamp-3">{currentArticle.title}</h4>
+                      <p className="text-sm opacity-90 mt-2">Click to view more</p>
                     </div>
-                    <h4 className="text-lg font-bold line-clamp-3">{currentArticle.title}</h4>
-                    <p className="text-sm opacity-90">Click to view more</p>
                   </div>
                 }
                 backContent={
