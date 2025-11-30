@@ -1759,8 +1759,9 @@ export class DatabaseStorage implements IStorage {
       // Tumour distribution by breed (top 5)
       const breedCounts = new Map<string, number>();
       allCases.forEach(c => {
-        if (c.breed) {
-          breedCounts.set(c.breed, (breedCounts.get(c.breed) || 0) + 1);
+        if (c.breed && c.breed.trim()) {
+          const normalizedBreed = c.breed.trim();
+          breedCounts.set(normalizedBreed, (breedCounts.get(normalizedBreed) || 0) + 1);
         }
       });
       const tumourDistributionByBreed = Array.from(breedCounts.entries())
@@ -1895,8 +1896,9 @@ export class DatabaseStorage implements IStorage {
       // Get all breed distribution (no limit for analytics)
       const breedCounts = new Map<string, number>();
       allCases.forEach(c => {
-        if (c.breed) {
-          breedCounts.set(c.breed, (breedCounts.get(c.breed) || 0) + 1);
+        if (c.breed && c.breed.trim()) {
+          const normalizedBreed = c.breed.trim();
+          breedCounts.set(normalizedBreed, (breedCounts.get(normalizedBreed) || 0) + 1);
         }
       });
       const allTumourDistributionByBreed = Array.from(breedCounts.entries())
