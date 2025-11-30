@@ -1893,9 +1893,33 @@ export class DatabaseStorage implements IStorage {
 
       const allCases = await query;
 
-      // Get all breed distribution (no limit for analytics)
+      // Get breed distribution from ALL cases (ignore species filter for breed aggregation)
+      let breedQuery = db.select().from(cases).$dynamic();
+      
+      // Apply all filters EXCEPT species to breed query
+      if (filters.clinicIds && filters.clinicIds.length > 0) {
+        breedQuery = breedQuery.where(inArray(cases.clinicId, filters.clinicIds));
+      }
+      if (filters.states && filters.states.length > 0) {
+        breedQuery = breedQuery.where(inArray(cases.state, filters.states));
+      }
+      if (filters.geoZones && filters.geoZones.length > 0) {
+        breedQuery = breedQuery.where(inArray(cases.geoZone, filters.geoZones));
+      }
+      // SKIP species filter for breed distribution
+      if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+        breedQuery = breedQuery.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+      }
+      if (filters.from) {
+        breedQuery = breedQuery.where(gte(cases.diagnosisDate, new Date(filters.from)));
+      }
+      if (filters.to) {
+        breedQuery = breedQuery.where(lte(cases.diagnosisDate, new Date(filters.to)));
+      }
+      
+      const breedCases = await breedQuery;
       const breedCounts = new Map<string, number>();
-      allCases.forEach(c => {
+      breedCases.forEach(c => {
         if (c.breed && c.breed.trim()) {
           const normalizedBreed = c.breed.trim();
           breedCounts.set(normalizedBreed, (breedCounts.get(normalizedBreed) || 0) + 1);
