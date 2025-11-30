@@ -384,6 +384,16 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [stats]);
 
+  // Auto-advance news every 5 seconds
+  useEffect(() => {
+    const newsInterval = setInterval(() => {
+      setCurrentNewsIndex(prev => (prev + 1) % 5);
+      setNewsFlipped(false);
+    }, 5000);
+    
+    return () => clearInterval(newsInterval);
+  }, []);
+
   const clearFilters = () => {
     setZone("");
     setSpecies("");
