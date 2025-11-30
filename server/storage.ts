@@ -1862,9 +1862,48 @@ export class DatabaseStorage implements IStorage {
     casesBySpecies: Array<{ name: string; count: number }>;
     treatmentOutcomes: Array<{ name: string; count: number }>;
     tumourDistributionByAge: Array<{ name: string; count: number }>;
+    tumourDistributionByBreed: Array<{ name: string; count: number }>;
   }> {
     try {
-      // Reuse dashboard stats logic
+      // Get all cases for analytics
+      let query = db.select().from(cases).$dynamic();
+      
+      if (filters.clinicIds && filters.clinicIds.length > 0) {
+        query = query.where(inArray(cases.clinicId, filters.clinicIds));
+      }
+      if (filters.states && filters.states.length > 0) {
+        query = query.where(inArray(cases.state, filters.states));
+      }
+      if (filters.geoZones && filters.geoZones.length > 0) {
+        query = query.where(inArray(cases.geoZone, filters.geoZones));
+      }
+      if (filters.species) {
+        query = query.where(eq(cases.species, filters.species));
+      }
+      if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+        query = query.where(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+      }
+      if (filters.from) {
+        query = query.where(gte(cases.diagnosisDate, new Date(filters.from)));
+      }
+      if (filters.to) {
+        query = query.where(lte(cases.diagnosisDate, new Date(filters.to)));
+      }
+
+      const allCases = await query;
+
+      // Get all breed distribution (no limit for analytics)
+      const breedCounts = new Map<string, number>();
+      allCases.forEach(c => {
+        if (c.breed) {
+          breedCounts.set(c.breed, (breedCounts.get(c.breed) || 0) + 1);
+        }
+      });
+      const allTumourDistributionByBreed = Array.from(breedCounts.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
+      // Reuse dashboard stats for other metrics
       const dashboardStats = await this.getSharedDashboardStats(filters);
       
       // Map to analytics format
@@ -1874,7 +1913,8 @@ export class DatabaseStorage implements IStorage {
         topTumourTypes: dashboardStats.topTumourTypes,
         casesBySpecies: dashboardStats.casesBySpecies,
         treatmentOutcomes: dashboardStats.treatmentOutcomes,
-        tumourDistributionByAge: dashboardStats.tumourDistributionByAge
+        tumourDistributionByAge: dashboardStats.tumourDistributionByAge,
+        tumourDistributionByBreed: allTumourDistributionByBreed
       };
     } catch (error) {
       console.error('[getSharedAnalyticsStats] Error:', error);
@@ -1890,6 +1930,7 @@ export class DatabaseStorage implements IStorage {
         casesBySpecies: [],
         treatmentOutcomes: [],
         tumourDistributionByAge: [],
+        tumourDistributionByBreed: [],
       };
     }
   }
