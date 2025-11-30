@@ -79,28 +79,32 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
           <Skeleton className="h-[200px] w-full" />
         ) : articles.length > 0 && currentArticle ? (
           <div className="space-y-4">
-            <div className="h-[200px]" onClick={onFlip}>
+            <div className="h-[200px]">
               <FlipCard
                 isFlipped={isFlipped}
                 onFlip={onFlip}
                 frontContent={
-                  <div className="h-full p-4 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex flex-col justify-between">
-                    <div>
-                      <h4 className="text-base font-bold line-clamp-3 mb-2">{currentArticle.title}</h4>
-                      <p className="text-xs line-clamp-2 opacity-90">{currentArticle.description}</p>
+                  <div className="h-full p-6 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex flex-col items-center justify-center text-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
+                      <Newspaper className="h-6 w-6 text-white" />
                     </div>
-                    <p className="text-xs opacity-75">Click to see more</p>
+                    <h4 className="text-lg font-bold line-clamp-3">{currentArticle.title}</h4>
+                    <p className="text-sm opacity-90">Click to view more</p>
                   </div>
                 }
                 backContent={
-                  <div className="h-full p-4 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 text-white flex flex-col justify-between overflow-auto">
+                  <div className="h-full p-6 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 text-white flex flex-col justify-between overflow-auto">
                     <div>
-                      <a href={currentArticle.url} target="_blank" rel="noopener noreferrer" className="text-base font-bold underline hover:text-blue-100 block mb-2">
+                      <a href={currentArticle.url} target="_blank" rel="noopener noreferrer" className="text-base font-bold underline hover:text-blue-100 block mb-3">
                         {currentArticle.title}
                       </a>
-                      <p className="text-xs mb-2">{currentArticle.source} • {new Date(currentArticle.publishedAt).toLocaleDateString()}</p>
+                      <p className="text-sm mb-3 line-clamp-4">{currentArticle.description}</p>
+                      <div className="flex items-center justify-between text-xs opacity-90 border-t border-white/20 pt-2">
+                        <span>{currentArticle.source}</span>
+                        <span>{new Date(currentArticle.publishedAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                    <p className="text-xs opacity-75 text-center">Click to flip back</p>
+                    <p className="text-xs opacity-75 text-center">Click to collapse</p>
                   </div>
                 }
                 frontClassName="bg-gradient-to-br from-blue-500 to-cyan-500"
@@ -155,7 +159,7 @@ interface FlipCardProps {
 function FlipCard({ isFlipped, onFlip, frontContent, backContent, frontClassName, backClassName, testId }: FlipCardProps) {
   return (
     <div
-      className="flip-card-container h-[160px] cursor-pointer"
+      className="flip-card-container h-[200px] cursor-pointer"
       onClick={onFlip}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -170,7 +174,7 @@ function FlipCard({ isFlipped, onFlip, frontContent, backContent, frontClassName
       <motion.div
         className="relative w-full h-full"
         style={{ transformStyle: "preserve-3d" }}
-        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        animate={{ rotateX: isFlipped ? 180 : 0 }}
         transition={{ duration: 0.6, ease: "easeInOut" }}
       >
         <div
@@ -183,7 +187,7 @@ function FlipCard({ isFlipped, onFlip, frontContent, backContent, frontClassName
           className={`absolute inset-0 w-full h-full rounded-xl shadow-lg overflow-hidden ${backClassName}`}
           style={{
             backfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
+            transform: "rotateX(180deg)",
           }}
         >
           {backContent}
