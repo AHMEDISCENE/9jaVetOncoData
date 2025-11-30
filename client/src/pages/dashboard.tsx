@@ -91,10 +91,10 @@ function VeterinaryOncologyNews() {
                 <div className="flex items-start gap-3">
                   <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 mt-2 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-2 leading-tight">
+                    <h4 className="text-base font-bold text-black dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-2 leading-tight">
                       {article.title}
                     </h4>
-                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2 leading-relaxed">
                       {article.description}
                     </p>
                     <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-border/50">
@@ -1141,10 +1141,10 @@ export default function Dashboard() {
                         {post.title}
                       </p>
                       <div className="flex items-center justify-between gap-2 mt-2">
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                           {(post as any).authorName || "Unknown Author"}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
                           {new Date(post.createdAt).toLocaleDateString()}
                         </p>
                       </div>
