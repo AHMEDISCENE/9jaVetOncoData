@@ -42,13 +42,22 @@ interface NewsArticle {
   content?: string;
 }
 
-function VeterinaryOncologyNews() {
+interface VeterinaryOncologyNewsProps {
+  currentIndex: number;
+  isFlipped: boolean;
+  onFlip: () => void;
+  onNext: () => void;
+  onPrev: () => void;
+}
+
+function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPrev }: VeterinaryOncologyNewsProps) {
   const { data: newsData, isLoading: isLoadingNews } = useQuery({
     queryKey: ['/api/news/veterinary-oncology'],
     staleTime: 1000 * 60 * 60, // 1 hour
   });
 
-  const articles = newsData?.articles || [];
+  const articles = newsData?.articles?.slice(0, 5) || [];
+  const currentArticle = articles[currentIndex];
 
   return (
     <Card className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200/50 dark:border-blue-800/50">
@@ -67,53 +76,57 @@ function VeterinaryOncologyNews() {
       </CardHeader>
       <CardContent>
         {isLoadingNews ? (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="p-4 bg-muted/30 rounded-lg space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-2 w-1/2" />
-              </div>
-            ))}
-          </div>
-        ) : articles.length > 0 ? (
-          <div className="space-y-3">
-            {articles.slice(0, 5).map((article: NewsArticle, idx: number) => (
-              <motion.a
-                key={`${article.url}-${idx}`}
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ x: 4 }}
-                className="block p-4 rounded-xl bg-white dark:bg-slate-900/50 border border-blue-100 dark:border-blue-900/30 hover:border-blue-400 dark:hover:border-blue-700 hover:shadow-md transition-all group cursor-pointer"
-                data-testid={`news-article-${idx}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 mt-2 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-base font-bold text-black dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-2 leading-tight">
-                      {article.title}
-                    </h4>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2 leading-relaxed">
-                      {article.description}
-                    </p>
-                    <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-border/50">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-0">
-                          {article.source}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(article.publishedAt).toLocaleDateString()}
-                        </p>
-                        <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors flex-shrink-0" />
-                      </div>
+          <Skeleton className="h-[200px] w-full" />
+        ) : articles.length > 0 && currentArticle ? (
+          <div className="space-y-4">
+            <div className="h-[200px]" onClick={onFlip}>
+              <FlipCard
+                isFlipped={isFlipped}
+                onFlip={onFlip}
+                frontContent={
+                  <div className="h-full p-4 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-base font-bold line-clamp-3 mb-2">{currentArticle.title}</h4>
+                      <p className="text-xs line-clamp-2 opacity-90">{currentArticle.description}</p>
                     </div>
+                    <p className="text-xs opacity-75">Click to see more</p>
                   </div>
-                </div>
-              </motion.a>
-            ))}
+                }
+                backContent={
+                  <div className="h-full p-4 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 text-white flex flex-col justify-between overflow-auto">
+                    <div>
+                      <a href={currentArticle.url} target="_blank" rel="noopener noreferrer" className="text-base font-bold underline hover:text-blue-100 block mb-2">
+                        {currentArticle.title}
+                      </a>
+                      <p className="text-xs mb-2">{currentArticle.source} • {new Date(currentArticle.publishedAt).toLocaleDateString()}</p>
+                    </div>
+                    <p className="text-xs opacity-75 text-center">Click to flip back</p>
+                  </div>
+                }
+                frontClassName="bg-gradient-to-br from-blue-500 to-cyan-500"
+                backClassName="bg-gradient-to-br from-blue-600 to-cyan-600"
+                testId="news-card"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={onPrev}
+                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors"
+                data-testid="button-prev-news"
+              >
+                ← Previous
+              </button>
+              <span className="text-sm font-semibold text-foreground">
+                {currentIndex + 1} / {articles.length}
+              </span>
+              <button
+                onClick={onNext}
+                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors"
+                data-testid="button-next-news"
+              >
+                Next →
+              </button>
+            </div>
           </div>
         ) : (
           <div className="text-center py-8 px-4">
@@ -238,6 +251,8 @@ export default function Dashboard() {
   });
   const [showCasesByMonthModal, setShowCasesByMonthModal] = useState(false);
   const [showTumourTypesModal, setShowTumourTypesModal] = useState(false);
+  const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
+  const [newsFlipped, setNewsFlipped] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -253,6 +268,16 @@ export default function Dashboard() {
   const handleCloseDrilldown = () => {
     setIsDrilldownOpen(false);
     setTimeout(() => setSelectedMetric(null), 300);
+  };
+
+  const handleNextNews = () => {
+    setCurrentNewsIndex(prev => (prev + 1) % 5);
+    setNewsFlipped(false);
+  };
+
+  const handlePrevNews = () => {
+    setCurrentNewsIndex(prev => (prev - 1 + 5) % 5);
+    setNewsFlipped(false);
   };
 
   const buildQueryParams = () => {
@@ -1169,7 +1194,13 @@ export default function Dashboard() {
 
       {/* Veterinary Oncology News */}
       <div className="mt-8">
-        <VeterinaryOncologyNews />
+        <VeterinaryOncologyNews 
+          currentIndex={currentNewsIndex}
+          isFlipped={newsFlipped}
+          onFlip={() => setNewsFlipped(!newsFlipped)}
+          onNext={handleNextNews}
+          onPrev={handlePrevNews}
+        />
       </div>
 
       {/* Post Detail Dialog */}
