@@ -106,7 +106,7 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
                       <a href={currentArticle.url} target="_blank" rel="noopener noreferrer" className="text-base font-bold hover:text-blue-100 block line-clamp-3">
                         {currentArticle.title}
                       </a>
-                      <p className="text-sm leading-relaxed">{currentArticle.description}</p>
+                      <p className="text-sm leading-relaxed line-clamp-4">{currentArticle.description}</p>
                       <div className="flex flex-col text-xs opacity-90 border-t border-white/20 pt-3 space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold">{currentArticle.source}</span>
