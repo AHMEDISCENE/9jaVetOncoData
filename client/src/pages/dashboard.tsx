@@ -76,10 +76,10 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
       </CardHeader>
       <CardContent>
         {isLoadingNews ? (
-          <Skeleton className="h-[200px] w-full" />
+          <Skeleton className="h-[300px] w-full" />
         ) : articles.length > 0 && currentArticle ? (
           <div className="space-y-4">
-            <div className="h-[200px]">
+            <div className="h-[300px]">
               <FlipCard
                 isFlipped={isFlipped}
                 onFlip={onFlip}
