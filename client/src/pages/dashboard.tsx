@@ -1105,6 +1105,17 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Veterinary Oncology News */}
+      <div className="mb-8">
+        <VeterinaryOncologyNews 
+          currentIndex={currentNewsIndex}
+          isFlipped={newsFlipped}
+          onFlip={() => setNewsFlipped(!newsFlipped)}
+          onNext={handleNextNews}
+          onPrev={handlePrevNews}
+        />
+      </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-6 mb-8">
         {/* Add New Case Card */}
@@ -1235,17 +1246,6 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
-
-      {/* Veterinary Oncology News */}
-      <div className="mt-8">
-        <VeterinaryOncologyNews 
-          currentIndex={currentNewsIndex}
-          isFlipped={newsFlipped}
-          onFlip={() => setNewsFlipped(!newsFlipped)}
-          onNext={handleNextNews}
-          onPrev={handlePrevNews}
-        />
-      </div>
 
       {/* Post Detail Dialog */}
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
