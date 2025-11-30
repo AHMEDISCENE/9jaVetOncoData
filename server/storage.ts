@@ -1756,18 +1756,83 @@ export class DatabaseStorage implements IStorage {
           return order.indexOf(a.name) - order.indexOf(b.name);
         });
 
-      // Tumour distribution by breed (top 5)
-      const breedCounts = new Map<string, number>();
+      // Tumour distribution by breed (all breeds, ignore species filter)
+      // Get all breeds from dataset, skipping the species filter
+      const breedBreakdownCounts = new Map<string, number>();
+      
+      // Use all cases from the main query but count by breed regardless of species
       allCases.forEach(c => {
         if (c.breed && c.breed.trim()) {
           const normalizedBreed = c.breed.trim();
-          breedCounts.set(normalizedBreed, (breedCounts.get(normalizedBreed) || 0) + 1);
+          breedBreakdownCounts.set(normalizedBreed, (breedBreakdownCounts.get(normalizedBreed) || 0) + 1);
         }
       });
-      const tumourDistributionByBreed = Array.from(breedCounts.entries())
+      
+      // For analytics modal: show ALL breeds if no species filter, otherwise show breed breakdown
+      let tumourDistributionByBreed = Array.from(breedBreakdownCounts.entries())
         .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
+        .sort((a, b) => b.count - a.count);
+      
+      // If species filter is applied, we still want to show top breeds from all species
+      // So we query ALL cases regardless of species filter for breed distribution
+      if (filters.species && filters.species.length > 0) {
+        // Build query with same filters but NO species filter
+        const breedOnlyConditions = [];
+        if (filters.clinicIds && filters.clinicIds.length > 0) {
+          breedOnlyConditions.push(inArray(cases.clinicId, filters.clinicIds));
+        }
+        if (filters.geoZones && filters.geoZones.length > 0) {
+          if (useJoin) {
+            const allowedStates = await db
+              .select({ code: ngStates.code })
+              .from(ngStates)
+              .where(inArray(ngStates.zone, filters.geoZones as any));
+            if (allowedStates.length > 0) {
+              const stateCodes = allowedStates.map(s => s.code);
+              breedOnlyConditions.push(inArray(cases.state, stateCodes as any));
+            }
+          } else {
+            const convertedZones = filters.geoZones.map(z => 
+              z.split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ')
+            );
+            const allowedStates = statesForZones(convertedZones);
+            if (allowedStates.length > 0) {
+              const stateEnums = allowedStates.map(s => s.toUpperCase());
+              breedOnlyConditions.push(inArray(cases.state, stateEnums as any));
+            }
+          }
+        }
+        if (filters.states && filters.states.length > 0) {
+          breedOnlyConditions.push(inArray(cases.state, filters.states));
+        }
+        if (filters.tumourTypeIds && filters.tumourTypeIds.length > 0) {
+          breedOnlyConditions.push(inArray(cases.tumourTypeId, filters.tumourTypeIds));
+        }
+        if (filters.from) {
+          breedOnlyConditions.push(gte(cases.diagnosisDate, new Date(filters.from)));
+        }
+        if (filters.to) {
+          breedOnlyConditions.push(lte(cases.diagnosisDate, new Date(filters.to)));
+        }
+        
+        const allBreedsData = breedOnlyConditions.length > 0 
+          ? await db.select().from(cases).where(and(...breedOnlyConditions))
+          : await db.select().from(cases);
+        
+        const allBreedCounts = new Map<string, number>();
+        allBreedsData.forEach(c => {
+          if (c.breed && c.breed.trim()) {
+            const normalizedBreed = c.breed.trim();
+            allBreedCounts.set(normalizedBreed, (allBreedCounts.get(normalizedBreed) || 0) + 1);
+          }
+        });
+        tumourDistributionByBreed = Array.from(allBreedCounts.entries())
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count);
+      }
+      
 
       // Cases by state
       const stateCounts = new Map<string, number>();
