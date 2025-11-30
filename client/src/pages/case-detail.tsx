@@ -570,21 +570,21 @@ export default function CaseDetail() {
             </Button>
           </Link>
           
-          <div className="flex items-start justify-between gap-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6">
             <div className="flex-1">
               <div className="mb-2">
-                <Badge variant="outline" className="mb-3">{caseData.caseNumber}</Badge>
+                <Badge variant="outline" className="mb-2 md:mb-3 text-xs">{caseData.caseNumber}</Badge>
               </div>
-              <h1 className="text-4xl font-bold text-foreground mb-1" data-testid="text-case-number">
+              <h1 className="text-2xl md:text-4xl font-bold text-foreground mb-1" data-testid="text-case-number">
                 {caseData.patientName || "Patient Case"}
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-sm md:text-lg text-muted-foreground">
                 {caseData.species} • {caseData.breed}
               </p>
             </div>
 
             {/* User & Clinic Info Card */}
-            <div className="flex flex-col gap-3 w-full sm:w-80">
+            <div className="flex flex-col gap-2 md:gap-3 w-full md:w-80">
               {/* User Card - Clickable */}
               <Card 
                 className="border-l-4 border-l-primary cursor-pointer hover:shadow-lg transition-shadow"
@@ -631,44 +631,44 @@ export default function CaseDetail() {
               <div className="space-y-2">
                 {canEditCase() && (
                   <Link href={`/cases/${caseId}/edit`}>
-                    <Button className="w-full" data-testid="button-edit-case">
+                    <Button className="w-full h-10 md:h-9 text-sm" data-testid="button-edit-case">
                       Edit Case
                     </Button>
                   </Link>
                 )}
                 
-                <div className="flex gap-2">
+                <div className="flex gap-1.5 md:gap-2">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="flex-1"
+                    className="flex-1 h-9 md:h-8 text-xs md:text-sm px-2 md:px-3"
                     onClick={exportToPDF}
                     disabled={isExporting}
                     data-testid="button-export-pdf"
                   >
-                    <FileText className="h-4 w-4 mr-1" />
+                    <FileText className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
                     PDF
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="flex-1"
+                    className="flex-1 h-9 md:h-8 text-xs md:text-sm px-2 md:px-3"
                     onClick={exportToExcel}
                     disabled={isExporting}
                     data-testid="button-export-excel"
                   >
-                    <Download className="h-4 w-4 mr-1" />
+                    <Download className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
                     Excel
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="flex-1"
+                    className="flex-1 h-9 md:h-8 text-xs md:text-sm px-2 md:px-3"
                     onClick={exportToJSON}
                     disabled={isExporting}
                     data-testid="button-export-json"
                   >
-                    <FileJson className="h-4 w-4 mr-1" />
+                    <FileJson className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
                     JSON
                   </Button>
                 </div>
@@ -678,42 +678,42 @@ export default function CaseDetail() {
         </div>
 
         {/* Key Info Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
           {/* Patient Age */}
           <Card className="bg-white/50 dark:bg-slate-900/50 border-none shadow-sm">
-            <CardContent className="p-4">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Age</p>
-              <p className="text-2xl font-bold">{caseData.ageYears || 0}y {caseData.ageMonths || 0}m</p>
+            <CardContent className="p-3 md:p-4">
+              <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Age</p>
+              <p className="text-lg md:text-2xl font-bold">{caseData.ageYears || 0}y {caseData.ageMonths || 0}m</p>
             </CardContent>
           </Card>
 
           {/* Sex */}
           {caseData.sex && (
             <Card className="bg-white/50 dark:bg-slate-900/50 border-none shadow-sm">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Sex</p>
-                <p className="text-2xl font-bold">{caseData.sex.replace(/_/g, ' ')}</p>
+              <CardContent className="p-3 md:p-4">
+                <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Sex</p>
+                <p className="text-lg md:text-2xl font-bold break-words">{caseData.sex.replace(/_/g, ' ')}</p>
               </CardContent>
             </Card>
           )}
 
           {/* Diagnosis Date */}
           <Card className="bg-white/50 dark:bg-slate-900/50 border-none shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex items-center gap-1 md:gap-2 mb-1">
                 <Calendar className="h-3 w-3 text-muted-foreground" />
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Diagnosis</p>
+                <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wide">Diagnosis</p>
               </div>
-              <p className="text-lg font-bold">{new Date(caseData.diagnosisDate).toLocaleDateString()}</p>
+              <p className="text-sm md:text-lg font-bold">{new Date(caseData.diagnosisDate).toLocaleDateString()}</p>
             </CardContent>
           </Card>
 
           {/* Outcome Status */}
           {caseData.outcome && (
             <Card className="bg-white/50 dark:bg-slate-900/50 border-none shadow-sm">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Status</p>
-                <Badge className={outcomeColors[caseData.outcome] || "bg-gray-100 text-gray-800"}>
+              <CardContent className="p-3 md:p-4">
+                <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 md:mb-2">Status</p>
+                <Badge className={`text-xs md:text-sm ${outcomeColors[caseData.outcome] || "bg-gray-100 text-gray-800"}`}>
                   {outcomeLabels[caseData.outcome] || caseData.outcome}
                 </Badge>
               </CardContent>
@@ -722,19 +722,19 @@ export default function CaseDetail() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Left Column - Patient & Tumour Info */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             {/* Patient Information */}
             <Card className="border-none shadow-md">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b">
-                <CardTitle className="flex items-center gap-2 text-lg">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b px-4 py-3 md:px-6 md:py-4">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                   <div className="h-1 w-1 rounded-full bg-primary"></div>
                   Patient Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <CardContent className="p-4 md:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                   <InfoField label="Patient Name" value={caseData.patientName || "Unnamed Patient"} testId="text-patient-name" />
                   <InfoField label="Species" value={caseData.species} testId="text-species" />
                   <InfoField label="Breed" value={caseData.breed} testId="text-breed" />
@@ -744,14 +744,14 @@ export default function CaseDetail() {
 
             {/* Tumour Details */}
             <Card className="border-none shadow-md">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Stethoscope className="h-5 w-5 text-primary" />
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b px-4 py-3 md:px-6 md:py-4">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <Stethoscope className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                   Tumour Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <CardContent className="p-4 md:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                   <InfoField 
                     label="Tumour Type" 
                     value={caseData.tumourType?.name || caseData.tumourTypeCustom || "Not specified"} 
@@ -772,10 +772,10 @@ export default function CaseDetail() {
 
             {/* Diagnosis & Treatment */}
             <Card className="border-none shadow-md">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b">
-                <CardTitle className="text-lg">Diagnosis & Treatment</CardTitle>
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b px-4 py-3 md:px-6 md:py-4">
+                <CardTitle className="text-base md:text-lg">Diagnosis & Treatment</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-6">
+              <CardContent className="p-4 md:p-6 space-y-4 md:space-y-6">
                 {caseData.diagnosisMethod && (
                   <InfoField label="Diagnosis Method" value={caseData.diagnosisMethod} />
                 )}
@@ -806,16 +806,16 @@ export default function CaseDetail() {
           </div>
 
           {/* Right Column - Clinic Info & Files Summary */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Clinic Information */}
             <Card className="border-l-4 border-l-amber-500 shadow-md">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <MapPin className="h-5 w-5 text-amber-600" />
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b px-4 py-3 md:px-6 md:py-4">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <MapPin className="h-4 w-4 md:h-5 md:w-5 text-amber-600" />
                   Clinic Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4">
+              <CardContent className="p-4 md:p-6 space-y-3 md:space-y-4">
                 <InfoField label="Clinic Name" value={caseData.clinic.name} testId="text-clinic-name" />
                 {caseData.clinic.state && (
                   <InfoField 
@@ -841,16 +841,16 @@ export default function CaseDetail() {
             {/* Files Summary */}
             {files.length > 0 && (
               <Card className="shadow-md">
-                <CardContent className="p-6">
-                  <div className="space-y-3">
+                <CardContent className="p-4 md:p-6">
+                  <div className="space-y-2 md:space-y-3">
                     {imageFiles.length > 0 && (
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50">
-                        <span className="text-sm font-medium">📷 {imageFiles.length} Image{imageFiles.length !== 1 ? 's' : ''}</span>
+                      <div className="flex items-center justify-between p-2.5 md:p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50">
+                        <span className="text-xs md:text-sm font-medium">📷 {imageFiles.length} Image{imageFiles.length !== 1 ? 's' : ''}</span>
                       </div>
                     )}
                     {documentFiles.length > 0 && (
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50">
-                        <span className="text-sm font-medium">📄 {documentFiles.length} Document{documentFiles.length !== 1 ? 's' : ''}</span>
+                      <div className="flex items-center justify-between p-2.5 md:p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50">
+                        <span className="text-xs md:text-sm font-medium">📄 {documentFiles.length} Document{documentFiles.length !== 1 ? 's' : ''}</span>
                       </div>
                     )}
                   </div>
@@ -862,9 +862,9 @@ export default function CaseDetail() {
 
         {/* Attachments Section */}
         <Card className="border-none shadow-md">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Attachments</CardTitle>
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b px-4 py-3 md:px-6 md:py-4">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base md:text-lg">Attachments</CardTitle>
               <div>
                 <input
                   ref={fileInputRef}
@@ -878,9 +878,10 @@ export default function CaseDetail() {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading || files.length >= 10 || !canManageFiles()}
                   size="sm"
+                  className="h-8 md:h-9 text-xs md:text-sm px-2.5 md:px-3"
                   data-testid="button-upload-file"
                 >
-                  <Upload className="h-4 w-4 mr-2" />
+                  <Upload className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
                   {isUploading ? "Uploading..." : "Upload"}
                 </Button>
               </div>
@@ -889,28 +890,28 @@ export default function CaseDetail() {
               <p className="text-xs text-muted-foreground mt-2">Maximum 10 files per case reached</p>
             )}
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             {filesLoading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 <p className="mt-2 text-muted-foreground text-sm">Loading files...</p>
               </div>
             ) : files.length === 0 ? (
-              <div className="text-center py-12 px-4">
-                <Upload className="h-16 w-16 mx-auto mb-4 opacity-20" />
-                <p className="font-medium text-foreground mb-1">No attachments yet</p>
-                <p className="text-sm text-muted-foreground">Upload images or documents to attach to this case</p>
+              <div className="text-center py-8 md:py-12 px-4">
+                <Upload className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-3 md:mb-4 opacity-20" />
+                <p className="font-medium text-foreground mb-1 text-sm md:text-base">No attachments yet</p>
+                <p className="text-xs md:text-sm text-muted-foreground">Upload images or documents to attach to this case</p>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-6 md:space-y-8">
                 {/* Images */}
                 {imageFiles.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <Image className="h-5 w-5 text-blue-500" />
+                    <h3 className="font-semibold text-foreground mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
+                      <Image className="h-4 w-4 md:h-5 md:w-5 text-blue-500" />
                       Images ({imageFiles.length})
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
                       {imageFiles.map((file) => (
                         <div key={file.id} className="relative group" data-testid={`image-${file.id}`}>
                           <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
@@ -965,29 +966,29 @@ export default function CaseDetail() {
                 {/* Documents */}
                 {documentFiles.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-amber-500" />
+                    <h3 className="font-semibold text-foreground mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
+                      <FileText className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
                       Documents ({documentFiles.length})
                     </h3>
                     <div className="space-y-2">
                       {documentFiles.map((file) => (
                         <div
                           key={file.id}
-                          className="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors group"
+                          className="flex items-center justify-between p-3 md:p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors group"
                           data-testid={`document-${file.id}`}
                         >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <FileText className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                            <FileText className="h-4 w-4 md:h-5 md:w-5 text-amber-500 flex-shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm truncate">{file.originalName}</p>
-                              <div className="flex items-center justify-between">
-                                <p className="text-xs text-muted-foreground">
+                              <p className="font-medium text-xs md:text-sm truncate">{file.originalName}</p>
+                              <div className="flex items-center justify-between flex-wrap gap-1">
+                                <p className="text-[10px] md:text-xs text-muted-foreground">
                                   {(file.sizeBytes / 1024 / 1024).toFixed(2)} MB
                                 </p>
                                 {file.uploadedByUser && (
                                   <button
                                     onClick={() => setSelectedUploader(file.uploadedByUser)}
-                                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer whitespace-nowrap ml-2"
+                                    className="text-[10px] md:text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer whitespace-nowrap"
                                     data-testid={`button-show-uploader-${file.id}`}
                                   >
                                     {file.uploadedByUser.firstName} {file.uploadedByUser.lastName}
