@@ -31,6 +31,7 @@ import { Filter, X, Rss, Plus, Upload, TrendingUp, ExternalLink, Newspaper } fro
 import { motion, AnimatePresence } from "framer-motion";
 import type { DashboardStats } from "@/lib/types";
 import type { FeedPost } from "@shared/schema";
+import pawPrintIcon from "@assets/image_1764492598811.png";
 
 interface NewsArticle {
   title: string;
@@ -64,8 +65,8 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-bold flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <Newspaper className="h-5 w-5 text-white" />
+            <div className="h-10 w-10 rounded-lg flex items-center justify-center">
+              <img src={pawPrintIcon} alt="Paw print" className="h-10 w-10" />
             </div>
             <div>
               <p className="text-lg font-bold text-black dark:text-white">Veterinary Oncology around the globe</p>
