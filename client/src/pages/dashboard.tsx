@@ -102,17 +102,32 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
                 }
                 backContent={
                   <div className="h-full p-6 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 text-white flex flex-col justify-between overflow-auto">
-                    <div>
-                      <a href={currentArticle.url} target="_blank" rel="noopener noreferrer" className="text-base font-bold underline hover:text-blue-100 block mb-3">
+                    <div className="space-y-3">
+                      <a href={currentArticle.url} target="_blank" rel="noopener noreferrer" className="text-base font-bold hover:text-blue-100 block line-clamp-3">
                         {currentArticle.title}
                       </a>
-                      <p className="text-sm mb-3 line-clamp-4">{currentArticle.description}</p>
-                      <div className="flex items-center justify-between text-xs opacity-90 border-t border-white/20 pt-2">
-                        <span>{currentArticle.source}</span>
-                        <span>{new Date(currentArticle.publishedAt).toLocaleDateString()}</span>
+                      <p className="text-sm leading-relaxed">{currentArticle.description}</p>
+                      {currentArticle.content && (
+                        <p className="text-xs opacity-90 line-clamp-3">{currentArticle.content}</p>
+                      )}
+                      <div className="flex flex-col text-xs opacity-90 border-t border-white/20 pt-3 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold">{currentArticle.source}</span>
+                          <span>{new Date(currentArticle.publishedAt).toLocaleDateString()}</span>
+                        </div>
                       </div>
                     </div>
-                    <p className="text-xs opacity-75 text-center">Click to collapse</p>
+                    <div className="pt-3 border-t border-white/20">
+                      <a 
+                        href={currentArticle.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded inline-block transition-colors"
+                      >
+                        Read Full Article →
+                      </a>
+                      <p className="text-xs opacity-60 text-center mt-2">Click card to collapse</p>
+                    </div>
                   </div>
                 }
                 frontClassName="bg-gradient-to-br from-blue-500 to-cyan-500"
