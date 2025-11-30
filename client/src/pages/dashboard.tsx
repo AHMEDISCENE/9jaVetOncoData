@@ -123,7 +123,6 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
                       >
                         Read Full Article →
                       </a>
-                      <p className="text-xs opacity-60 text-center mt-2">Click card to collapse</p>
                     </div>
                   </div>
                 }
