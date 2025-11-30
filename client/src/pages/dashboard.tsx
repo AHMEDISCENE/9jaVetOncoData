@@ -382,15 +382,16 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [stats]);
 
-  // Auto-advance news every 5 seconds
+  // Auto-advance news every 5 seconds (paused when flipped)
   useEffect(() => {
+    if (newsFlipped) return; // Don't auto-advance if card is flipped
+    
     const newsInterval = setInterval(() => {
       setCurrentNewsIndex(prev => (prev + 1) % 5);
-      setNewsFlipped(false);
     }, 5000);
     
     return () => clearInterval(newsInterval);
-  }, []);
+  }, [newsFlipped]);
 
   const clearFilters = () => {
     setZone("");
