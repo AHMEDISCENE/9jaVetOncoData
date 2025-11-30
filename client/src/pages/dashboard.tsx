@@ -146,7 +146,7 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
             <div className="flex items-center justify-between gap-2">
               <button
                 onClick={onPrev}
-                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors"
+                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-700 dark:hover:bg-cyan-800 text-white font-semibold transition-colors"
                 data-testid="button-prev-news"
               >
                 ← Previous
@@ -156,7 +156,7 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
               </span>
               <button
                 onClick={onNext}
-                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors"
+                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-700 dark:hover:bg-cyan-800 text-white font-semibold transition-colors"
                 data-testid="button-next-news"
               >
                 Next →
