@@ -76,10 +76,10 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
       </CardHeader>
       <CardContent>
         {isLoadingNews ? (
-          <Skeleton className="h-[300px] w-full" />
+          <Skeleton className="h-[200px] w-full" />
         ) : articles.length > 0 && currentArticle ? (
           <div className="space-y-4">
-            <div className="h-[300px]">
+            <div className="h-[200px]">
               <FlipCard
                 isFlipped={isFlipped}
                 onFlip={onFlip}
@@ -132,20 +132,20 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
                 testId="news-card"
               />
             </div>
-            <div className="flex items-center justify-between gap-4 pt-2">
+            <div className="flex items-center justify-between gap-2">
               <button
                 onClick={onPrev}
-                className="px-6 py-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors flex-1"
+                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors"
                 data-testid="button-prev-news"
               >
                 ← Previous
               </button>
-              <span className="text-base font-semibold text-foreground">
+              <span className="text-sm font-semibold text-foreground">
                 {currentIndex + 1} / {articles.length}
               </span>
               <button
                 onClick={onNext}
-                className="px-6 py-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors flex-1"
+                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors"
                 data-testid="button-next-news"
               >
                 Next →
