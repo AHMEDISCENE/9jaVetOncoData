@@ -296,12 +296,10 @@ export default function Dashboard() {
 
   const handleNextNews = () => {
     setCurrentNewsIndex(prev => (prev + 1) % 5);
-    setNewsFlipped(false);
   };
 
   const handlePrevNews = () => {
     setCurrentNewsIndex(prev => (prev - 1 + 5) % 5);
-    setNewsFlipped(false);
   };
 
   const buildQueryParams = () => {
