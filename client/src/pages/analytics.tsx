@@ -1355,11 +1355,17 @@ export default function Analytics() {
               {hasBreedData && (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={breedRows} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
                     <XAxis type="number" />
                     <YAxis dataKey="breed" type="category" width={100} tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="cases" fill="#06b6d4" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255,255,255,0.95)",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px"
+                      }}
+                    />
+                    <Bar dataKey="cases" fill="#20a39e" radius={[0, 8, 8, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -1368,18 +1374,18 @@ export default function Analytics() {
               <h4 className="font-semibold">Breed Breakdown:</h4>
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-muted">
+                  <thead className="bg-gradient-to-r from-teal-100 to-teal-50 dark:from-teal-900/40 dark:to-teal-800/20">
                     <tr>
-                      <th className="p-3 text-left">Breed</th>
-                      <th className="p-3 text-right">Cases</th>
-                      <th className="p-3 text-right">% of Total</th>
+                      <th className="p-3 text-left font-semibold text-teal-900 dark:text-teal-100">Breed</th>
+                      <th className="p-3 text-right font-semibold text-teal-900 dark:text-teal-100">Cases</th>
+                      <th className="p-3 text-right font-semibold text-teal-900 dark:text-teal-100">% of Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {breedRows.map((item) => {
                       const total = breedRows.reduce((sum, t) => sum + (t.cases || 0), 0);
                       return (
-                        <tr key={item.breed} className="border-t">
+                        <tr key={item.breed} className="border-t hover:bg-teal-50/50 dark:hover:bg-teal-900/20 transition-colors">
                           <td className="p-3 font-medium">{item.breed}</td>
                           <td className="p-3 text-right font-semibold">{item.cases}</td>
                           <td className="p-3 text-right text-muted-foreground">{total > 0 ? Math.round((item.cases / total) * 100) : 0}%</td>
@@ -1389,7 +1395,7 @@ export default function Analytics() {
                   </tbody>
                 </table>
               </div>
-              <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 mt-3">
+              <div className="text-xs text-muted-foreground bg-teal-50/60 dark:bg-teal-900/30 rounded p-2 mt-3 border border-teal-200 dark:border-teal-800">
                 <p>💡 <strong>Total Breeds:</strong> {breedRows.length} | <strong>Total Cases:</strong> {breedRows.reduce((sum, t) => sum + (t.cases || 0), 0) || 0}</p>
               </div>
             </div>
