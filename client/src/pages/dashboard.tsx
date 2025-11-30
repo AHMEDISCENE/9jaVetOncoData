@@ -80,57 +80,68 @@ function VeterinaryOncologyNews({ currentIndex, isFlipped, onFlip, onNext, onPre
           <Skeleton className="h-[200px] w-full" />
         ) : articles.length > 0 && currentArticle ? (
           <div className="space-y-4">
-            <div className="h-[200px]">
-              <FlipCard
-                isFlipped={isFlipped}
-                onFlip={onFlip}
-                frontContent={
-                  <div 
-                    className="h-full p-6 rounded-xl text-white flex flex-col items-center justify-center text-center gap-3 relative overflow-hidden"
-                    style={{
-                      backgroundImage: currentArticle.image ? `url(${currentArticle.image})` : 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }}
-                  >
-                    {/* Dark overlay for better text readability */}
-                    <div className="absolute inset-0 bg-black/40" />
-                    <div className="relative z-10">
-                      <h4 className="text-lg font-bold line-clamp-3">{currentArticle.title}</h4>
-                      <p className="text-sm opacity-90 mt-2">Click to view more</p>
-                    </div>
-                  </div>
-                }
-                backContent={
-                  <div className="h-full p-6 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 text-white flex flex-col justify-between">
-                    <div className="space-y-3">
-                      <a href={currentArticle.url} target="_blank" rel="noopener noreferrer" className="text-base font-bold hover:text-blue-100 block line-clamp-3">
-                        {currentArticle.title}
-                      </a>
-                      <p className="text-sm leading-relaxed line-clamp-4">{currentArticle.description}</p>
-                      <div className="flex flex-col text-xs opacity-90 border-t border-white/20 pt-3 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">{currentArticle.source}</span>
-                          <span>{new Date(currentArticle.publishedAt).toLocaleDateString()}</span>
+            <div className="h-[200px] relative">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentIndex}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  className="absolute inset-0"
+                >
+                  <FlipCard
+                    isFlipped={isFlipped}
+                    onFlip={onFlip}
+                    frontContent={
+                      <div 
+                        className="h-full p-6 rounded-xl text-white flex flex-col items-center justify-center text-center gap-3 relative overflow-hidden"
+                        style={{
+                          backgroundImage: currentArticle.image ? `url(${currentArticle.image})` : 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }}
+                      >
+                        {/* Dark overlay for better text readability */}
+                        <div className="absolute inset-0 bg-black/40" />
+                        <div className="relative z-10">
+                          <h4 className="text-lg font-bold line-clamp-3">{currentArticle.title}</h4>
+                          <p className="text-sm opacity-90 mt-2">Click to view more</p>
                         </div>
                       </div>
-                    </div>
-                    <div className="pt-3 border-t border-white/20">
-                      <a 
-                        href={currentArticle.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded inline-block transition-colors"
-                      >
-                        Read Full Article →
-                      </a>
-                    </div>
-                  </div>
-                }
-                frontClassName="bg-gradient-to-br from-blue-500 to-cyan-500"
-                backClassName="bg-gradient-to-br from-blue-600 to-cyan-600"
-                testId="news-card"
-              />
+                    }
+                    backContent={
+                      <div className="h-full p-6 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 text-white flex flex-col justify-between">
+                        <div className="space-y-3">
+                          <a href={currentArticle.url} target="_blank" rel="noopener noreferrer" className="text-base font-bold hover:text-blue-100 block line-clamp-3">
+                            {currentArticle.title}
+                          </a>
+                          <p className="text-sm leading-relaxed line-clamp-4">{currentArticle.description}</p>
+                          <div className="flex flex-col text-xs opacity-90 border-t border-white/20 pt-3 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold">{currentArticle.source}</span>
+                              <span>{new Date(currentArticle.publishedAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="pt-3 border-t border-white/20">
+                          <a 
+                            href={currentArticle.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded inline-block transition-colors"
+                          >
+                            Read Full Article →
+                          </a>
+                        </div>
+                      </div>
+                    }
+                    frontClassName="bg-gradient-to-br from-blue-500 to-cyan-500"
+                    backClassName="bg-gradient-to-br from-blue-600 to-cyan-600"
+                    testId="news-card"
+                  />
+                </motion.div>
+              </AnimatePresence>
             </div>
             <div className="flex items-center justify-between gap-2">
               <button
